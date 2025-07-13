@@ -1,5 +1,12 @@
 # Environment Setup
 
+For WSL:
+
+* Make sure you are running WSL2
+* Make sure that Python TK is installed:
+
+    sudo apt-get install python3-tk
+
 Setup virtual environment:
 
     python3 -m venv dev
