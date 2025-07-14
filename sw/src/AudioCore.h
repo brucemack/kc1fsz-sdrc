@@ -23,6 +23,8 @@
 #include <cstdint>
 #include <cmath>
 
+#include <arm_math.h>
+
 namespace kc1fsz {
 
 /**
@@ -59,38 +61,36 @@ public:
 private:
 
     const unsigned _id;
-    // These history buffers are used for FIR filter 
-    // evaluation at the various sample rates
-    float _hist32k[BLOCK_SIZE_ADC];
-    float _hist16k[BLOCK_SIZE_ADC / 2];
 
-    static const unsigned HIST_8K_LEN = 127;
-    unsigned _hist8KPtr = 0;
-    float _hist8k[HIST_8K_LEN];
-
-    // Noise HPF
+    // Noise HPF, runs at 32k
     static const unsigned FILTER_B_LEN = 41;
     static const float FILTER_B[FILTER_B_LEN];
-    float _filtOutB[BLOCK_SIZE_ADC];
-
+    arm_fir_instance_f32 _filtB;
+    float _filtBState[FILTER_B_LEN + BLOCK_SIZE_ADC - 1];
+  
     // Decimation LPF
     static const unsigned FILTER_C_LEN = 41;
     static const float FILTER_C[FILTER_C_LEN];
-    float _filtOutC[BLOCK_SIZE_ADC / 2];
-    float _filtOutD[BLOCK_SIZE_ADC / 4];
+    // For the 16k filter
+    arm_fir_decimate_instance_f32 _filtC;
+    float _filtCState[FILTER_C_LEN + (BLOCK_SIZE_ADC / 2) - 1];
+    // For the 8k filter
+    arm_fir_decimate_instance_f32 _filtD;
+    float _filtDState[FILTER_C_LEN + BLOCK_SIZE - 1];
 
-    // Band pass filter (CTCSS removal)
+    // Band pass filter (CTCSS removal), runs at 8k
     static const unsigned FILTER_F_LEN = 127;
     static const float FILTER_F[FILTER_F_LEN];
+    arm_fir_instance_f32 _filtF;
+    float _filtFState[FILTER_F_LEN + BLOCK_SIZE - 1];
 
-    // Low-pass filter for interpolation 8K->32K
+    // Low-pass filter for interpolation 8K->32K, runs at 32k
     static const unsigned FILTER_N_LEN = 127;
     static const float FILTER_N[FILTER_N_LEN];
+    arm_fir_instance_f32 _filtN;
+    float _filtNState[FILTER_N_LEN + BLOCK_SIZE_ADC - 1];
 
-    static const unsigned HISTB_32K_LEN = FILTER_N_LEN;
-    unsigned _histB32kPtr = 0;
-    float _histB32k[HISTB_32K_LEN];
-
+    // For capturing various measures of energy
     float _noiseRms;
     float _signalRms;
 
@@ -121,5 +121,3 @@ private:
 }
 
 #endif
-
-

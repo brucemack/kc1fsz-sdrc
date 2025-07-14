@@ -4,3 +4,6 @@
 [submodule "sw/radlib"]
 	path = sw/radlib
 	url = https://github.com/brucemack/radlib.git
+[submodule "sw/gsm-0610-codec"]
+	path = sw/gsm-0610-codec
+	url = https://github.com/brucemack/gsm-0610-codec.git

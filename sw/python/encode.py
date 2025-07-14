@@ -6,7 +6,7 @@ import numpy as np
 
 samplerate = 32000; 
 in_fn = "../tests/clip-3b.txt"
-out_fn = "../tests/clip-3b.wav"
+out_fn = "/mnt/c/tmp/clip-3b.wav"
 
 with open(in_fn, "r") as txt_file:
     data = np.array([int(line) for line in txt_file])
