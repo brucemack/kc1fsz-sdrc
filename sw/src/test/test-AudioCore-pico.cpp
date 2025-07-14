@@ -17,6 +17,7 @@ When targeting RP2350 (Pico 2), command used to load code onto the board:
 #include "hardware/watchdog.h"
 
 #include "kc1fsz-tools/Log.h"
+#include "kc1fsz-tools/rp2040/PicoClock.h"
 
 #define LED_PIN (PICO_DEFAULT_LED_PIN)
 

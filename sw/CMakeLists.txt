@@ -1,8 +1,22 @@
 cmake_minimum_required(VERSION 3.13)
+# Order matters here, need to pull in pico_sdk_import.cmake
+if (HOST)
+# Nothing
+else()
+include(pico_sdk_import.cmake)
+endif()
+
 project(kc1fsz-sdrc C CXX ASM)
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_CXX_STANDARD 23)
 set(HOME $ENV{HOME})
+
+# Order matters here, need to call pico_sdk_init()
+if (HOST)
+# Nothing
+else()
+pico_sdk_init()
+endif()
 
 # ===== HOST EXECUTABLES =====================================================
 
@@ -32,8 +46,8 @@ target_include_directories(dtmf-test-1 PRIVATE kc1fsz-tools-cpp/include)
 # ===== PICO EXECUTABLES =====================================================
 else()
 
-include(pico_sdk_import.cmake)
-pico_sdk_init()
+#include(pico_sdk_import.cmake)
+#pico_sdk_init()
 
 add_executable(main
   src/test/test-AudioCore-pico.cpp
@@ -53,7 +67,7 @@ add_executable(main
 #  src/test/TestRx.cpp
 #  src/hw/StdTx.cpp
 #  src/hw/StdRx.cpp
-#  kc1fsz-tools-cpp/src/Common.cpp
+  kc1fsz-tools-cpp/src/Common.cpp
 #  kc1fsz-tools-cpp/src/CommandShell.cpp
 #  kc1fsz-tools-cpp/src/ToneSynthesizer.cpp
 #  kc1fsz-tools-cpp/src/rp2040/PicoPollTimer.cpp
