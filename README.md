@@ -14,4 +14,13 @@ Building host targets:
 
 Build PICO targets:
 
+    export PICO_SDK_PATH=/home/bruce/pico/pico-sdk
+    git submodule update --init
+    mkdir build
+    cd build
+    cmake -DPICO_BOARD=pico2 ..
+    
+
+
+
 
