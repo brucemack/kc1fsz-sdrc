@@ -88,8 +88,10 @@ AudioCore::AudioCore(unsigned id)
 :   _id(id) {
     // Filter initializations
     arm_fir_init_f32(&_filtB, FILTER_B_LEN, FILTER_B, _filtBState, BLOCK_SIZE_ADC);
-    arm_fir_decimate_init_f32(&_filtC, FILTER_C_LEN, 2, FILTER_C, _filtCState, BLOCK_SIZE_ADC / 2);
-    arm_fir_decimate_init_f32(&_filtD, FILTER_C_LEN, 2, FILTER_C, _filtDState, BLOCK_SIZE);
+    // This filter works on 32k audio
+    arm_fir_decimate_init_f32(&_filtC, FILTER_C_LEN, 2, FILTER_C, _filtCState, BLOCK_SIZE_ADC);
+    // This filter works on 16k audio
+    arm_fir_decimate_init_f32(&_filtD, FILTER_C_LEN, 2, FILTER_C, _filtDState, BLOCK_SIZE_ADC / 2);
     arm_fir_init_f32(&_filtF, FILTER_F_LEN, FILTER_F, _filtFState, BLOCK_SIZE);
     arm_fir_init_f32(&_filtN, FILTER_N_LEN, FILTER_N, _filtNState, BLOCK_SIZE_ADC);
 }
@@ -106,29 +108,34 @@ void AudioCore::cycle0(const float* adc_in, float* cross_out) {
     float filtOutD[BLOCK_SIZE];
     arm_fir_decimate_f32(&_filtD, filtOutC, filtOutD, BLOCK_SIZE_ADC / 2);
 
+    // TEMP!
+    //for (unsigned i = 0; i < BLOCK_SIZE; i++)
+    //    cross_out[i] = filtOutD[i];
+
     // Apply the CTCSS elimination filter
     float filtOutF[BLOCK_SIZE];
     arm_fir_f32(&_filtF, filtOutD, filtOutF, BLOCK_SIZE);
 
-    // Do processing on the final 8K audio
+    // Do tone processing on the final 8K audio
     for (unsigned int i = 0; i < BLOCK_SIZE; i++) {
-
-        float s = filtOutF[i];
+        float s = filtOutD[i];
 
         // CTCSS decode
         float z0 = s + _gc * _gz1 - _gz2;
         _gz2 = _gz1;
         _gz1 = z0;
 
-        // DTMF decode   
+        // TODO: DTMF decode   
+    }
 
-        // Apply the delay. Put the final filtered sample into the 
-        // delay area.
-        _delayArea[_delayAreaWritePtr] = s;
+    // Apply the delay to the final audio. 
+    for (unsigned int i = 0; i < BLOCK_SIZE; i++) {
+
+        // Put the sample into the delay area
+        _delayArea[_delayAreaWritePtr] = filtOutF[i];
         _delayAreaWritePtr = incAndWrap(_delayAreaWritePtr, _delayAreaLen);
 
-        // Move a sample from the delay area into the 
-        // output
+        // Move a sample from the delay area into the output
         if (_delayCountdown) {
             cross_out[i] = 0;
             _delayCountdown--;
@@ -331,7 +338,7 @@ void AudioCore::cycle1(const float** cross_in, float* dac_out) {
         filtInN[i] = s;
     }
     
-    // Apply the LPF
+    // Apply the interpolation LPF
     arm_fir_f32(&_filtN, filtInN, dac_out, BLOCK_SIZE_ADC);
 
     /*

@@ -71,12 +71,12 @@ private:
     // Decimation LPF
     static const unsigned FILTER_C_LEN = 41;
     static const float FILTER_C[FILTER_C_LEN];
-    // For the 16k filter
+    // For the 16k filter, but still runs on 32k audio
     arm_fir_decimate_instance_f32 _filtC;
-    float _filtCState[FILTER_C_LEN + (BLOCK_SIZE_ADC / 2) - 1];
-    // For the 8k filter
+    float _filtCState[FILTER_C_LEN + BLOCK_SIZE_ADC - 1];
+    // For the 8k filter, but still runs on 16k audio
     arm_fir_decimate_instance_f32 _filtD;
-    float _filtDState[FILTER_C_LEN + BLOCK_SIZE - 1];
+    float _filtDState[FILTER_C_LEN + (BLOCK_SIZE_ADC / 2) - 1];
 
     // Band pass filter (CTCSS removal), runs at 8k
     static const unsigned FILTER_F_LEN = 127;

@@ -5,6 +5,7 @@ import scipy.io.wavfile as wavfile
 import numpy as np
 
 samplerate = 32000; 
+#samplerate = 8000; 
 in_fn = "../tests/clip-3b.txt"
 out_fn = "/mnt/c/tmp/clip-3b.wav"
 
