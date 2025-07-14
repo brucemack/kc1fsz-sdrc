@@ -73,4 +73,8 @@ void arm_fir_decimate_f32(const arm_fir_decimate_instance_f32* S,
     uint32_t blockSize
 );
 
+void arm_rms_f32(const float32_t* pSrc,
+    uint32_t blockSize,
+    float32_t* pResult);
+
 #endif

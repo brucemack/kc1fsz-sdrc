@@ -98,7 +98,8 @@ int main(int, const char**) {
 
     float cross_out_0[AudioCore::BLOCK_SIZE];
     float cross_out_1[AudioCore::BLOCK_SIZE];
-    const float* cross_in[2] = { cross_out_0, cross_out_1 };
+    const float* cross_ins[2] = { cross_out_0, cross_out_1 };
+    float cross_gains[2] = { 1.0, 0.0 };
 
     float dac_out_0[AudioCore::BLOCK_SIZE_ADC];
     float dac_out_1[AudioCore::BLOCK_SIZE_ADC];
@@ -114,18 +115,23 @@ int main(int, const char**) {
 
         core0.cycle0(adc_in_0, cross_out_0);
         core1.cycle0(adc_in_1, cross_out_1);
-        core0.cycle1(cross_in, dac_out_0);
-        core1.cycle1(cross_in, dac_out_1);
+        core0.cycle1(2, cross_ins, cross_gains, dac_out_0);
+        core1.cycle1(2, cross_ins, cross_gains, dac_out_1);
 
         adc_in_0 += AudioCore::BLOCK_SIZE_ADC;
         adc_in_1 += AudioCore::BLOCK_SIZE_ADC;
 
+        float np = dB(core0.getNoiseRms());
+        float sp = dB(core0.getSignalRms());
+        float op = dB(core0.getOutRms());
+        float cm = core0.getCtcssDecodeMag();
         unsigned elUs = timer.elapsedUs();
 
         log.info("  Elapsed us      %u", elUs);
-        log.info("  Noise power dB  %f", dB(core0.getNoiseRms()));
-        log.info("  Signal power dB %f", dB(core0.getSignalRms()));
-        log.info("  CTCSS mag       %f", core0.getCtcssDecodeMag());
+        log.info("  Noise power dB  %f", np);
+        log.info("  Signal power dB %f", sp);
+        log.info("  Output power dB %f", op);
+        log.info("  CTCSS mag       %f", cm);
     }
 
     while (true) {

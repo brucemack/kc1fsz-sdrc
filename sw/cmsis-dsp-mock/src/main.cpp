@@ -81,3 +81,15 @@ void arm_fir_decimate_f32(const arm_fir_decimate_instance_f32* s,
         dataHistory += 2;
     }
 }
+
+void arm_rms_f32(const float32_t* pSrc,
+    uint32_t blockSize,
+    float32_t* pResult) {
+    float a = 0;
+    for (unsigned i = 0; i < blockSize; i++)
+        a += pow(pSrc[i], 2.0);
+    a /= (float)_blockSize;
+    *pResult = sqrt(a);
+}
+
+

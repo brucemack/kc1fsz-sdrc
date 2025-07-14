@@ -33,18 +33,20 @@ namespace kc1fsz {
 class AudioCore {
 public:
 
-    AudioCore(unsigned id);
-
-    void cycle0(const float* adc_in, float* cross_out);
-    void cycle1(const float** cross_in, float* dac_out);
-
     static const unsigned FS_ADC = 32000;
     static const unsigned BLOCK_SIZE_ADC = 256;
     static const unsigned FS = FS_ADC / 4;
     static const unsigned BLOCK_SIZE = BLOCK_SIZE_ADC / 4;
 
+    AudioCore(unsigned id);
+
+    void cycle0(const float* adc_in, float* cross_out);
+    void cycle1(unsigned cross_count, 
+        const float** cross_ins, const float* cross_gains, float* dac_out);
+
     float getSignalRms() const { return _signalRms; }
     float getNoiseRms() const { return _noiseRms; }
+    float getOutRms() const { return _outRms; }
 
     void setCtcssDecodeFreq(float hz);
     float getCtcssDecodeMag() const { return _ctcssMag; }
@@ -91,6 +93,7 @@ private:
     // For capturing various measures of energy
     float _noiseRms;
     float _signalRms;
+    float _outRms;
 
     // Used for CTCSS encoding
     bool _ctcssEncodeEnabled = false;

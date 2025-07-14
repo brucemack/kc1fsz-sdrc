@@ -94,6 +94,9 @@ AudioCore::AudioCore(unsigned id)
     arm_fir_init_f32(&_filtN, FILTER_N_LEN, FILTER_N, _filtNState, BLOCK_SIZE_ADC);
 }
 
+/**
+ * Implementation is approximately 1.1ms on an RP2350.
+ */
 void AudioCore::cycle0(const float* adc_in, float* cross_out) {
 
     // Apply HPF to 32kHz samples to isolate noise energy
@@ -106,10 +109,6 @@ void AudioCore::cycle0(const float* adc_in, float* cross_out) {
     float filtOutD[BLOCK_SIZE];
     arm_fir_decimate_f32(&_filtD, filtOutC, filtOutD, BLOCK_SIZE_ADC / 2);
 
-    // TEMP!
-    //for (unsigned i = 0; i < BLOCK_SIZE; i++)
-    //    cross_out[i] = filtOutD[i];
-
     // Apply the CTCSS elimination filter
     float filtOutF[BLOCK_SIZE];
     arm_fir_f32(&_filtF, filtOutD, filtOutF, BLOCK_SIZE);
@@ -117,7 +116,6 @@ void AudioCore::cycle0(const float* adc_in, float* cross_out) {
     // Do tone processing on the final 8K audio
     for (unsigned int i = 0; i < BLOCK_SIZE; i++) {
         float s = filtOutD[i];
-
         // CTCSS decode
         float z0 = s + _gc * _gz1 - _gz2;
         _gz2 = _gz1;
@@ -143,128 +141,13 @@ void AudioCore::cycle0(const float* adc_in, float* cross_out) {
         _delayAreaReadPtr = incAndWrap(_delayAreaReadPtr, _delayAreaLen);
     }
 
-    /*
-    for (unsigned i = 0; i < BLOCK_SIZE_ADC; i++) {
-        
-        // Build the history the the FIR filters will use
-        _hist32k[i] = adc_in[i];
-        
-        // HPF for noise detection
-        {
-            // Iterate backwards through history and forward
-            // through the filter coefficients
-            unsigned k = i;
-            float a = 0;
-            for (unsigned j = 0; j < FILTER_B_LEN; j++) {
-                a += (_hist32k[k] * FILTER_B[j]);
-                k = decAndWrap(k, BLOCK_SIZE_ADC);
-            }
-            _filtOutB[i] = a;
-        }
-        
-        // Decimation LPF down to 16kHz. We only do this
-        // on half of the input samples.
-        if (i % 2 == 0) {
-            // Iterate backwards through history and forward
-            // through the filter coefficients.
-            // TODO: LEVERAGE THE SYMMETRY OF THE COEFFICIENTS
-            // TO ELIMINATE SOME MULTIPLICATIONS.
-            unsigned k = i;
-            float a = 0;
-            for (unsigned j = 0; j < FILTER_C_LEN; j++) {
-                // Many of the coefficients will be zero
-                if (FILTER_C[j] != 0)
-                    a += (_hist32k[k] * FILTER_C[j]);
-                k = decAndWrap(k, BLOCK_SIZE_ADC);
-            }
-            // NOTE: Packing into half of the space
-            _filtOutC[i / 2] = a;
-        }
-    }
-
-    // Work on the 16kHz samples
-    for (unsigned i = 0; i < BLOCK_SIZE_ADC / 2; i++) {
-        
-        // Build the history that the FIR filters will use
-        _hist16k[i] = _filtOutC[i];
-        
-        // Decimation LPF down to 8kHz. We only do this
-        // on half of the input samples.
-        if (i % 2 == 0) {
-            // Iterate backwards through history and forward
-            // through the filter coefficients.
-            // TODO: LEVERAGE THE SYMMETRY OF THE COEFFICIENTS
-            // TO ELIMINATE SOME MULTIPLICATIONS.
-            unsigned k = i;
-            float a = 0;
-            for (unsigned j = 0; j < FILTER_C_LEN; j++) {
-                // Many of the coefficients will be zero
-                if (FILTER_C[j] != 0)
-                    a += (_hist16k[k] * FILTER_C[j]);
-                k = decAndWrap(k, BLOCK_SIZE_ADC / 2);
-            }
-            // NOTE: Packing into half of the space
-            _filtOutD[i / 2] = a;
-        }
-    }
-    
-    // Work on the 8kHz samples
-    float ctcssTotal = 0;
-    
-    for (unsigned i = 0; i < BLOCK_SIZE; i++) {
-        
-        float s = _filtOutD[i];
-
-        // Build the history that the FIR filters will use
-        _hist8k[_hist8KPtr] = s;
-
-        // BPF
-        {
-            // Iterate backwards through history and forward
-            // through the filter coefficients
-            unsigned k = _hist8KPtr;
-            float a = 0;
-            for (unsigned j = 0; j < FILTER_F_LEN; j++) {
-                a += (_hist8k[k] * FILTER_F[j]);
-                k = decAndWrap(k, HIST_8K_LEN);
-            }
-
-            // Put the final filtered sample into the 
-            // delay area.
-            _delayArea[_delayAreaWritePtr] = a;
-            _delayAreaWritePtr = incAndWrap(_delayAreaWritePtr,
-                _delayAreaLen);
-
-            _hist8KPtr = incAndWrap(_hist8KPtr, HIST_8K_LEN);
-        }
-
-        // Move a sample from the delay area into the 
-        // output
-        if (_delayCountdown) {
-            cross_out[i] = 0;
-            _delayCountdown--;
-        }
-        else { 
-            cross_out[i] = _delayArea[_delayAreaReadPtr];
-        }
-
-        _delayAreaReadPtr = incAndWrap(_delayAreaReadPtr,
-            _delayAreaLen);
-
-        // CTCSS decode
-        float z0 = s + _gc * _gz1 - _gz2;
-        _gz2 = _gz1;
-        _gz1 = z0;
-
-        // DTMF decode   
-    }
-    */
-
     // Look to see if we can update the CTCSS estimation
     if (++_ctcssBlock == _ctcssBlocks) {
         float gi = _gcw * _gz1 - _gz2;
         float gq = _gsw * _gz1;
-        _ctcssMag = sqrt(gi * gi + gq * gq);
+        float ms = gi * gi + gq * gq;
+        //_ctcssMag = sqrt(ms);
+        arm_sqrt_f32(ms, &_ctcssMag);
         // Scale down by half of the sample count
         _ctcssMag /= (float)(_ctcssBlocks * BLOCK_SIZE / 2.0);
         // Reset for the next block
@@ -274,25 +157,17 @@ void AudioCore::cycle0(const float* adc_in, float* cross_out) {
     }
 
     // Compute noise RMS
-    {
-        float a = 0;
-        for (unsigned i = 0; i < BLOCK_SIZE_ADC; i++)
-            a += pow(filtOutB[i], 2.0);
-        a /= (float)BLOCK_SIZE_ADC;
-        _noiseRms = sqrt(a);
-    }
+    arm_rms_f32(filtOutB, BLOCK_SIZE_ADC, &_noiseRms);
 
     // Compute the signal RMS
-    {
-        float a = 0;
-        for (unsigned i = 0; i < BLOCK_SIZE; i++)
-            a += pow(filtOutD[i], 2.0);
-        a /= (float)BLOCK_SIZE;
-        _signalRms = sqrt(a);
-    }
+    arm_rms_f32(filtOutD, BLOCK_SIZE, &_signalRms);
 }
 
-void AudioCore::cycle1(const float** cross_in, float* dac_out) {
+/**
+ * Implementation is approximately 980uS on an RP2350
+ */
+void AudioCore::cycle1(unsigned cross_count, 
+    const float** cross_ins, const float* cross_gains, float* dac_out) {
 
     float mix[BLOCK_SIZE];
 
@@ -304,7 +179,7 @@ void AudioCore::cycle1(const float** cross_in, float* dac_out) {
     float level = _ctcssEncodeEnabled ? _ctcssEncodeLevel : 0;
     for (unsigned i = 0; i < BLOCK_SIZE; 
         i++, _ctcssEncodePhi += _ctcssEncodeOmega)
-        mix[i] = level * cos(_ctcssEncodePhi);
+        mix[i] = level * arm_cos_f32(_ctcssEncodePhi);
 
     // We do this to avoid phi growing very large and 
     // creating overflow/precision problems.
@@ -314,7 +189,8 @@ void AudioCore::cycle1(const float** cross_in, float* dac_out) {
 
     // Transmit Mix [float diagram reference L]
     for (unsigned i = 0; i < BLOCK_SIZE; i++)
-        mix[i] += cross_in[0][i];
+        for (unsigned k = 0; k < cross_count; k++) 
+            mix[i] += cross_ins[k][i] * cross_gains[k];
     
     // LPF 2.3kHz [float diagram reference M]
     // (Not used at this time)
@@ -322,37 +198,16 @@ void AudioCore::cycle1(const float** cross_in, float* dac_out) {
     // Interpolation x4 [flow diagram reference N]   
     // Pad the 8K samples with zeros
     float filtInN[BLOCK_SIZE_ADC];
-    for (unsigned i = 0; i < BLOCK_SIZE_ADC; i++) {        
-        float s;
-        // Keep in mind the gain of the filter
-        if (i % 4 == 0) 
-            s = (mix[i / 4]) * 4.0;
-        else 
-            s = 0;
-        filtInN[i] = s;
-    }
+    // TODO: Investigate ARM interpolation function
+    memset(filtInN, 0, BLOCK_SIZE_ADC * sizeof(float));
+    for (unsigned i = 0; i < BLOCK_SIZE_ADC; i += 4)
+        filtInN[i] = (mix[i / 4]) * 4.0;
     
     // Apply the interpolation LPF
     arm_fir_f32(&_filtN, filtInN, dac_out, BLOCK_SIZE_ADC);
 
-    /*
-        // Apply the LPF filter
-        {
-            _histB32k[_histB32kPtr] = s;
-            unsigned k = _histB32kPtr;
-            _histB32kPtr = incAndWrap(_histB32kPtr, HISTB_32K_LEN);
-            float a = 0;
-            for (unsigned j = 0; j < FILTER_N_LEN; j++) {
-                // Remember, there are lots of zeros
-                if (_histB32k[k] != 0)
-                    a += (_histB32k[k] * FILTER_N[j]);
-                k = decAndWrap(k, HISTB_32K_LEN);
-            }
-            // Keep in mind the gain of the filter
-            dac_out[i] = a * 4.0;
-        }
-    }
-    */
+    // Compute noise RMS
+    arm_rms_f32(dac_out, BLOCK_SIZE_ADC, &_outRms);
 }
 
 void AudioCore::setCtcssDecodeFreq(float hz) {
