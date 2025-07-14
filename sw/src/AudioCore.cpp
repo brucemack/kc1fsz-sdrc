@@ -32,8 +32,6 @@ static float db(float l) {
     return 20.0 * log10(l);
 }
 
-static float PI = 3.14159265;
-
 namespace kc1fsz {
 
 // NOTE: REMEMBER: FIR coefficients need to be in reverse order for ARM CMSIS-DSP!
@@ -294,10 +292,6 @@ void AudioCore::cycle0(const float* adc_in, float* cross_out) {
     }
 }
 
-float AudioCore::getSnr() const {
-    return db(getSignalRms() / getNoiseRms());
-}
-
 void AudioCore::cycle1(const float** cross_in, float* dac_out) {
 
     float mix[BLOCK_SIZE];
@@ -388,7 +382,6 @@ void AudioCore::setCtcssEncodeFreq(float hz) {
 void AudioCore::setCtcssEncodeLevel(float db) {
     // Convert DB to linear level
     _ctcssEncodeLevel = powf(10.0, (db / 20.0));
-    cout << "CTCSS Level " << _ctcssEncodeLevel << endl;
 }
 
 void AudioCore::setDelayMs(unsigned ms) {

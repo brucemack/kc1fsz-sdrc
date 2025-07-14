@@ -7,6 +7,8 @@
 // TODO: FIGURE OUT WHERE DEFINED
 typedef float float32_t;
 
+#define PI               3.14159265358979f
+
 enum arm_status {
     ARM_MATH_SUCCESS
 };

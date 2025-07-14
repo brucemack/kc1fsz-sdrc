@@ -51,8 +51,8 @@ else()
 
 add_executable(main
   src/test/test-AudioCore-pico.cpp
-  #src/AudioCore.cpp
-  #radlib/util/dsp_util.cpp  
+  src/AudioCore.cpp
+  radlib/util/dsp_util.cpp  
 #  src/i2s.pio
 #  src/main.cpp
 #  src/Config.cpp
@@ -71,7 +71,7 @@ add_executable(main
 #  kc1fsz-tools-cpp/src/CommandShell.cpp
 #  kc1fsz-tools-cpp/src/ToneSynthesizer.cpp
 #  kc1fsz-tools-cpp/src/rp2040/PicoPollTimer.cpp
-#  kc1fsz-tools-cpp/src/rp2040/PicoPerfTimer.cpp
+  kc1fsz-tools-cpp/src/rp2040/PicoPerfTimer.cpp
 )
 target_compile_definitions(main PRIVATE -DPICO_BUILD=1)
 pico_enable_stdio_usb(main 0)
@@ -91,6 +91,8 @@ target_link_libraries(main
   hardware_flash
   ${HOME}/pico/CMSISDSP/build/bin_dsp/libCMSISDSP.a
 )
+
+target_compile_options(main PRIVATE -g)
 
 # Set target properties for UF2 build
 pico_add_extra_outputs(main)

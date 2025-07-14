@@ -46,8 +46,6 @@ public:
     float getSignalRms() const { return _signalRms; }
     float getNoiseRms() const { return _noiseRms; }
 
-    float getSnr() const;
-
     void setCtcssDecodeFreq(float hz);
     float getCtcssDecodeMag() const { return _ctcssMag; }
 
