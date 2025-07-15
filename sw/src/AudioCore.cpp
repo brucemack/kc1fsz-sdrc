@@ -168,12 +168,34 @@ void AudioCore::cycle1(unsigned cross_count,
 
     float mix[BLOCK_SIZE];
 
+    // First compute the levels of the various sources, taking into 
+    // account what is enabled, etc.
+    float ctcssLevel = _ctcssEncodeEnabled ? _ctcssEncodeLevel : 0;
+    // Tone level changes during transition windows
+    if (_toneTransitionIncrement > 0) {
+        if (_toneTransitionLevel < _toneTransitionLimit) {
+            _toneTransitionLevel += _toneTransitionIncrement;
+        }
+    } else if (_toneTransitionIncrement < 0) {
+        if (_toneTransitionLevel > _toneTransitionLimit) {
+            _toneTransitionLevel += _toneTransitionIncrement;
+        }
+    }
+    if (_toneTransitionLevel < 0) 
+        _toneTransitionLevel = 0;
+    else if (_toneTransitionLevel > 1.0)
+        _toneTransitionLevel = 1.0;
+
+    float toneLevel = _toneLevel * _toneTransitionLevel;
+    // Normal audio channels get whatever is left over after the 
+    // CTCSS and tone levels are determined.
+    float audioLevel = 1.0 - toneLevel - ctcssLevel;
+
     // CTCSS encoder [see flow diagram reference J] 
     // Notice that all of the calculations needed to 
     // generate the CTCSS tone are performed regardless 
     // of whether the encoding is enabled.  This is to 
     // maintain a consistent CPU cost.
-    float ctcssLevel = _ctcssEncodeEnabled ? _ctcssEncodeLevel : 0;
     for (unsigned i = 0; i < BLOCK_SIZE; 
         i++, _ctcssEncodePhi += _ctcssEncodeOmega)
         mix[i] = ctcssLevel * arm_cos_f32(_ctcssEncodePhi);
@@ -182,32 +204,14 @@ void AudioCore::cycle1(unsigned cross_count,
     // creating overflow/precision problems.
     _ctcssEncodePhi = fmod(_ctcssEncodePhi, 2.0 * PI);
 
-    float audioScale = 0.5;
-    float toneLevel = _toneLevel * _toneTransitionLevel;
-
-    if (_toneTransitionIncrement > 0) {
-        if (_toneTransitionLevel < _toneTransitionLimit)
-            _toneTransitionLevel += _toneTransitionIncrement;
-    }
-    else if (_toneTransitionIncrement < 0) {
-        if (_toneTransitionLevel > _toneTransitionLimit)
-            _toneTransitionLevel += _toneTransitionIncrement;
-    }
-
-    if (_toneTransitionLevel < 0) 
-        _toneTransitionLevel = 0;
-    else if (_toneTransitionLevel > 1.0)
-        _toneTransitionLevel = 1.0;
-
     // Tone generation [see flow diagram reference K] 
     // Notice that all of the calculations needed to 
     // generate the tone(s) are performed regardless 
     // of whether the tone is enabled.  This is to 
     // maintain a consistent CPU cost.
-    for (unsigned i = 0; i < BLOCK_SIZE; 
-        i++, _tonePhi += _toneOmega) {
+    for (unsigned i = 0; i < BLOCK_SIZE; i++, _tonePhi += _toneOmega)
         mix[i] += toneLevel * arm_cos_f32(_tonePhi);
-    }
+
     // We do this to avoid phi growing very large and 
     // creating overflow/precision problems.
     _tonePhi = fmod(_tonePhi, 2.0 * PI);
@@ -215,7 +219,7 @@ void AudioCore::cycle1(unsigned cross_count,
     // Transmit Mix [float diagram reference L]
     for (unsigned i = 0; i < BLOCK_SIZE; i++)
         for (unsigned k = 0; k < cross_count; k++) 
-            mix[i] += audioScale * cross_ins[k][i] * cross_gains[k];
+            mix[i] += audioLevel * cross_ins[k][i] * cross_gains[k];
 
     // LPF 2.3kHz [float diagram reference M]
     // (Not used at this time)
@@ -264,11 +268,6 @@ void AudioCore::setCtcssEncodeFreq(float hz) {
     _ctcssEncodePhi = 0;
 }
 
-void AudioCore::setCtcssEncodeLevel(float db) {
-    // Convert DB to linear level
-    _ctcssEncodeLevel = powf(10.0, (db / 20.0));
-}
-
 void AudioCore::setDelayMs(unsigned ms) {
     _delaySamples = FS * ms / 1000;
     // Cap out delay length
@@ -283,26 +282,30 @@ void AudioCore::setDelayMs(unsigned ms) {
 }
 
 void AudioCore::setToneEnabled(bool b) {
+    
+    // This is the number of samples in the transition
+    unsigned transitionCycles = FS * _toneTransitionMs / 1000;
+    // Since we only adjust the gain once/block, the number of
+    // cycles is smaller.
+    transitionCycles /= BLOCK_SIZE;
+    // How much does the gain change in each transition cycle?
+    float increment = 1.0 / (float)transitionCycles;    
+
     if (b) {
-        _toneTransitionIncrement = 0.0001;
+        _toneTransitionIncrement = increment;
         _toneTransitionLimit = 1.0;
     } else {
-        _toneTransitionIncrement = -0.0001;
+        _toneTransitionIncrement = -increment;
         _toneTransitionLimit = 0.0;
     }
 }
 
 void AudioCore::setToneFreq(float hz) {
     _toneFreq = hz;
-    // Convert frequency to radians/sample.  The CTCSS
-    // generation happens at the FS (8k) rate.
+    // Convert frequency to radians/sample.  The tone generation 
+    // happens at the FS (8k) rate.
     _toneOmega = 2.0 * PI * hz / (float)FS;
     _tonePhi = 0;
-}
-
-void AudioCore::setToneLevel(float db) {
-    // Convert DB to linear level
-    _toneLevel = powf(10.0, (db / 20.0));
 }
 
 }

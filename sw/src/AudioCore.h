@@ -57,7 +57,7 @@ public:
 
     void setCtcssEncodeEnabled(bool b);
     void setCtcssEncodeFreq(float hz);
-    void setCtcssEncodeLevel(float db);
+    void setCtcssEncodeLevel(float db) { _ctcssEncodeLevel = _dbToLinear(db); }
 
     void setDelayMs(unsigned ms);
     void resetDelay() { _delayCountdown = _delaySamples; }
@@ -66,8 +66,8 @@ public:
     
     void setToneEnabled(bool b);
     void setToneFreq(float hz);
-    void setToneLevel(float db);
-    void setToneTransitionTime(unsigned ms);
+    void setToneLevel(float db) { _toneLevel = _dbToLinear(db); }
+    void setToneTransitionTime(unsigned ms) { _toneTransitionMs = ms; }
 
 private:
 
@@ -130,23 +130,28 @@ private:
     unsigned _delayCountdown = 0;
 
     // Used for synthesis of tone 
-    bool _toneEnabled = false;
-    float _toneLevel = 0;
+    // This is a fixed level that can be used to set the overall
+    // (i.e. after transition) level of the tone
+    float _toneLevel =  _dbToLinear(-10);
     float _toneFreq = 0;
     float _toneOmega = 0;
     float _tonePhi = 0;
-    // Tones turn on/off transitions are smoothed 
-    // to minimize clicks.
-    float _toneTransitionLevel = dbToLinear(-10);
+    // Tones turn on/off transitions are smoothed to minimize clicks.
+    // This contains the current level (i.e. a value from 0.0->1.0)
+    float _toneTransitionLevel = 0;
+    // This controls how much the level is increased on each sample.
     float _toneTransitionIncrement = 0;
+    // This controls the final target value, generally 0.0 or 1.0 depending
+    // on whether we are fading in or fading out.
     float _toneTransitionLimit = 0;
+    // Controls how long the transition should last.
     unsigned _toneTransitionMs = 50;
 
     static float db(float l) {
         return 20.0 * log10(l);
     }
 
-    static float dbToLinear(float db) {
+    static float _dbToLinear(float db) {
         return pow(10, (db / 20));
     }
 };
