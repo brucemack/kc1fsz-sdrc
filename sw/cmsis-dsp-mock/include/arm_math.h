@@ -1,7 +1,7 @@
 #ifndef _arm_math_h
 #define _arm_math_h
 
-#include <stdfloat>
+//#include <stdfloat>
 #include <cstdint>
 
 // TODO: FIGURE OUT WHERE DEFINED

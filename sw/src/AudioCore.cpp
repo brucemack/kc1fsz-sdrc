@@ -28,10 +28,6 @@
 
 using namespace std;
 
-static float db(float l) {
-    return 20.0 * log10(l);
-}
-
 namespace kc1fsz {
 
 // NOTE: REMEMBER: FIR coefficients need to be in reverse order for ARM CMSIS-DSP!
@@ -177,22 +173,50 @@ void AudioCore::cycle1(unsigned cross_count,
     // generate the CTCSS tone are performed regardless 
     // of whether the encoding is enabled.  This is to 
     // maintain a consistent CPU cost.
-    float level = _ctcssEncodeEnabled ? _ctcssEncodeLevel : 0;
+    float ctcssLevel = _ctcssEncodeEnabled ? _ctcssEncodeLevel : 0;
     for (unsigned i = 0; i < BLOCK_SIZE; 
         i++, _ctcssEncodePhi += _ctcssEncodeOmega)
-        mix[i] = level * arm_cos_f32(_ctcssEncodePhi);
+        mix[i] = ctcssLevel * arm_cos_f32(_ctcssEncodePhi);
 
     // We do this to avoid phi growing very large and 
     // creating overflow/precision problems.
     _ctcssEncodePhi = fmod(_ctcssEncodePhi, 2.0 * PI);
 
-    // Other tones/voice
+    float audioScale = 0.5;
+    float toneLevel = _toneLevel * _toneTransitionLevel;
+
+    if (_toneTransitionIncrement > 0) {
+        if (_toneTransitionLevel < _toneTransitionLimit)
+            _toneTransitionLevel += _toneTransitionIncrement;
+    }
+    else if (_toneTransitionIncrement < 0) {
+        if (_toneTransitionLevel > _toneTransitionLimit)
+            _toneTransitionLevel += _toneTransitionIncrement;
+    }
+
+    if (_toneTransitionLevel < 0) 
+        _toneTransitionLevel = 0;
+    else if (_toneTransitionLevel > 1.0)
+        _toneTransitionLevel = 1.0;
+
+    // Tone generation [see flow diagram reference K] 
+    // Notice that all of the calculations needed to 
+    // generate the tone(s) are performed regardless 
+    // of whether the tone is enabled.  This is to 
+    // maintain a consistent CPU cost.
+    for (unsigned i = 0; i < BLOCK_SIZE; 
+        i++, _tonePhi += _toneOmega) {
+        mix[i] += toneLevel * arm_cos_f32(_tonePhi);
+    }
+    // We do this to avoid phi growing very large and 
+    // creating overflow/precision problems.
+    _tonePhi = fmod(_tonePhi, 2.0 * PI);
 
     // Transmit Mix [float diagram reference L]
     for (unsigned i = 0; i < BLOCK_SIZE; i++)
         for (unsigned k = 0; k < cross_count; k++) 
-            mix[i] += cross_ins[k][i] * cross_gains[k];
-    
+            mix[i] += audioScale * cross_ins[k][i] * cross_gains[k];
+
     // LPF 2.3kHz [float diagram reference M]
     // (Not used at this time)
 
@@ -256,6 +280,29 @@ void AudioCore::setDelayMs(unsigned ms) {
         unsigned extra = _delaySamples - _delayAreaReadPtr;
         _delayAreaReadPtr = _delayAreaLen - 1 - extra;
     }
+}
+
+void AudioCore::setToneEnabled(bool b) {
+    if (b) {
+        _toneTransitionIncrement = 0.0001;
+        _toneTransitionLimit = 1.0;
+    } else {
+        _toneTransitionIncrement = -0.0001;
+        _toneTransitionLimit = 0.0;
+    }
+}
+
+void AudioCore::setToneFreq(float hz) {
+    _toneFreq = hz;
+    // Convert frequency to radians/sample.  The CTCSS
+    // generation happens at the FS (8k) rate.
+    _toneOmega = 2.0 * PI * hz / (float)FS;
+    _tonePhi = 0;
+}
+
+void AudioCore::setToneLevel(float db) {
+    // Convert DB to linear level
+    _toneLevel = powf(10.0, (db / 20.0));
 }
 
 }

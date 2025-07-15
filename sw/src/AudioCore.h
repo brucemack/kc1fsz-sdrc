@@ -64,9 +64,10 @@ public:
 
     // TODO: SOFT GAINS ON RX AND TX
     
-    // TODO: TONE SYNTH CW/COURTESY/ETC.
-    // State on/off/transition, counter, frequency, level
-
+    void setToneEnabled(bool b);
+    void setToneFreq(float hz);
+    void setToneLevel(float db);
+    void setToneTransitionTime(unsigned ms);
 
 private:
 
@@ -127,6 +128,27 @@ private:
     float _delayArea[_delayAreaLen];
     unsigned _delaySamples = 0;
     unsigned _delayCountdown = 0;
+
+    // Used for synthesis of tone 
+    bool _toneEnabled = false;
+    float _toneLevel = 0;
+    float _toneFreq = 0;
+    float _toneOmega = 0;
+    float _tonePhi = 0;
+    // Tones turn on/off transitions are smoothed 
+    // to minimize clicks.
+    float _toneTransitionLevel = dbToLinear(-10);
+    float _toneTransitionIncrement = 0;
+    float _toneTransitionLimit = 0;
+    unsigned _toneTransitionMs = 50;
+
+    static float db(float l) {
+        return 20.0 * log10(l);
+    }
+
+    static float dbToLinear(float db) {
+        return pow(10, (db / 20));
+    }
 };
 
 }

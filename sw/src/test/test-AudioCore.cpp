@@ -47,6 +47,10 @@ int main(int argc, const char** argv) {
     core0.setCtcssEncodeLevel(-26);
     core0.setCtcssEncodeEnabled(true);
     core0.setDelayMs(100);
+    core0.setToneEnabled(true);
+    core0.setToneFreq(1000);
+    core0.setToneLevel(-10);
+
     core1.setCtcssDecodeFreq(88.5);
 
     ofstream os("/tmp/clip-3b.txt");
