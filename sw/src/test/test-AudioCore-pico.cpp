@@ -89,8 +89,8 @@ int main(int, const char**) {
     // Noise
     //int ft = 6000;
     // Audio
-    int ft = 1000;
-    make_real_tone_f32(test_in_0, test_in_max, AudioCore::FS_ADC, ft, 0.98); 
+    int ft = 123;
+    make_real_tone_f32(test_in_0, test_in_max, AudioCore::FS_ADC, ft, 0.5); 
     //unsigned test_in_0_len = loadFromFile("../tests/clip-3.txt", test_in_0, test_in_max);
 
     float* adc_in_0 = test_in_0;
@@ -124,14 +124,14 @@ int main(int, const char**) {
         float np = dB(core0.getNoiseRms());
         float sp = dB(core0.getSignalRms());
         float op = dB(core0.getOutRms());
-        float cm = core0.getCtcssDecodeMag();
+        float cm = dB(core0.getCtcssDecodeMag());
         unsigned elUs = timer.elapsedUs();
 
         log.info("  Elapsed us      %u", elUs);
         log.info("  Noise power dB  %f", np);
         log.info("  Signal power dB %f", sp);
         log.info("  Output power dB %f", op);
-        log.info("  CTCSS mag       %f", cm);
+        log.info("  CTCSS power dB  %f", cm);
     }
 
     while (true) {
