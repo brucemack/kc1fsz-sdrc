@@ -82,7 +82,8 @@ int main(int argc, const char** argv) {
 
         float cross_out_0[AudioCore::BLOCK_SIZE];
         float cross_out_1[AudioCore::BLOCK_SIZE];
-        const float* cross_in[2] = { cross_out_0, cross_out_1 };
+        const float* cross_ins[2] = { cross_out_0, cross_out_1 };
+        float cross_gains[2] = { 1.0, 0.0 };
 
         float dac_out_0[AudioCore::BLOCK_SIZE_ADC];
         float dac_out_1[AudioCore::BLOCK_SIZE_ADC];
@@ -94,8 +95,8 @@ int main(int argc, const char** argv) {
             core1.cycle0(adc_in_1, cross_out_1);
 
             // Cycle 1
-            core0.cycle1(cross_in, dac_out_0);
-            core1.cycle1(cross_in, dac_out_1);
+            core0.cycle1(2, cross_ins, cross_gains, dac_out_0);
+            core1.cycle1(2, cross_ins, cross_gains, dac_out_1);
 
             adc_in_0 += AudioCore::BLOCK_SIZE_ADC;
             adc_in_1 += AudioCore::BLOCK_SIZE_ADC;
@@ -118,7 +119,7 @@ int main(int argc, const char** argv) {
                         
             float n_0 = db(core0.getNoiseRms());
             float s_0 = db(core0.getSignalRms());
-            float snr = core0.getSnr();
+            float snr = db(core0.getSignalRms() / core0.getNoiseRms());
 
             double plDb = db(core0.getCtcssDecodeMag());
     

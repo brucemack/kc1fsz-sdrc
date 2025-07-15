@@ -77,4 +77,8 @@ void arm_rms_f32(const float32_t* pSrc,
     uint32_t blockSize,
     float32_t* pResult);
 
+void arm_sqrt_f32(float32_t a, float32_t* result);
+
+float32_t arm_cos_f32(float32_t a);
+
 #endif

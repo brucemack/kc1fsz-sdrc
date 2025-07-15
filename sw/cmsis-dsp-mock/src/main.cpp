@@ -1,6 +1,7 @@
 #include <cassert>
 #include <cstring>
 #include <cstdio>
+#include <cmath>
 
 #include "arm_math.h"
 
@@ -88,8 +89,15 @@ void arm_rms_f32(const float32_t* pSrc,
     float a = 0;
     for (unsigned i = 0; i < blockSize; i++)
         a += pow(pSrc[i], 2.0);
-    a /= (float)_blockSize;
+    a /= (float)blockSize;
     *pResult = sqrt(a);
 }
 
+void arm_sqrt_f32(float32_t a, float32_t* result) {
+    *result = sqrt(a);
+}
+
+float32_t arm_cos_f32(float32_t a) {
+    return cos(a);
+}
 
