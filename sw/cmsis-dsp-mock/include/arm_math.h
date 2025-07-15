@@ -6,6 +6,7 @@
 
 // TODO: FIGURE OUT WHERE DEFINED
 typedef float float32_t;
+typedef int32_t q31_t;
 
 #define PI               3.14159265358979f
 
@@ -17,6 +18,14 @@ struct arm_fir_instance_f32 {
     uint16_t numTaps; 
     float32_t* pState;
     const float32_t* pCoeffs;
+    // EXTRA
+    uint32_t blockSize;
+};
+
+struct arm_fir_instance_q31 {
+    uint16_t numTaps; 
+    q31_t* pState;
+    const q31_t* pCoeffs;
     // EXTRA
     uint32_t blockSize;
 };
@@ -39,6 +48,13 @@ void arm_fir_init_f32(arm_fir_instance_f32*	S,
     uint16_t numTaps,
     const float32_t* pCoeffs,
     float32_t* pState,
+    uint32_t blockSize 
+);
+
+void arm_fir_init_q31(arm_fir_instance_q31* S,
+    uint16_t numTaps,
+    const q31_t* pCoeffs,
+    q31_t* pState,
     uint32_t blockSize 
 );
 

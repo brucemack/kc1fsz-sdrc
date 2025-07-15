@@ -85,8 +85,8 @@ int main(int argc, const char** argv) {
         const float* cross_ins[2] = { cross_out_0, cross_out_1 };
         float cross_gains[2] = { 1.0, 0.0 };
 
-        float dac_out_0[AudioCore::BLOCK_SIZE_ADC];
-        float dac_out_1[AudioCore::BLOCK_SIZE_ADC];
+        int32_t dac_out_0[AudioCore::BLOCK_SIZE_ADC];
+        int32_t dac_out_1[AudioCore::BLOCK_SIZE_ADC];
 
         for (unsigned block = 0; block < test_blocks; block++) {
 
@@ -101,16 +101,12 @@ int main(int argc, const char** argv) {
             adc_in_0 += AudioCore::BLOCK_SIZE_ADC;
             adc_in_1 += AudioCore::BLOCK_SIZE_ADC;
 
-            // Write out a block of audio at 8K
-            //for (unsigned i = 0; i < AudioCore::BLOCK_SIZE; i++) {
-            //    os << (int)(cross_out_0[i] * 32767.0) << endl; 
-            //}
-
             // Write out a block of audio at 32K
             for (unsigned i = 0; i < AudioCore::BLOCK_SIZE_ADC; i++) {
                 if (!noiseSquelchEnabled ||
                     squelchState != SquelchState::CLOSED) {
-                    os << (int)(dac_out_0[i] * 32767.0) << endl; 
+                    //os << (int)(dac_out_0[i] * 32767.0) << endl; 
+                    os << (dac_out_0[i] >> 16) << endl; 
                     //os <<                dac_out_0[i] << endl;
                 } else {
                     os << 0 << endl;

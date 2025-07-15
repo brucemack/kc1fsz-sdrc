@@ -41,8 +41,12 @@ public:
     AudioCore(unsigned id);
 
     void cycle0(const float* adc_in, float* cross_out);
+
+    /**
+     * @param dac_out A block of 32-bit signed PCM samples will be written here
+     */
     void cycle1(unsigned cross_count, 
-        const float** cross_ins, const float* cross_gains, float* dac_out);
+        const float** cross_ins, const float* cross_gains, int32_t* dac_out);
 
     float getSignalRms() const { return _signalRms; }
     float getNoiseRms() const { return _noiseRms; }

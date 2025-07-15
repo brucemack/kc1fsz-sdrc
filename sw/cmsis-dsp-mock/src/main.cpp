@@ -60,6 +60,35 @@ void arm_fir_f32(const arm_fir_instance_f32* s,
     }
 }
 
+// TODO: CONSOLIDATE
+static q31_t mult_q31(q31_t a, q31_t b) {
+    int64_t c = a * b;
+    return c >> 31;
+}
+
+void arm_fir_q31(const arm_fir_instance_q31* s,
+    const q31_t* pSrc,
+    q31_t* pDst,
+    uint32_t blockSize) {
+    assert(blockSize == s->blockSize);
+    // Shift left to free space for new data   
+    memmove((void*)(s->pState), (const void*)&(s->pState[blockSize]), 
+        (s->numTaps - 1) * sizeof(q31_t));
+    // Fill in new data on far right
+    memcpy((void*)&(s->pState[s->numTaps - 1]), (const void*)pSrc, 
+        blockSize * sizeof(q31_t));
+    // Do the MA
+    const q31_t* dataHistory = s->pState;
+    for (unsigned k = 0; k < blockSize; k++) {
+        q31_t a = 0;
+        for (unsigned i = 0; i < s->numTaps; i++)
+            //a += dataHistory[i] * s->pCoeffs[i];
+            a += mult_q31(dataHistory[i], s->pCoeffs[i]);
+        pDst[k] = a;
+        dataHistory++;
+    }
+}
+
 void arm_fir_decimate_f32(const arm_fir_decimate_instance_f32* s,
     const float32_t* pSrc,
     float32_t* pDst,
@@ -100,4 +129,3 @@ void arm_sqrt_f32(float32_t a, float32_t* result) {
 float32_t arm_cos_f32(float32_t a) {
     return cos(a);
 }
-
