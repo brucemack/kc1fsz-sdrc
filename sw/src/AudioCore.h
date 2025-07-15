@@ -62,6 +62,12 @@ public:
     void setDelayMs(unsigned ms);
     void resetDelay() { _delayCountdown = _delaySamples; }
 
+    // TODO: SOFT GAINS ON RX AND TX
+    
+    // TODO: TONE SYNTH CW/COURTESY/ETC.
+    // State on/off/transition, counter, frequency, level
+
+
 private:
 
     const unsigned _id;
