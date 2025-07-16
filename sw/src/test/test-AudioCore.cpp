@@ -62,7 +62,7 @@ int main(int argc, const char** argv) {
     core0.setCtcssEncodeLevel(-26);
     core0.setCtcssEncodeEnabled(true);
 
-    //core0.setDelayMs(100);
+    core0.setDelayMs(100);
     core0.setToneEnabled(false);
     core0.setToneFreq(1000);
     core0.setToneLevel(-10);
@@ -76,7 +76,7 @@ int main(int argc, const char** argv) {
     float lastSnr = 0;
     unsigned tailCount = 0;
 
-    unsigned outerCount = 70;
+    unsigned outerCount = 1;
     unsigned sweepTone = 50;
     unsigned sweepToneIncrement = 50;
 
@@ -93,11 +93,11 @@ int main(int argc, const char** argv) {
         }
 
         // Fill in the test audio
-        //float ft = 300;
-        float ft = sweepTone;
+        float ft = 300;
+        //float ft = sweepTone;
         //generateWhiteNoiseQ31(test_in_0, test_in_max, 1.0);
-        make_real_tone_q31(test_in_0, test_in_max, AudioCore::FS_ADC, ft, 0.98); 
-        //loadFromFile("../tests/clip-3.txt", test_in_0, test_in_max);
+        //make_real_tone_q31(test_in_0, test_in_max, AudioCore::FS_ADC, ft, 0.98); 
+        loadFromFile("../tests/clip-3.txt", test_in_0, test_in_max);
 
         int32_t* adc_in_0 = test_in_0;
         int32_t* adc_in_1 = test_in_1;
@@ -143,7 +143,7 @@ int main(int argc, const char** argv) {
             last_o_0 = o_0;
    
             // Calculate the noise squelch with hysteresis
-            bool threshold = snr > 10 && pl_0 > -28;
+            bool threshold = snr > 10 && pl_0 > -31;
 
             char state;
             if (squelchState == SquelchState::CLOSED)
@@ -151,7 +151,7 @@ int main(int argc, const char** argv) {
             else
                 state = 'O';
 
-            //cout << block << " " << snr << " " << state << " " << pl_0 << endl;
+            cout << block << " " << snr << " " << state << " " << pl_0 << endl;
             //cout << block << " " << s_0 << " " << n_0 << " " << pl_0 << endl;
 
             if (squelchState == SquelchState::CLOSED) {
@@ -199,7 +199,7 @@ int main(int argc, const char** argv) {
         }
 
         // Output
-        cout << sweepTone << "\t" << last_o_0 << endl;
+        //cout << sweepTone << "\t" << last_o_0 << endl;
 
         sweepTone += sweepToneIncrement;
     }
