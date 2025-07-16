@@ -69,7 +69,7 @@ int main(int, const char**) {
     core0.setCtcssEncodeFreq(123);
     core0.setCtcssEncodeLevel(-26);
     core0.setCtcssEncodeEnabled(true);
-    core0.setDelayMs(100);
+    //core0.setDelayMs(100);
 
     // Create 230ms of test data for each radio
     // (32,000 / 4) * 4 * 2 = 64,000
@@ -89,8 +89,8 @@ int main(int, const char**) {
     // Noise
     //int ft = 6000;
     // Audio
-    int ft = 123;
-    make_real_tone_q32(test_in_0, test_in_max, AudioCore::FS_ADC, ft, 0.5); 
+    int ft = 1000;
+    make_real_tone_q31(test_in_0, test_in_max, AudioCore::FS_ADC, ft, 0.5); 
 
     int32_t* adc_in_0 = test_in_0;
     int32_t* adc_in_1 = test_in_1;
@@ -99,6 +99,11 @@ int main(int, const char**) {
     float cross_out_1[AudioCore::BLOCK_SIZE];
     const float* cross_ins[2] = { cross_out_0, cross_out_1 };
     float cross_gains[2] = { 1.0, 0.0 };
+
+    for (unsigned i = 0; i < AudioCore::BLOCK_SIZE; i++) {
+        cross_out_0[i] = 0;
+        cross_out_1[i] = 0;
+    }
 
     int32_t dac_out_0[AudioCore::BLOCK_SIZE_ADC];
     int32_t dac_out_1[AudioCore::BLOCK_SIZE_ADC];
@@ -124,6 +129,7 @@ int main(int, const char**) {
         float sp = dB(core0.getSignalRms());
         float op = dB(core0.getOutRms());
         float cp = dB(core0.getCtcssDecodeRms());
+
         unsigned elUs = timer.elapsedUs();
 
         log.info("  Elapsed us      %u", elUs);

@@ -87,6 +87,8 @@ AudioCore::AudioCore(unsigned id)
     arm_fir_decimate_init_f32(&_filtD, FILTER_C_LEN, 2, FILTER_C, _filtDState, BLOCK_SIZE_ADC / 2);
     arm_fir_init_f32(&_filtF, FILTER_F_LEN, FILTER_F, _filtFState, BLOCK_SIZE);
     arm_fir_init_f32(&_filtN, FILTER_N_LEN, FILTER_N, _filtNState, BLOCK_SIZE_ADC);
+    for (unsigned i = 0; i < _delayAreaLen; i++)
+        _delayArea[i] = 0;
 }
 
 /**
@@ -221,8 +223,9 @@ void AudioCore::cycle1(unsigned cross_count,
 
     // Transmit Mix [float diagram reference L]
     for (unsigned i = 0; i < BLOCK_SIZE; i++)
-        for (unsigned k = 0; k < cross_count; k++) 
+        for (unsigned k = 0; k < cross_count; k++) {
             mix[i] += audioLevel * cross_ins[k][i] * cross_gains[k];
+        }
 
     // LPF 2.3kHz [float diagram reference M]
     // (Not used at this time)
