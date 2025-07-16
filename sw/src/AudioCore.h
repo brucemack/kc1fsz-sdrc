@@ -106,6 +106,15 @@ public:
     void setToneLevel(float db) { _toneLevel = _dbToLinear(db); }
     void setToneTransitionTime(unsigned ms) { _toneTransitionMs = ms; }
 
+    /**
+     * @brief When enabled, the diagnostic tone is transmitted directly
+     * without any other inputs (i.e. no CTCSS, no mixing, etc.)
+     */
+    void setDiagToneEnabled(bool b) { _diagToneEnabled = b; }
+    void setDiagToneFreq(float hz);
+    // TODO: Investigate peak vs RMS here
+    void setDiagToneLevel(float db) { _diagToneLevel = _dbToLinear(db); }
+
 private:
 
     const unsigned _id;
@@ -170,7 +179,6 @@ private:
     // This is a fixed level that can be used to set the overall
     // (i.e. after transition) level of the tone
     float _toneLevel =  _dbToLinear(-10);
-    float _toneFreq = 0;
     float _toneOmega = 0;
     float _tonePhi = 0;
     // Tones turn on/off transitions are smoothed to minimize clicks.
@@ -183,6 +191,12 @@ private:
     float _toneTransitionLimit = 0;
     // Controls how long the transition should last.
     unsigned _toneTransitionMs = 50;
+
+    // Diagnostic tone stuff
+    bool _diagToneEnabled = false;
+    float _diagToneLevel = _dbToLinear(-10);
+    float _diagToneOmega = 0;
+    float _diagTonePhi = 0;
 
     static float db(float l) {
         return 20.0 * log10(l);

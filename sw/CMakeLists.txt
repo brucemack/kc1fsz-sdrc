@@ -46,31 +46,59 @@ target_include_directories(dtmf-test-1 PRIVATE kc1fsz-tools-cpp/include)
 # ===== PICO EXECUTABLES =====================================================
 else()
 
-#include(pico_sdk_import.cmake)
-#pico_sdk_init()
-
-add_executable(main
+add_executable(test1
   src/test/test-AudioCore-pico.cpp
   src/AudioCore.cpp
   radlib/util/dsp_util.cpp  
-#  src/i2s.pio
-#  src/main.cpp
-#  src/Config.cpp
-#  src/ShellCommand.cpp
-#  src/Tx.cpp
-#  src/TxControl.cpp
-#  src/Rx.cpp
-#  src/CourtesyToneGenerator.cpp
-#  src/IDToneGenerator.cpp
-#  src/VoiceGenerator.cpp
-#  src/test/TestTx.cpp
-#  src/test/TestRx.cpp
-#  src/hw/StdTx.cpp
-#  src/hw/StdRx.cpp
   kc1fsz-tools-cpp/src/Common.cpp
-#  kc1fsz-tools-cpp/src/CommandShell.cpp
-#  kc1fsz-tools-cpp/src/ToneSynthesizer.cpp
-#  kc1fsz-tools-cpp/src/rp2040/PicoPollTimer.cpp
+  kc1fsz-tools-cpp/src/rp2040/PicoPerfTimer.cpp
+)
+target_compile_definitions(test1 PRIVATE -DPICO_BUILD=1)
+pico_enable_stdio_usb(test1 0)
+pico_enable_stdio_uart(test1 1)
+pico_generate_pio_header(test1 ${CMAKE_CURRENT_LIST_DIR}/src/i2s.pio)
+
+target_include_directories(test1 PRIVATE 
+  src
+  kc1fsz-tools-cpp/include
+  radlib
+  ${HOME}/pico/CMSISDSP/CMSIS-DSP/Include
+  ${HOME}/pico/CMSISDSP/CMSIS_6/CMSIS/Core/Include
+)
+
+target_link_libraries(test1 
+  pico_stdlib hardware_i2c hardware_clocks hardware_pwm hardware_dma hardware_pio 
+  hardware_flash
+  ${HOME}/pico/CMSISDSP/build/bin_dsp/libCMSISDSP.a
+)
+
+target_compile_options(test1 PRIVATE -g)
+
+# Set target properties for UF2 build
+pico_add_extra_outputs(test1)
+
+# ------ main ----------------------------------------------------------------
+# This is the main controller project
+
+add_executable(main
+  src/i2s.pio
+  src/main.cpp
+  src/AudioCore.cpp
+  src/Config.cpp
+  src/ShellCommand.cpp
+  src/Tx.cpp
+  src/Rx.cpp
+  src/StdTx.cpp
+  src/StdRx.cpp
+  src/TxControl.cpp
+  src/CourtesyToneGenerator.cpp
+  src/IDToneGenerator.cpp
+  #src/VoiceGenerator.cpp
+  radlib/util/dsp_util.cpp  
+  kc1fsz-tools-cpp/src/Common.cpp
+  kc1fsz-tools-cpp/src/CommandShell.cpp
+  kc1fsz-tools-cpp/src/ToneSynthesizer.cpp
+  kc1fsz-tools-cpp/src/rp2040/PicoPollTimer.cpp
   kc1fsz-tools-cpp/src/rp2040/PicoPerfTimer.cpp
 )
 target_compile_definitions(main PRIVATE -DPICO_BUILD=1)
@@ -96,5 +124,6 @@ target_compile_options(main PRIVATE -g)
 
 # Set target properties for UF2 build
 pico_add_extra_outputs(main)
+
 
 endif()
