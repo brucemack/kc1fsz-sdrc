@@ -305,8 +305,6 @@ static void process_in_frame() {
 
     core0.cycle0(r0_samples, r0_cross);
     core1.cycle0(r1_samples, r1_cross);
-    //for (unsigned i = 0; i < 64; i++)
-    //    r1_cross[i] = 0;
     core0.cycle1(2, cross_ins, r0_cross_gains, r0_out);
     core1.cycle1(2, cross_ins, r1_cross_gains, r1_out);
 
@@ -1164,8 +1162,8 @@ int main(int argc, const char** argv) {
                 txCtl0.forceId();
                 txCtl1.forceId();
             }
-            if (flash)
-                printf("Longest %u\n", longestLoop);
+            //if (flash)
+            //    printf("Longest %u\n", longestLoop);
         }
         else if (uiMode == UIMode::UIMODE_SHELL) {
             if (c != 0) {

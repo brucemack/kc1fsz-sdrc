@@ -244,9 +244,9 @@ void AudioCore::cycle1(unsigned cross_count,
             //
             // Normal audio channels get whatever is left over after the 
             // CTCSS and tone levels are determined.
-            float audioLevel = 1.0 - toneLevel - ctcssLevel;
-            for (unsigned k = 0; k < cross_count; k++)
-                toneAndAudio += audioLevel * cross_ins[k][i] * cross_gains[k];
+            //float audioLevel = 1.0 - toneLevel - ctcssLevel;
+            //for (unsigned k = 0; k < cross_count; k++)
+            //    toneAndAudio += audioLevel * cross_ins[k][i] * cross_gains[k];
 
             mix[i] = toneAndAudio;
         }
@@ -326,7 +326,7 @@ void AudioCore::setToneEnabled(bool b) {
     // cycles is smaller.
     //transitionCycles /= BLOCK_SIZE;
     // How much does the gain change in each transition cycle?
-    float increment = 1.0 / (float)transitionCycles;    
+    float increment = 1.0 / (float)transitionCycles;
 
     if (b) {
         _toneTransitionIncrement = increment;
@@ -341,14 +341,12 @@ void AudioCore::setToneFreq(float hz) {
     // Convert frequency to radians/sample.  The tone generation 
     // happens at the FS (8k) rate.
     _toneOmega = 2.0 * PI * hz / (float)FS;
-    _tonePhi = 0;
 }
 
 void AudioCore::setDiagToneFreq(float hz) { 
     // Convert frequency to radians/sample.  The tone generation 
     // happens at the CODEC (32k) rate.
     _diagToneOmega = 2.0 * PI * hz / (float)FS_ADC;
-    _diagTonePhi = 0;
 }
 
 }
