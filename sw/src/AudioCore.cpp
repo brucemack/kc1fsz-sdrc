@@ -145,7 +145,6 @@ void AudioCore::cycle0(const int32_t* codec_in, float* cross_out) {
         float gi = _gcw * _gz1 - _gz2;
         float gq = _gsw * _gz1;
         float ms = gi * gi + gq * gq;
-        //_ctcssMag = sqrt(ms);
         arm_sqrt_f32(ms, &_ctcssMag);
         // Scale down by half of the sample count
         _ctcssMag /= (float)(_ctcssBlocks * BLOCK_SIZE / 2.0);
@@ -162,7 +161,7 @@ void AudioCore::cycle0(const int32_t* codec_in, float* cross_out) {
     arm_rms_f32(filtOutD, BLOCK_SIZE, &_signalRms);
 }
 
-#define MAX_DAC_VALUE (8388607.0)
+//#define MAX_DAC_VALUE (8388607.0)
 
 /**
  * Implementation is approximately 980uS on an RP2350
@@ -257,6 +256,13 @@ void AudioCore::setCtcssDecodeFreq(float hz) {
     _gc = 2.0 * _gcw;
     _gz1 = 0;
     _gz2 = 0;
+}
+
+float AudioCore::getCtcssDecodeRms() const { 
+    // Since the DFT is computing the peak amplitude and the 
+    // CTCSS is assumed to be sinusoidal, we convert peak
+    // to RMS here.
+    return _ctcssMag * 0.707; 
 }
 
 void AudioCore::setCtcssEncodeEnabled(bool b) {

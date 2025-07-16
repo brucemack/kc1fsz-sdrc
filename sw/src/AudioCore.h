@@ -59,15 +59,40 @@ public:
     void cycle1(unsigned cross_count, 
         const float** cross_ins, const float* cross_gains, int32_t* codec_out);
 
+    /**
+     * The "signal" is basically all power below 4kHz, includes the sub-audible 
+     * CTCSS tones.
+     * @returns Signal voltage in Vrms, assuming full-scale is 1.0. Note
+     */
     float getSignalRms() const { return _signalRms; }
+
+    /**
+     * The "noise" is basically all power above ~5kHz.
+     * @returns Signal voltage in Vrms, assuming full-scale is 1.0. Note
+     */
     float getNoiseRms() const { return _noiseRms; }
+
+    /**
+     * Voltage of all audio being routed to the transmitter, inclusive of 
+     * all sources/tones/etc.
+     *
+     * @returns Signal voltage in Vrms, assuming full-scale is 1.0. Note
+     */
     float getOutRms() const { return _outRms; }
 
     void setCtcssDecodeFreq(float hz);
-    float getCtcssDecodeMag() const { return _ctcssMag; }
+
+    /**
+     * Voltage detected at the frequency set by setCtcssDecodeFreq().
+     *
+     * @returns Signal voltage in Vrms, assuming full-scale is 1.0. Note
+     */
+    float getCtcssDecodeRms() const;
 
     void setCtcssEncodeEnabled(bool b);
     void setCtcssEncodeFreq(float hz);
+
+    // TODO: Investigate peak vs RMS here
     void setCtcssEncodeLevel(float db) { _ctcssEncodeLevel = _dbToLinear(db); }
 
     void setDelayMs(unsigned ms);
@@ -77,6 +102,7 @@ public:
     
     void setToneEnabled(bool b);
     void setToneFreq(float hz);
+    // TODO: Investigate peak vs RMS here
     void setToneLevel(float db) { _toneLevel = _dbToLinear(db); }
     void setToneTransitionTime(unsigned ms) { _toneTransitionMs = ms; }
 
