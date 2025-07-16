@@ -27,15 +27,18 @@ void generateWhiteNoise(unsigned int numSamples, double amplitude, float* out) {
         out[i] = distrib(gen);
 }
 
-unsigned loadFromFile(const char* fn, float* target, 
-    unsigned target_max) {
+/**
+ * @brief The file is assumed to be in 16-bit PCM format, so a conversion
+ * to 32-bit PCM (q31_t) is needed as well.
+ */
+unsigned loadFromFile(const char* fn, int32_t* target, unsigned target_max) {
     ifstream is(fn);
     unsigned i = 0;
     float scale = 32767.0;
     std::string line;
     while (getline(is, line))
         if (i < target_max)
-            target[i++] = stof(line) / scale;
+            target[i++] = (stof(line) / scale) * 2147483648.0;
     return i;
 }
 
@@ -47,14 +50,13 @@ int main(int argc, const char** argv) {
     core0.setCtcssEncodeLevel(-26);
     core0.setCtcssEncodeEnabled(true);
     core0.setDelayMs(100);
-    core0.setToneEnabled(true);
+    core0.setToneEnabled(false);
     core0.setToneFreq(1000);
     core0.setToneLevel(-10);
 
     core1.setCtcssDecodeFreq(88.5);
 
     ofstream os("/tmp/clip-3b.txt");
-    float ft = 123;
     bool noiseSquelchEnabled = true;
     enum SquelchState { OPEN, CLOSED, TAIL }
         squelchState = SquelchState::CLOSED;
@@ -66,23 +68,24 @@ int main(int argc, const char** argv) {
 
         const unsigned test_in_max = AudioCore::FS_ADC * 7;
         const unsigned test_blocks = test_in_max / AudioCore::BLOCK_SIZE_ADC;
-        float test_in_0[test_in_max];
-        float test_in_1[test_in_max];
+        int32_t test_in_0[test_in_max];
+        int32_t test_in_1[test_in_max];
         for (unsigned i = 0; i < test_in_max; i++) {
             test_in_0[i] = 0;
             test_in_1[i] = 0;
         }
 
         // Fill in the test audio
+        float ft = 1000;
         //generateWhiteNoise(test_in_len / 2, 1.0, test_in_0);
-        //make_real_tone_f32(test_in_0, test_in_max, AudioCore::FS_ADC, ft, 0.98); 
+        //make_real_tone_q31(test_in_0, test_in_max, AudioCore::FS_ADC, ft, 0.98); 
         unsigned test_in_0_len = loadFromFile("../tests/clip-3.txt", test_in_0, test_in_max);
 
         //ft = 88.5;
         //make_real_tone_f32(test_in_1, test_in_max, AudioCore::FS_ADC, ft); 
 
-        float* adc_in_0 = test_in_0;
-        float* adc_in_1 = test_in_1;
+        int32_t* adc_in_0 = test_in_0;
+        int32_t* adc_in_1 = test_in_1;
 
         float cross_out_0[AudioCore::BLOCK_SIZE];
         float cross_out_1[AudioCore::BLOCK_SIZE];

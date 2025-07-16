@@ -92,7 +92,11 @@ AudioCore::AudioCore(unsigned id)
 /**
  * Implementation is approximately 1.1ms on an RP2350.
  */
-void AudioCore::cycle0(const float* adc_in, float* cross_out) {
+void AudioCore::cycle0(const int32_t* codec_in, float* cross_out) {
+
+    // Convert fixed-point to floating point
+    float adc_in[BLOCK_SIZE_ADC];
+    arm_q31_to_float(codec_in, adc_in, BLOCK_SIZE_ADC);
 
     // Apply HPF to 32kHz samples to isolate noise energy
     float filtOutB[BLOCK_SIZE_ADC];
@@ -164,7 +168,7 @@ void AudioCore::cycle0(const float* adc_in, float* cross_out) {
  * Implementation is approximately 980uS on an RP2350
  */
 void AudioCore::cycle1(unsigned cross_count, 
-    const float** cross_ins, const float* cross_gains, int32_t* dac_out) {
+    const float** cross_ins, const float* cross_gains, int32_t* codec_out) {
 
     float mix[BLOCK_SIZE];
 
@@ -239,9 +243,8 @@ void AudioCore::cycle1(unsigned cross_count,
     // Compute noise RMS
     arm_rms_f32(filtOutN, BLOCK_SIZE_ADC, &_outRms);
 
-    // Convert to fixed point
-    for (unsigned i = 0; i < BLOCK_SIZE_ADC; i++)
-        dac_out[i] = (int32_t)(filtOutN[i] * MAX_DAC_VALUE) << 8;
+    // Convert back to fixed point
+    arm_float_to_q31(filtOutN, codec_out, BLOCK_SIZE_ADC);
 }
 
 void AudioCore::setCtcssDecodeFreq(float hz) {
@@ -249,8 +252,8 @@ void AudioCore::setCtcssDecodeFreq(float hz) {
     _ctcssBlocks = 8;
     _ctcssBlock = 0;
     float gw =  2.0 * PI * hz / (float)FS;
-    _gcw = cos(gw);
-    _gsw = sin(gw);
+    _gcw = arm_cos_f32(gw);
+    _gsw = arm_sin_f32(gw);
     _gc = 2.0 * _gcw;
     _gz1 = 0;
     _gz2 = 0;

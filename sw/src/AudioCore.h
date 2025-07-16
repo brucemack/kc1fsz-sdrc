@@ -28,7 +28,7 @@
 namespace kc1fsz {
 
 /**
- * @brief The master application configuration structure.
+ * @brief Audio processing core.
  */
 class AudioCore {
 public:
@@ -40,13 +40,24 @@ public:
 
     AudioCore(unsigned id);
 
-    void cycle0(const float* adc_in, float* cross_out);
+    /**
+     * @brief Called once per CODEC block. Expected to run quickly 
+     * inside of the interupt service routine.
+     *
+     * @param adc_in One block of signed 32-bit PCM audio.
+     * @param cross_out One block of audio data at the 8k rate 
+     * ready to be shared across the repeater.
+     */
+    void cycle0(const int32_t* codec_in, float* cross_out);
 
     /**
+     * @brief Called once per CODEC block. Expected to run quickly 
+     * inside of the interupt service routine.
+     *
      * @param dac_out A block of 32-bit signed PCM samples will be written here
      */
     void cycle1(unsigned cross_count, 
-        const float** cross_ins, const float* cross_gains, int32_t* dac_out);
+        const float** cross_ins, const float* cross_gains, int32_t* codec_out);
 
     float getSignalRms() const { return _signalRms; }
     float getNoiseRms() const { return _noiseRms; }
@@ -75,33 +86,33 @@ private:
 
     // Noise HPF, runs at 32k
     static const unsigned FILTER_B_LEN = 41;
-    static const float FILTER_B[FILTER_B_LEN];
+    static const float32_t FILTER_B[FILTER_B_LEN];
     arm_fir_instance_f32 _filtB;
-    float _filtBState[FILTER_B_LEN + BLOCK_SIZE_ADC - 1];
+    float32_t _filtBState[FILTER_B_LEN + BLOCK_SIZE_ADC - 1];
   
-    // Decimation LPF
+    // Decimation LPF (half-band)
     static const unsigned FILTER_C_LEN = 41;
-    static const float FILTER_C[FILTER_C_LEN];
+    static const float32_t FILTER_C[FILTER_C_LEN];
     // For the 16k filter, but still runs on 32k audio
     arm_fir_decimate_instance_f32 _filtC;
-    float _filtCState[FILTER_C_LEN + BLOCK_SIZE_ADC - 1];
+    float32_t _filtCState[FILTER_C_LEN + BLOCK_SIZE_ADC - 1];
     // For the 8k filter, but still runs on 16k audio
     arm_fir_decimate_instance_f32 _filtD;
-    float _filtDState[FILTER_C_LEN + (BLOCK_SIZE_ADC / 2) - 1];
+    float32_t _filtDState[FILTER_C_LEN + (BLOCK_SIZE_ADC / 2) - 1];
 
     // Band pass filter (CTCSS removal), runs at 8k
     static const unsigned FILTER_F_LEN = 127;
-    static const float FILTER_F[FILTER_F_LEN];
+    static const float32_t FILTER_F[FILTER_F_LEN];
     arm_fir_instance_f32 _filtF;
-    float _filtFState[FILTER_F_LEN + BLOCK_SIZE - 1];
+    float32_t _filtFState[FILTER_F_LEN + BLOCK_SIZE - 1];
 
     // Low-pass filter for interpolation 8K->32K, runs at 32k
     static const unsigned FILTER_N_LEN = 127;
-    static const float FILTER_N[FILTER_N_LEN];
+    static const float32_t FILTER_N[FILTER_N_LEN];
     arm_fir_instance_f32 _filtN;
-    float _filtNState[FILTER_N_LEN + BLOCK_SIZE_ADC - 1];
+    float32_t _filtNState[FILTER_N_LEN + BLOCK_SIZE_ADC - 1];
 
-    // For capturing various measures of energy
+    // For capturing various measures of energy on each block
     float _noiseRms;
     float _signalRms;
     float _outRms;

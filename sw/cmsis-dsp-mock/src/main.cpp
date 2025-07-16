@@ -129,3 +129,19 @@ void arm_sqrt_f32(float32_t a, float32_t* result) {
 float32_t arm_cos_f32(float32_t a) {
     return cos(a);
 }
+
+float32_t arm_sin_f32(float32_t a) {
+    return sin(a);
+}
+
+void arm_q31_to_float(const q31_t* pSrc, float32_t* pDst, uint32_t blockSize) {
+    for (unsigned i = 0; i < blockSize; i++)
+        pDst[i] = (float)pSrc[i] / 2147483648.0;
+}
+
+void arm_float_to_q31(const float32_t* pSrc, q31_t* pDst, uint32_t blockSize) {
+    for (unsigned i = 0; i < blockSize; i++)
+        pDst[i] = pSrc[i] * 2147483648.0;
+}
+
+
