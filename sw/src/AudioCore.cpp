@@ -78,7 +78,9 @@ static unsigned decAndWrap(unsigned i, unsigned len) {
 }
 
 AudioCore::AudioCore(unsigned id)
-:   _id(id) {
+:   _id(id),
+    _tonePhi(0),
+    _ctcssEncodePhi(0) {
     // Filter initializations
     arm_fir_init_f32(&_filtB, FILTER_B_LEN, FILTER_B, _filtBState, BLOCK_SIZE_ADC);
     // This filter works on 32k audio
@@ -244,9 +246,9 @@ void AudioCore::cycle1(unsigned cross_count,
             //
             // Normal audio channels get whatever is left over after the 
             // CTCSS and tone levels are determined.
-            //float audioLevel = 1.0 - toneLevel - ctcssLevel;
-            //for (unsigned k = 0; k < cross_count; k++)
-            //    toneAndAudio += audioLevel * cross_ins[k][i] * cross_gains[k];
+            float audioLevel = 1.0 - toneLevel - ctcssLevel;
+            for (unsigned k = 0; k < cross_count; k++)
+                toneAndAudio += audioLevel * cross_ins[k][i] * cross_gains[k];
 
             mix[i] = toneAndAudio;
         }
@@ -302,11 +304,12 @@ void AudioCore::setCtcssEncodeFreq(float hz) {
     // Convert frequency to radians/sample.  The CTCSS
     // generation happens at the FS (8k) rate.
     _ctcssEncodeOmega = 2.0 * PI * hz / (float)FS;
-    _ctcssEncodePhi = 0;
 }
 
 void AudioCore::setDelayMs(unsigned ms) {
+
     _delaySamples = FS * ms / 1000;
+
     // Cap out delay length
     if (_delaySamples > _delayAreaLen) 
         _delaySamples = _delayAreaLen;
