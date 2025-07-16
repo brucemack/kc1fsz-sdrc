@@ -77,7 +77,7 @@ int main(int argc, const char** argv) {
     unsigned tailCount = 0;
 
     unsigned outerCount = 70;
-    unsigned sweepTone = 100;
+    unsigned sweepTone = 50;
     unsigned sweepToneIncrement = 50;
 
     // Outer test loop
@@ -199,7 +199,7 @@ int main(int argc, const char** argv) {
         }
 
         // Output
-        cout << sweepTone << " " << last_o_0 << endl;
+        cout << sweepTone << "\t" << last_o_0 << endl;
 
         sweepTone += sweepToneIncrement;
     }
