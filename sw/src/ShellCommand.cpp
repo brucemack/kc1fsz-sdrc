@@ -78,8 +78,14 @@ void ShellCommand::process(const char* cmd) {
         else if (strcmp(tokens[0], "status") == 0) {
             _statusTrigger();
         }
+        else if (strcmp(tokens[0], "id") == 0) {
+            _idTrigger();
+        }
         else
             printf(INVALID_COMMAND);
+    }
+    else if (tokenCount == 2) {
+        printf(INVALID_COMMAND);
     }
     else if (tokenCount == 3) {
         if (strcmp(tokens[0], "set") == 0) {

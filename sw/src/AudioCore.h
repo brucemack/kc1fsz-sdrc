@@ -190,7 +190,7 @@ private:
     // on whether we are fading in or fading out.
     float _toneTransitionLimit = 0;
     // Controls how long the transition should last.
-    unsigned _toneTransitionMs = 50;
+    unsigned _toneTransitionMs = 24;
 
     // Diagnostic tone stuff
     bool _diagToneEnabled = false;

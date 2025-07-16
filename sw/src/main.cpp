@@ -165,12 +165,15 @@ static uint out_history_ptr = 0;
 static Config config;
 
 static PicoClock clock;
+static PicoPerfTimer perfTimer0;
 
 static AudioCore core0(0);
 static AudioCore core1(1);
 
 static AudioSourceControl audioSource0;
 static AudioSourceControl audioSource1;
+
+static uint32_t longestLoop = 0;
 
 static void process_in_frame();
 
@@ -245,6 +248,8 @@ static void dma_irq_handler() {
 //
 static void process_in_frame() {
 
+    perfTimer0.reset();
+
     dma_in_count++;
 
     // Counter used to alternate between double-buffer sides
@@ -299,9 +304,11 @@ static void process_in_frame() {
         r1_cross_gains[1] = 1.0;
 
     core0.cycle0(r0_samples, r0_cross);
-    core1.cycle0(r1_samples, r1_cross);
+    //core1.cycle0(r1_samples, r1_cross);
+    for (unsigned i = 0; i < 64; i++)
+        r1_cross[i] = 0;
     core0.cycle1(2, cross_ins, r0_cross_gains, r0_out);
-    core1.cycle1(2, cross_ins, r1_cross_gains, r1_out);
+    //core1.cycle1(2, cross_ins, r1_cross_gains, r1_out);
 
     // Re-pack data for DAC
     j = 0;
@@ -309,6 +316,10 @@ static void process_in_frame() {
         dac_buffer[j++] = r1_out[i];
         dac_buffer[j++] = r0_out[i];
     }
+
+    uint32_t t = perfTimer0.elapsedUs();
+    if (t > longestLoop)
+        longestLoop = t;
 }
 
 static void generate_silence() {
@@ -1113,6 +1124,11 @@ int main(int argc, const char** argv) {
             // the controller objects.
             log.info("Transferring configuration");
             transferConfig(config, rx0, rx1, tx0, tx1, txCtl0, txCtl1, core0, core1);
+        },
+        // ID trigger
+        [&txCtl0, &txCtl1, &log]() {
+            txCtl0.forceId();
+            //txCtl1.forceId();        
         }
         );
 
@@ -1148,6 +1164,8 @@ int main(int argc, const char** argv) {
                 txCtl0.forceId();
                 txCtl1.forceId();
             }
+            if (flash)
+                printf("Longest %u\n", longestLoop);
         }
         else if (uiMode == UIMode::UIMODE_SHELL) {
             if (c != 0) {

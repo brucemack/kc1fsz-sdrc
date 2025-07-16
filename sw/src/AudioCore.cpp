@@ -194,25 +194,10 @@ void AudioCore::cycle1(unsigned cross_count,
         // First compute the levels of the various sources, taking into 
         // account what is enabled, etc.
         float ctcssLevel = _ctcssEncodeEnabled ? _ctcssEncodeLevel : 0;
-        // Tone level changes during transition windows
-        if (_toneTransitionIncrement > 0) {
-            if (_toneTransitionLevel < _toneTransitionLimit) {
-                _toneTransitionLevel += _toneTransitionIncrement;
-            }
-        } else if (_toneTransitionIncrement < 0) {
-            if (_toneTransitionLevel > _toneTransitionLimit) {
-                _toneTransitionLevel += _toneTransitionIncrement;
-            }
-        }
-        if (_toneTransitionLevel < 0) 
-            _toneTransitionLevel = 0;
-        else if (_toneTransitionLevel > 1.0)
-            _toneTransitionLevel = 1.0;
-
-        float toneLevel = _toneLevel * _toneTransitionLevel;
         // Normal audio channels get whatever is left over after the 
         // CTCSS and tone levels are determined.
-        float audioLevel = 1.0 - toneLevel - ctcssLevel;
+        //float audioLevel = 1.0 - toneLevel - ctcssLevel;
+        float audioLevel = 1.0 - ctcssLevel;
 
         // CTCSS encoder [see flow diagram reference J] 
         // Notice that all of the calculations needed to 
@@ -232,8 +217,27 @@ void AudioCore::cycle1(unsigned cross_count,
         // generate the tone(s) are performed regardless 
         // of whether the tone is enabled.  This is to 
         // maintain a consistent CPU cost.
-        for (unsigned i = 0; i < BLOCK_SIZE; i++, _tonePhi += _toneOmega)
+        for (unsigned i = 0; i < BLOCK_SIZE; i++, _tonePhi += _toneOmega) {
+
+            // Tone level changes during transition windows
+            if (_toneTransitionIncrement > 0) {
+                if (_toneTransitionLevel < _toneTransitionLimit) {
+                    _toneTransitionLevel += _toneTransitionIncrement;
+                }
+            } else if (_toneTransitionIncrement < 0) {
+                if (_toneTransitionLevel > _toneTransitionLimit) {
+                    _toneTransitionLevel += _toneTransitionIncrement;
+                }
+            }
+            if (_toneTransitionLevel < 0) 
+                _toneTransitionLevel = 0;
+            else if (_toneTransitionLevel > 1.0)
+                _toneTransitionLevel = 1.0;
+
+            float toneLevel = _toneLevel * _toneTransitionLevel;
+
             mix[i] += toneLevel * arm_cos_f32(_tonePhi);
+        }
 
         // We do this to avoid phi growing very large and 
         // creating overflow/precision problems.
@@ -317,7 +321,7 @@ void AudioCore::setToneEnabled(bool b) {
     unsigned transitionCycles = FS * _toneTransitionMs / 1000;
     // Since we only adjust the gain once/block, the number of
     // cycles is smaller.
-    transitionCycles /= BLOCK_SIZE;
+    //transitionCycles /= BLOCK_SIZE;
     // How much does the gain change in each transition cycle?
     float increment = 1.0 / (float)transitionCycles;    
 
