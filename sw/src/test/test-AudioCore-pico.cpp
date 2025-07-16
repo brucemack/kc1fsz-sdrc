@@ -75,8 +75,8 @@ int main(int, const char**) {
     // (32,000 / 4) * 4 * 2 = 64,000
     const unsigned test_in_max = AudioCore::FS_ADC / 4;
     const unsigned test_blocks = test_in_max / AudioCore::BLOCK_SIZE_ADC;
-    float test_in_0[test_in_max];
-    float test_in_1[test_in_max];
+    int32_t test_in_0[test_in_max];
+    int32_t test_in_1[test_in_max];
     for (unsigned i = 0; i < test_in_max; i++) {
         test_in_0[i] = 0;
         test_in_1[i] = 0;
@@ -90,19 +90,18 @@ int main(int, const char**) {
     //int ft = 6000;
     // Audio
     int ft = 123;
-    make_real_tone_f32(test_in_0, test_in_max, AudioCore::FS_ADC, ft, 0.5); 
-    //unsigned test_in_0_len = loadFromFile("../tests/clip-3.txt", test_in_0, test_in_max);
+    make_real_tone_q32(test_in_0, test_in_max, AudioCore::FS_ADC, ft, 0.5); 
 
-    float* adc_in_0 = test_in_0;
-    float* adc_in_1 = test_in_1;
+    int32_t* adc_in_0 = test_in_0;
+    int32_t* adc_in_1 = test_in_1;
 
     float cross_out_0[AudioCore::BLOCK_SIZE];
     float cross_out_1[AudioCore::BLOCK_SIZE];
     const float* cross_ins[2] = { cross_out_0, cross_out_1 };
     float cross_gains[2] = { 1.0, 0.0 };
 
-    float dac_out_0[AudioCore::BLOCK_SIZE_ADC];
-    float dac_out_1[AudioCore::BLOCK_SIZE_ADC];
+    int32_t dac_out_0[AudioCore::BLOCK_SIZE_ADC];
+    int32_t dac_out_1[AudioCore::BLOCK_SIZE_ADC];
 
     // Run an Audio cycle with timing
     PicoPerfTimer timer;
@@ -124,14 +123,14 @@ int main(int, const char**) {
         float np = dB(core0.getNoiseRms());
         float sp = dB(core0.getSignalRms());
         float op = dB(core0.getOutRms());
-        float cm = dB(core0.getCtcssDecodeMag());
+        float cp = dB(core0.getCtcssDecodeRms());
         unsigned elUs = timer.elapsedUs();
 
         log.info("  Elapsed us      %u", elUs);
         log.info("  Noise power dB  %f", np);
         log.info("  Signal power dB %f", sp);
         log.info("  Output power dB %f", op);
-        log.info("  CTCSS power dB  %f", cm);
+        log.info("  CTCSS power dB  %f", cp);
     }
 
     while (true) {
