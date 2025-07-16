@@ -191,20 +191,14 @@ void AudioCore::cycle1(unsigned cross_count,
         // This is where the final 8k audio block is created
         float mix[BLOCK_SIZE];
 
-        // First compute the levels of the various sources, taking into 
-        // account what is enabled, etc.
-        float ctcssLevel = _ctcssEncodeEnabled ? _ctcssEncodeLevel : 0;
-        // Normal audio channels get whatever is left over after the 
-        // CTCSS and tone levels are determined.
-        //float audioLevel = 1.0 - toneLevel - ctcssLevel;
-        float audioLevel = 1.0 - ctcssLevel;
-
         // CTCSS encoder [see flow diagram reference J] 
         // Notice that all of the calculations needed to 
         // generate the CTCSS tone are performed regardless 
         // of whether the encoding is enabled.  This is to 
         // maintain a consistent CPU cost.
-        for (unsigned i = 0; i < BLOCK_SIZE; 
+        float ctcssLevel = _ctcssEncodeEnabled ? _ctcssEncodeLevel : 0;
+        for (unsigned i = 0; 
+            i < BLOCK_SIZE; 
             i++, _ctcssEncodePhi += _ctcssEncodeOmega)
             mix[i] = ctcssLevel * arm_cos_f32(_ctcssEncodePhi);
 
@@ -212,13 +206,17 @@ void AudioCore::cycle1(unsigned cross_count,
         // creating overflow/precision problems.
         _ctcssEncodePhi = fmod(_ctcssEncodePhi, 2.0 * PI);
 
-        // Tone generation [see flow diagram reference K] 
-        // Notice that all of the calculations needed to 
-        // generate the tone(s) are performed regardless 
-        // of whether the tone is enabled.  This is to 
-        // maintain a consistent CPU cost.
-        for (unsigned i = 0; i < BLOCK_SIZE; i++, _tonePhi += _toneOmega) {
+        // Tone and audio mixing
+        for (unsigned i = 0; 
+            i < BLOCK_SIZE; 
+            i++, _tonePhi += _toneOmega) {
 
+            // Tone generation [see flow diagram reference K] 
+            // Notice that all of the calculations needed to 
+            // generate the tone(s) are performed regardless 
+            // of whether the tone is enabled.  This is to 
+            // maintain a consistent CPU cost.
+            // 
             // Tone level changes during transition windows
             if (_toneTransitionIncrement > 0) {
                 if (_toneTransitionLevel < _toneTransitionLimit) {
@@ -229,28 +227,33 @@ void AudioCore::cycle1(unsigned cross_count,
                     _toneTransitionLevel += _toneTransitionIncrement;
                 }
             }
+            // Saturate
             if (_toneTransitionLevel < 0) 
                 _toneTransitionLevel = 0;
             else if (_toneTransitionLevel > 1.0)
                 _toneTransitionLevel = 1.0;
 
+            // At the moment the transition is linear (i.e. trapazoidal
+            // shaping).  We may consider a more complex envelope later.
             float toneLevel = _toneLevel * _toneTransitionLevel;
 
-            mix[i] += toneLevel * arm_cos_f32(_tonePhi);
+            float toneAndAudio = mix[i];
+            toneAndAudio += toneLevel * arm_cos_f32(_tonePhi);
+
+            // Transmit Mix [float diagram reference L]
+            //
+            // Normal audio channels get whatever is left over after the 
+            // CTCSS and tone levels are determined.
+            float audioLevel = 1.0 - toneLevel - ctcssLevel;
+            for (unsigned k = 0; k < cross_count; k++)
+                toneAndAudio += audioLevel * cross_ins[k][i] * cross_gains[k];
+
+            mix[i] = toneAndAudio;
         }
 
         // We do this to avoid phi growing very large and 
         // creating overflow/precision problems.
         _tonePhi = fmod(_tonePhi, 2.0 * PI);
-
-        // Transmit Mix [float diagram reference L]
-        for (unsigned i = 0; i < BLOCK_SIZE; i++)
-            for (unsigned k = 0; k < cross_count; k++) {
-                mix[i] += audioLevel * cross_ins[k][i] * cross_gains[k];
-            }
-
-        // LPF 2.3kHz [float diagram reference M]
-        // (Not used at this time)
 
         // Interpolation x4 [flow diagram reference N]   
         // Pad the 8K samples with zeros

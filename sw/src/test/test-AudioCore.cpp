@@ -69,6 +69,11 @@ int main(int argc, const char** argv) {
 
     core1.setCtcssDecodeFreq(88.5);
 
+    // TEMP
+    //core0.setDiagToneFreq(2000);
+    //core0.setDiagToneLevel(-3);
+    //core0.setDiagToneEnabled(true);
+
     ofstream os("/tmp/clip-3b.txt");
     bool noiseSquelchEnabled = true;
     enum SquelchState { OPEN, CLOSED, TAIL }
@@ -151,7 +156,7 @@ int main(int argc, const char** argv) {
             else
                 state = 'O';
 
-            cout << block << " " << snr << " " << state << " " << pl_0 << endl;
+            cout << block << " " << snr << " " << state << " " << pl_0 << " " << o_0 << endl;
             //cout << block << " " << s_0 << " " << n_0 << " " << pl_0 << endl;
 
             if (squelchState == SquelchState::CLOSED) {
