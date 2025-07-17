@@ -29,9 +29,10 @@ add_executable(main
   cmsis-dsp-mock/src/main.cpp
 )
 target_include_directories(main PRIVATE
+  src
   cmsis-dsp-mock/include
   radlib
-  src
+  kc1fsz-tools-cpp/include
 )
 
 add_executable(dtmf-test-1

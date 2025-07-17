@@ -80,6 +80,12 @@ public:
      */
     float getOutRms() const { return _outRms; }
 
+    /**
+     * @brief Controls the HPF that is intended to filter out the low
+     * end of the received audio, generally PL tone elimination.
+     */
+    void setHPFEnabled(bool b) { _hpfEnabled = b; }
+
     void setCtcssDecodeFreq(float hz);
 
     /**
@@ -90,12 +96,14 @@ public:
     float getCtcssDecodeRms() const;
 
     void setCtcssEncodeEnabled(bool b);
+
     void setCtcssEncodeFreq(float hz);
 
     // TODO: Investigate peak vs RMS here
     void setCtcssEncodeLevel(float db) { _ctcssEncodeLevel = _dbToLinear(db); }
 
     void setDelayMs(unsigned ms);
+
     void resetDelay() { _delayCountdown = _delaySamples; }
 
     // TODO: SOFT GAINS ON RX AND TX
@@ -151,6 +159,8 @@ private:
     float _noiseRms;
     float _signalRms;
     float _outRms;
+
+    bool _hpfEnabled = true;
 
     // Used for CTCSS encoding
     bool _ctcssEncodeEnabled = false;

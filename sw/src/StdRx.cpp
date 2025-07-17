@@ -13,11 +13,12 @@ StdRx::StdRx(Clock& clock, Log& log, int id, int cosPin, int tonePin,
     // Flip logic because of the inverter in the hardware design
     _cosPin(cosPin, true),
     _tonePin(tonePin, true),
-    _cosDebouncer(clock, _cosPin),
+    _cosDebouncer(clock, _cosValue),
     _toneDebouncer(clock, _tonePin),
     _courtesyType(courtesyType),
     _core(core),
-    _startTime(_clock.time()) {
+    _startTime(_clock.time()),
+    _cosValue(cosPin, core) {
 }
 
 void StdRx::run() {

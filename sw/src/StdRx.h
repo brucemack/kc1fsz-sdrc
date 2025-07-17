@@ -1,8 +1,28 @@
+/**
+ * Digital Repeater Controller
+ * Copyright (C) 2025, Bruce MacKinnon KC1FSZ
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ *
+ * NOT FOR COMMERCIAL USE WITHOUT PERMISSION.
+ */
 #ifndef _StdRx_h
 #define _StdRx_h
 
 #include "kc1fsz-tools/Log.h"
 #include "kc1fsz-tools/Clock.h"
+#include "kc1fsz-tools/BinaryWrapper.h"
 #include "kc1fsz-tools/rp2040/GpioValue.h"
 #include "kc1fsz-tools/TimeDebouncer.h"
 
@@ -10,6 +30,36 @@
 #include "AudioCore.h"
 
 namespace kc1fsz {
+
+/**
+ * @brief A utility class that wraps a hardware signal and
+ * the AudioCore to produce a unified COS indicator, dependent
+ * on the COS mode selected
+ */
+class COSValue : public BinaryWrapper {
+public:
+
+    COSValue(BinaryWrapper& hwValue, AudioCore& core)
+    :   _hwValue(hwValue),
+        _core(core)
+    {
+    }
+
+    bool get() const { 
+        if (_useHw)
+            return _hwValue.get();
+        else 
+            return _core.getSignalRms() > _levelRms;
+    }
+
+    void setUseHw(bool b) { _useHw = b; }
+    void setLevelRMS(float rms) { _levelRms = rms; }
+
+private:
+
+    bool _useHw = true;
+    float _levelRms = 0.1;
+};
 
 class StdRx : public Rx {
 public:
@@ -27,11 +77,19 @@ public:
     void setCosMode(CosMode mode) { 
         _cosMode = mode; 
         _cosPin.setActiveLow(mode == Rx::CosMode::COS_EXT_LOW);
+        _cosValue.setUseHw(mode == Rx::CosMode::COS_EXT_LOW || 
+            mode == Rx::CosMode::COS_EXT_HIGH);
     }
 
     void setCosActiveTime(unsigned ms) { _cosDebouncer.setActiveTime(ms); }
+
     void setCosInactiveTime(unsigned ms) { _cosDebouncer.setInactiveTime(ms); }
-    void setCosLevel(float lvl) { _cosLevel = lvl; }
+
+    void setCosLevel(float db) { 
+        // Send the level down to the COSValue object that actually
+        // performs the comparison.
+        _cosValue.setLevelRMS(pow(10, (db / 20)));
+    }
 
     void setToneMode(ToneMode mode) { 
         _toneMode = mode; 
@@ -63,6 +121,10 @@ private:
     GpioValue _tonePin;
     AudioCore& _core;
 
+    // This combines the _cosPin and _core information to created 
+    // a COS indicator that is ready to be debounced.
+    COSValue _cosValue;
+
     TimeDebouncer _cosDebouncer;
     TimeDebouncer _toneDebouncer;
 
@@ -73,7 +135,7 @@ private:
     unsigned int _state = 0;
 
     CosMode _cosMode = CosMode::COS_EXT_HIGH;
-    float _cosLevel = 0.0;
+    //float _cosLevel = 0.0;
 
     ToneMode _toneMode = ToneMode::TONE_IGNORE;
     float _toneLevel = -26;

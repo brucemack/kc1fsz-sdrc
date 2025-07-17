@@ -112,11 +112,15 @@ void AudioCore::cycle0(const int32_t* codec_in, float* cross_out) {
     float filtOutD[BLOCK_SIZE];
     arm_fir_decimate_f32(&_filtD, filtOutC, filtOutD, BLOCK_SIZE_ADC / 2);
 
-    // Apply the CTCSS elimination filter
+    // Apply the CTCSS elimination (HPF) filter
     float filtOutF[BLOCK_SIZE];
-    arm_fir_f32(&_filtF, filtOutD, filtOutF, BLOCK_SIZE);
+    if (_hpfEnabled)
+        arm_fir_f32(&_filtF, filtOutD, filtOutF, BLOCK_SIZE);
+    else 
+        for (unsigned i = 0; i < BLOCK_SIZE; i++)
+            filtOutF[i] = filtOutD[i];
 
-    // Do tone processing on the final 8K audio
+    // Do tone decode processing on the final 8K audio
     for (unsigned int i = 0; i < BLOCK_SIZE; i++) {
         float s = filtOutD[i];
         // CTCSS decode
