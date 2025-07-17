@@ -18,7 +18,7 @@ StdRx::StdRx(Clock& clock, Log& log, int id, int cosPin, int tonePin,
     _courtesyType(courtesyType),
     _core(core),
     _startTime(_clock.time()),
-    _cosValue(cosPin, core) {
+    _cosValue(_cosPin, core) {
 }
 
 void StdRx::run() {

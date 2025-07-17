@@ -56,7 +56,7 @@ void CourtesyToneGenerator::start() {
     else if (_type == Type::FAST_UPCHIRP)
         _core.setToneFreq(1000);
     _core.setToneEnabled(true);
-     _core.setToneLevel(_level);
+    _core.setToneLevel(_level);
 }
 
 bool CourtesyToneGenerator::isFinished() {

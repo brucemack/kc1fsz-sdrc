@@ -57,6 +57,8 @@ public:
 
 private:
 
+    BinaryWrapper& _hwValue;
+    AudioCore& _core;
     bool _useHw = true;
     float _levelRms = 0.1;
 };
