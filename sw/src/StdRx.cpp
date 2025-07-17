@@ -14,11 +14,12 @@ StdRx::StdRx(Clock& clock, Log& log, int id, int cosPin, int tonePin,
     _cosPin(cosPin, true),
     _tonePin(tonePin, true),
     _cosDebouncer(clock, _cosValue),
-    _toneDebouncer(clock, _tonePin),
+    _toneDebouncer(clock, _toneValue),
     _courtesyType(courtesyType),
     _core(core),
     _startTime(_clock.time()),
-    _cosValue(_cosPin, core) {
+    _cosValue(_cosPin, core),
+    _toneValue(_tonePin, core) {
 }
 
 void StdRx::run() {
@@ -29,13 +30,7 @@ bool StdRx::isCOS() const {
 }
 
 bool StdRx::isCTCSS() const {
-    if (_toneMode == ToneMode::TONE_EXT_LOW ||
-        _toneMode == ToneMode::TONE_EXT_HIGH) {
-        return _toneDebouncer.get();
-    } else {
-        // TODO: NEED TO SUPPORT SOFT TONE
-        return false;
-    }
+    return _toneDebouncer.get();
 }
 
 bool StdRx::isActive() const { 

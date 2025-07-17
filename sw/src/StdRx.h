@@ -20,6 +20,8 @@
 #ifndef _StdRx_h
 #define _StdRx_h
 
+#include <limits>
+
 #include "kc1fsz-tools/Log.h"
 #include "kc1fsz-tools/Clock.h"
 #include "kc1fsz-tools/BinaryWrapper.h"
@@ -50,6 +52,45 @@ public:
             return _hwValue.get();
         else 
             return _core.getSignalRms() > _thresholdRms;
+    }
+
+    void setUseHw(bool b) { _useHw = b; }
+    void setThresholdRms(float rms) { _thresholdRms = rms; }
+
+private:
+
+    BinaryWrapper& _hwValue;
+    AudioCore& _core;
+    bool _useHw = true;
+    float _thresholdRms = 0.1;
+};
+
+/**
+ * @brief A utility class that wraps a hardware signal and
+ * the AudioCore to produce a unified tone indicator, dependent
+ * on the tone mode selected.
+ */
+class ToneValue : public BinaryWrapper {
+public:
+
+    ToneValue(BinaryWrapper& hwValue, AudioCore& core)
+    :   _hwValue(hwValue),
+        _core(core)
+    {
+    }
+
+    bool get() const { 
+        if (_useHw)
+            return _hwValue.get();
+        else {
+            float noiseRms = _core.getNoiseRms();
+            float snr;
+            if (noiseRms == 0)
+                snr = std::numeric_limits<float>::max();
+            else
+                snr = 20.0 * log10(_core.getSignalRms() / noiseRms);
+            return snr > 10 && _core.getCtcssDecodeRms() > _thresholdRms;
+        }
     }
 
     void setUseHw(bool b) { _useHw = b; }
@@ -96,18 +137,18 @@ public:
     void setToneMode(ToneMode mode) { 
         _toneMode = mode; 
         _tonePin.setActiveLow(mode == Rx::ToneMode::TONE_EXT_LOW);
+        _toneValue.setUseHw(mode == Rx::ToneMode::TONE_EXT_LOW ||
+            mode == Rx::ToneMode::TONE_EXT_HIGH);
     }
 
-    void setToneActiveTime(unsigned ms) { 
-        _toneDebouncer.setActiveTime(ms); 
-    }
+    void setToneActiveTime(unsigned ms) { _toneDebouncer.setActiveTime(ms); }
 
-    void setToneInactiveTime(unsigned ms) { 
-        _toneDebouncer.setInactiveTime(ms); 
-    }
+    void setToneInactiveTime(unsigned ms) { _toneDebouncer.setInactiveTime(ms); }
 
-    void setToneLevel(float db) { _toneLevel = db; }
+    void setToneLevel(float db) { _toneValue.setThresholdRms(std::pow(10, (db / 20))); }
+
     void setToneFreq(float hz) { _core.setCtcssDecodeFreq(hz); }
+
     void setGain(float lvl) { _gain = lvl; }
 
     virtual CourtesyToneGenerator::Type getCourtesyType() const { 
@@ -123,11 +164,15 @@ private:
     GpioValue _tonePin;
     AudioCore& _core;
 
-    // This combines the _cosPin and _core information to created 
+    // This combines the _cosPin and _core information to create 
     // a COS indicator that is ready to be debounced.
     COSValue _cosValue;
+    // This combines the _tonePin and _core information to create 
+    // a tone indicator that is ready to be debounced.
+    ToneValue _toneValue;
 
     TimeDebouncer _cosDebouncer;
+
     TimeDebouncer _toneDebouncer;
 
     const CourtesyToneGenerator::Type _courtesyType;
@@ -137,9 +182,7 @@ private:
     unsigned int _state = 0;
 
     CosMode _cosMode = CosMode::COS_EXT_HIGH;
-
     ToneMode _toneMode = ToneMode::TONE_IGNORE;
-    float _toneLevel = -26;
 
     float _gain = 1.0;
 };

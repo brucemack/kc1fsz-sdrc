@@ -797,7 +797,7 @@ static void print_vu_bar(int rms_db, int peak_db) {
 static void render_status(const Rx& rx0, const Rx& rx1, const Tx& tx0, const Tx& tx1) {
 
     printf("\033[H");
-    printf("W1TKZ Software Defined Repater Controller\n");
+    printf("W1TKZ Software Defined Repeater Controller\n");
     printf("\n");
 
     printf("\033[30;47m");
@@ -848,6 +848,10 @@ static void render_status(const Rx& rx0, const Rx& rx1, const Tx& tx0, const Tx&
     printf("TX0 LVL  : ");
     print_vu_bar(tx_rms_r0_db, tx_peak_r0_db);
     printf("\n");
+    printf("Tone RMS: %f, Noise RMS: %f, Signal RMS: %f, SNR: %f\n", 
+        core0.getCtcssDecodeRms(), 
+        core0.getNoiseRms(), core0.getSignalRms(),
+        db(core0.getSignalRms() / core0.getNoiseRms()));
 
     printf("\n");
                 
@@ -899,6 +903,11 @@ static void render_status(const Rx& rx0, const Rx& rx1, const Tx& tx0, const Tx&
     printf("TX1 LVL  : ");
     print_vu_bar(tx_rms_r1_db, tx_peak_r1_db);
     printf("\n");
+    printf("Tone RMS: %f, Noise RMS: %f, Signal RMS: %f, SNR: %f\n", 
+        core1.getCtcssDecodeRms(), 
+        core1.getNoiseRms(), 
+        core1.getSignalRms(),
+        db(core1.getSignalRms() / core1.getNoiseRms()));
 
     printf("\n");
 }
