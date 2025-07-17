@@ -220,8 +220,27 @@ void ShellCommand::process(const char* cmd) {
                     _config.txc1.lockoutTime = atoi(tokens[3]);
                 else 
                     printf(INVALID_COMMAND);                
-
-
+            else if (strcmp(tokens[1], "ctmode") == 0)
+                if (strcmp(tokens[2], "0") == 0)
+                    _config.rx0.ctMode = atoi(tokens[3]);
+                else if (strcmp(tokens[2], "1") == 0)
+                    _config.rx1.ctMode = atoi(tokens[3]);
+                else 
+                    printf(INVALID_COMMAND);                
+            else if (strcmp(tokens[1], "ctlevel") == 0)
+                if (strcmp(tokens[2], "0") == 0)
+                    _config.txc0.ctLevel = atof(tokens[3]);
+                else if (strcmp(tokens[2], "1") == 0)
+                    _config.txc1.ctLevel = atof(tokens[3]);
+                else 
+                    printf(INVALID_COMMAND);                
+            else if (strcmp(tokens[1], "idlevel") == 0)
+                if (strcmp(tokens[2], "0") == 0)
+                    _config.txc0.idLevel = atof(tokens[3]);
+                else if (strcmp(tokens[2], "1") == 0)
+                    _config.txc1.idLevel = atof(tokens[3]);
+                else 
+                    printf(INVALID_COMMAND);                
         else
             printf(INVALID_COMMAND);
     }

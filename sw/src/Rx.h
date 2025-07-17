@@ -94,9 +94,9 @@ public:
      */
     virtual void setGain(float lvl) = 0;
 
-    virtual CourtesyToneGenerator::Type getCourtesyType() const { 
-        return CourtesyToneGenerator::Type::FAST_UPCHIRP; 
-    }
+    virtual CourtesyToneGenerator::Type getCourtesyType() const = 0;
+    
+    virtual void setCtMode(CourtesyToneGenerator::Type t) = 0;
 };
 
 }

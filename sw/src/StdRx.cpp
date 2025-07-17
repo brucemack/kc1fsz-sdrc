@@ -5,8 +5,7 @@
 
 namespace kc1fsz {
 
-StdRx::StdRx(Clock& clock, Log& log, int id, int cosPin, int tonePin,
-    CourtesyToneGenerator::Type courtesyType, AudioCore& core) 
+StdRx::StdRx(Clock& clock, Log& log, int id, int cosPin, int tonePin, AudioCore& core) 
 :   _clock(clock),
     _log(log),
     _id(id),
@@ -15,7 +14,6 @@ StdRx::StdRx(Clock& clock, Log& log, int id, int cosPin, int tonePin,
     _tonePin(tonePin, true),
     _cosDebouncer(clock, _cosValue),
     _toneDebouncer(clock, _toneValue),
-    _courtesyType(courtesyType),
     _core(core),
     _startTime(_clock.time()),
     _cosValue(_cosPin, core),

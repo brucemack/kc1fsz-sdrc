@@ -950,6 +950,7 @@ static void transferConfig(const Config& config,
     rx0.setToneLevel(config.rx0.toneLevel);
     rx0.setToneFreq(config.rx0.toneFreq);
     rx0.setGain(config.rx0.gain);
+    rx0.setCtMode((CourtesyToneGenerator::Type)config.rx0.ctMode);
 
     rx1.setCosMode((Rx::CosMode)config.rx1.cosMode);
     rx1.setCosActiveTime(config.rx1.cosActiveTime);
@@ -961,6 +962,7 @@ static void transferConfig(const Config& config,
     rx1.setToneLevel(config.rx1.toneLevel);
     rx1.setToneFreq(config.rx1.toneFreq);
     rx1.setGain(config.rx1.gain);
+    rx1.setCtMode((CourtesyToneGenerator::Type)config.rx1.ctMode);
 
     // Transmitter configuration
     tx0.setToneMode((Tx::ToneMode)config.tx0.toneMode);
@@ -975,14 +977,12 @@ static void transferConfig(const Config& config,
     txc0.setTimeoutTime(config.txc0.timeoutTime);
     txc0.setLockoutTime(config.txc0.lockoutTime);
     txc0.setHangTime(config.txc0.hangTime);
-    txc0.setCtMode((TxControl::CtMode)config.txc0.ctMode);
     txc0.setCtLevel(config.txc0.ctLevel);
     txc0.setIdLevel(config.txc0.idLevel);
 
     txc1.setTimeoutTime(config.txc1.timeoutTime);
     txc1.setLockoutTime(config.txc1.lockoutTime);
     txc1.setHangTime(config.txc1.hangTime);
-    txc1.setCtMode((TxControl::CtMode)config.txc1.ctMode);
     txc1.setCtLevel(config.txc1.ctLevel);
     txc1.setIdLevel(config.txc1.idLevel);
 }
@@ -1066,10 +1066,8 @@ int main(int argc, const char** argv) {
     StdTx tx0(clock, log, 0, R0_PTT_PIN, core0);
     StdTx tx1(clock, log, 1, R1_PTT_PIN, core1);
 
-    StdRx rx0(clock, log, 0, R0_COS_PIN, R0_CTCSS_PIN, 
-        CourtesyToneGenerator::Type::FAST_UPCHIRP, core0);
-    StdRx rx1(clock, log, 1, R1_COS_PIN, R1_CTCSS_PIN, 
-        CourtesyToneGenerator::Type::FAST_DOWNCHIRP, core1);
+    StdRx rx0(clock, log, 0, R0_COS_PIN, R0_CTCSS_PIN, core0);
+    StdRx rx1(clock, log, 1, R1_COS_PIN, R1_CTCSS_PIN, core1);
 
     TxControl txCtl0(clock, log, tx0, core0, audioSource0);
     TxControl txCtl1(clock, log, tx1, core1, audioSource1);
@@ -1181,67 +1179,6 @@ int main(int argc, const char** argv) {
                 txCtl1.forceId();
             }
         }
-        /*
-        else if (c == 'd') {
-            if (!diagOn) {
-                diagOn = true;
-                diagSynth0.setFreq(diagFreqHz);
-                diagSynth1.setFreq(diagFreqHz);
-                diagSynth0.setEnabled(true);
-                diagSynth1.setEnabled(true);
-                log.info("Diag tone enabled");
-            }
-            else {
-                diagOn = false;
-                diagSynth0.setEnabled(false);
-                diagSynth1.setEnabled(false);
-                log.info("Diag tone disabled");
-            }
-        }
-        else if (c == '8') {
-            diagFreqHz += 50;
-            diagSynth0.setFreq(diagFreqHz);
-            diagSynth1.setFreq(diagFreqHz);
-            log.info("Diag tone f=%f", diagFreqHz);
-        } 
-        else if (c == '2') {
-            if (diagFreqHz > 100)
-                diagFreqHz -= 50;
-            diagSynth0.setFreq(diagFreqHz);
-            diagSynth1.setFreq(diagFreqHz);
-            log.info("Diag tone f=%f", diagFreqHz);
-        }
-        else if (c == '9') {
-            if (diagScaleDb < 0)
-                diagScaleDb += 1.0;
-            // Convert from dB to linear
-            diagScaleLinear = pow(10, (diagScaleDb / 20)) * MAX_DAC_VALUE;
-            log.info("Diag s=%f", diagScaleDb);
-        }
-        else if (c == '3') {
-            diagScaleDb -= 1.0;
-            // Convert from dB to linear
-            diagScaleLinear = pow(10, (diagScaleDb / 20)) * MAX_DAC_VALUE;
-            log.info("Diag s=%f", diagScaleDb);
-        }
-        else if (c == 'l') {
-            if (liveDisplay) {
-                liveDisplay = false;
-                log.setEnabled(true);
-                puts("\033[2J\033[?25h");
-            }
-            else {
-                liveDisplay = true;
-                log.setEnabled(false);
-                puts("\033[2J\033[?25l");
-            }
-        }
-        else if (c == 'r') {
-            log.info("Reboot requested");
-            // The watchdog will take over from here
-            while (true);            
-        }
-        */
 
         // Run all components
         tx0.run();

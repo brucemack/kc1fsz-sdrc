@@ -32,7 +32,7 @@ class AudioCore;
 class CourtesyToneGenerator : public ToneGenerator {
 public:
 
-    enum Type { FAST_UPCHIRP, FAST_DOWNCHIRP };
+    enum Type { NONE, SINGLE, FAST_UPCHIRP, FAST_DOWNCHIRP };
 
     CourtesyToneGenerator(Log& log, Clock& clock, AudioCore& core);
 
@@ -49,6 +49,7 @@ private:
     AudioCore& _core;
 
     unsigned int _chirpMs = 50;
+    unsigned int _toneMs = 150;
     bool _running = false;
     Type _type = Type::FAST_DOWNCHIRP;
     float _level = -10;

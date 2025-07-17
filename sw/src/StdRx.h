@@ -107,8 +107,7 @@ private:
 class StdRx : public Rx {
 public:
 
-    StdRx(Clock& clock, Log& log, int id, int cosPin, int tonePin, 
-        CourtesyToneGenerator::Type courtesyType, AudioCore& core);
+    StdRx(Clock& clock, Log& log, int id, int cosPin, int tonePin, AudioCore& core);
 
     virtual int getId() const { return _id; }
     virtual void run();
@@ -155,6 +154,10 @@ public:
         return _courtesyType;
     }
 
+    void setCtMode(CourtesyToneGenerator::Type ctType) {
+        _courtesyType = ctType;
+    }
+
 private:
 
     Clock& _clock;
@@ -172,11 +175,9 @@ private:
     ToneValue _toneValue;
 
     TimeDebouncer _cosDebouncer;
-
     TimeDebouncer _toneDebouncer;
 
-    const CourtesyToneGenerator::Type _courtesyType;
-
+    CourtesyToneGenerator::Type _courtesyType = CourtesyToneGenerator::Type::FAST_UPCHIRP;
     uint32_t _startTime;
     bool _active = false;
     unsigned int _state = 0;

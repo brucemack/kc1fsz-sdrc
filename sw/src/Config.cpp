@@ -45,14 +45,15 @@ void Config::setFactoryDefaults(Config* cfg) {
     // Receiver
     cfg->rx0.cosMode = 2;
     cfg->rx0.cosActiveTime = 25;
-    cfg->rx0.cosInactiveTime = 25;
+    cfg->rx0.cosInactiveTime = 50;
     cfg->rx0.cosLevel = -20;
     cfg->rx0.toneMode = 2;
     cfg->rx0.toneActiveTime = 25;
-    cfg->rx0.toneInactiveTime = 25;
-    cfg->rx0.toneLevel = -10;
-    cfg->rx0.toneFreq = 700;
+    cfg->rx0.toneInactiveTime = 50;
+    cfg->rx0.toneLevel = -25;
+    cfg->rx0.toneFreq = 123;
     cfg->rx0.gain = 0;
+    cfg->rx0.ctMode = 1;
     cfg->rx1 = cfg->rx0;
 
     // Transmitter
@@ -61,7 +62,7 @@ void Config::setFactoryDefaults(Config* cfg) {
     cfg->tx0.toneLevel = -16;
     cfg->tx0.gain = 1.0;
     cfg->tx1.toneMode = 1;
-    cfg->tx1.toneFreq = 88.5;
+    cfg->tx1.toneFreq = 123;
     cfg->tx1.toneLevel = -16;
     cfg->tx1.gain = 1.0;
 
@@ -69,7 +70,6 @@ void Config::setFactoryDefaults(Config* cfg) {
     cfg->txc0.timeoutTime = 120 * 1000;
     cfg->txc0.lockoutTime = 60 * 1000;
     cfg->txc0.hangTime = 1500;
-    cfg->txc0.ctMode = 2;
     cfg->txc0.ctLevel = -10;
     cfg->txc0.idLevel = -10;
     cfg->txc1 = cfg->txc0;
@@ -77,16 +77,17 @@ void Config::setFactoryDefaults(Config* cfg) {
 
 void Config::_showRx(const Config::ReceiveConfig* cfg,
     const char* pre) {
-    printf("%s cosmode  : %d\n", pre, cfg->cosMode);
-    printf("%s cosactivetime  : %d\n", pre, cfg->cosActiveTime);
-    printf("%s cosinactivetime  : %d\n", pre, cfg->cosInactiveTime);
-    printf("%s coslevel  : %.1f\n", pre, cfg->cosLevel);
-    printf("%s tonemode  : %d\n", pre, cfg->toneMode);
-    printf("%s toneactivetime  : %d\n", pre, cfg->toneActiveTime);
-    printf("%s toneinactivetime  : %d\n", pre, cfg->toneInactiveTime);
-    printf("%s tonelevel  : %.1f\n", pre, cfg->toneLevel);
-    printf("%s tonefreq  : %.1f\n", pre, cfg->toneFreq);
-    printf("%s gain  : %.1f\n", pre, cfg->gain);
+    printf("%s cosmode: %d\n", pre, cfg->cosMode);
+    printf("%s cosactivetime: %d\n", pre, cfg->cosActiveTime);
+    printf("%s cosinactivetime: %d\n", pre, cfg->cosInactiveTime);
+    printf("%s coslevel: %.1f\n", pre, cfg->cosLevel);
+    printf("%s tonemode: %d\n", pre, cfg->toneMode);
+    printf("%s toneactivetime: %d\n", pre, cfg->toneActiveTime);
+    printf("%s toneinactivetime: %d\n", pre, cfg->toneInactiveTime);
+    printf("%s tonelevel: %.1f\n", pre, cfg->toneLevel);
+    printf("%s tonefreq: %.1f\n", pre, cfg->toneFreq);
+    printf("%s gain: %.1f\n", pre, cfg->gain);
+    printf("%s ctmode: %d\n", pre, cfg->ctMode);
 }
 
 void Config::_showTx(const Config::TransmitConfig* cfg,
@@ -102,7 +103,6 @@ void Config::_showTxc(const Config::ControlConfig* cfg,
     printf("%s timeouttime  : %d\n", pre, cfg->timeoutTime);
     printf("%s lockouttime  : %d\n", pre, cfg->lockoutTime);
     printf("%s hangtime  : %d\n", pre, cfg->hangTime);
-    printf("%s ctmode  : %d\n", pre, cfg->ctMode);
     printf("%s ctlevel  : %.1f\n", pre, cfg->ctLevel);
     printf("%s idlevel  : %.1f\n", pre, cfg->idLevel);
 }

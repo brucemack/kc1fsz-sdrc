@@ -30,7 +30,7 @@ namespace kc1fsz {
  */
 struct Config {
 
-    const static int CONFIG_VERSION = 0xbabe + 6;
+    const static int CONFIG_VERSION = 0xbabe + 8;
     const static int CONFIG_SIZE = 512;
 
     const static int callSignMaxLen = 16;
@@ -59,6 +59,7 @@ struct Config {
         float toneLevel;
         float toneFreq;
         float gain;
+        uint32_t ctMode;
     } rx0, rx1;
 
     struct TransmitConfig {
@@ -72,7 +73,6 @@ struct Config {
         uint32_t timeoutTime;
         uint32_t lockoutTime;
         uint32_t hangTime;
-        uint32_t ctMode;
         float ctLevel;
         float idLevel; 
     } txc0, txc1;

@@ -48,15 +48,30 @@ void CourtesyToneGenerator::run() {
 }
 
 void CourtesyToneGenerator::start() {
-    _running = true;
-    _part = 0;
-    _endTime = _clock.time() + _chirpMs;
-    if (_type == Type::FAST_DOWNCHIRP)
-        _core.setToneFreq(1280);
-    else if (_type == Type::FAST_UPCHIRP)
-        _core.setToneFreq(1000);
-    _core.setToneEnabled(true);
-    _core.setToneLevel(_level);
+    if (_type == Type::NONE) {
+        _running = false;
+        _core.setToneEnabled(false);
+    } 
+    else {
+        _running = true;
+        if (_type == Type::SINGLE) {
+            _part = 1;
+            _endTime = _clock.time() + _toneMs;
+            _core.setToneFreq(800);
+        }
+        else if (_type == Type::FAST_DOWNCHIRP) {
+            _part = 0;
+            _endTime = _clock.time() + _chirpMs;
+            _core.setToneFreq(1280);
+        }
+        else if (_type == Type::FAST_UPCHIRP) {
+            _part = 0;
+            _endTime = _clock.time() + _chirpMs;
+            _core.setToneFreq(1000);
+        }
+        _core.setToneEnabled(true);
+        _core.setToneLevel(_level);
+    }
 }
 
 bool CourtesyToneGenerator::isFinished() {
