@@ -21,8 +21,8 @@ def fir_freq_response(coefficients, sampling_rate):
 
 taps = 127
 fs = 32000
-wc0 = 2000 / fs
-wc1 = 2600 / fs
+wc0 = 3000 / fs
+wc1 = 3600 / fs
 h, _ = firpm.design(taps, 1, 2, [ 0.00, wc0, wc1, 0.5 ], [ 1.0, 0.0 ], [ 1.0, 1.0 ] )
 h_reverse = list(h)
 h_reverse.reverse()
