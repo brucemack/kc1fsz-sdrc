@@ -40,6 +40,7 @@ When targeting RP2350 (Pico 2), command used to load code onto the board:
 #include "kc1fsz-tools/Log.h"
 #include "kc1fsz-tools/CommandShell.h"
 #include "kc1fsz-tools/OutStream.h"
+#include "kc1fsz-tools/WindowAverage.h"
 #include "kc1fsz-tools/rp2040/PicoPollTimer.h"
 #include "kc1fsz-tools/rp2040/PicoPerfTimer.h"
 #include "kc1fsz-tools/rp2040/PicoClock.h"
@@ -147,15 +148,15 @@ static volatile bool dac_buffer_ping_open = false;
 // HISTORY BUFFERS
 // ===========================================================================
 //
-static float in_history_r0[IN_HISTORY_COUNT];
-static float in_history_r1[IN_HISTORY_COUNT];
-static uint in_history_ptr = 0;
+static float in_history_r0[64];
+static float in_history_r1[64];
+static WindowAverage in_rms_r0(6, in_history_r0);
+static WindowAverage in_rms_r1(6, in_history_r1);
 
-// The output history is stored with 8-bit resolution becaue
-// it is only being used for output level calculations.
-static int8_t out_history_r0[OUT_HISTORY_COUNT];
-static int8_t out_history_r1[OUT_HISTORY_COUNT];
-static uint out_history_ptr = 0;
+static float out_history_r0[64];
+static float out_history_r1[64];
+static WindowAverage out_rms_r0(6, out_history_r0);
+static WindowAverage out_rms_r1(6, out_history_r1);
 
 // ===========================================================================
 // RUNTIME OBJECTS
@@ -314,6 +315,12 @@ static void process_in_frame() {
         dac_buffer[j++] = r1_out[i];
         dac_buffer[j++] = r0_out[i];
     }
+
+    // Capture RMS history
+    in_rms_r0.captureSample(core0.getSignalRms());
+    in_rms_r1.captureSample(core1.getSignalRms());
+    out_rms_r0.captureSample(core0.getOutRms());
+    out_rms_r1.captureSample(core1.getOutRms());
 
     uint32_t t = perfTimer0.elapsedUs();
     if (t > longestLoop)
@@ -754,44 +761,10 @@ static void audio_setup() {
     gpio_put(adc_rst_pin, 1);
 }
 
-static int calc_rms_db(float* data, unsigned int dataSize, float maxValue) {
-    float rms = 0;
-    for (unsigned int i = 0; i < dataSize; i++)
-        rms += data[i] * data[i];
-    rms = sqrt(rms / (float)dataSize);
-    if (rms <= 0)
+static float db(float rms) {
+    if (rms < 0.01)
         return -99;
-    return rms = 20.0 * log10(rms / maxValue);
-}
-
-static int calc_peak_db(float* data, unsigned int dataSize, float maxValue) {
-    float peak = 0;
-    for (unsigned int i = 0; i < dataSize; i++)
-        if (data[i] > peak)
-            peak = data[i];
-    if (peak <= 0)
-        return -99;
-    return 20.0 * log10(peak / maxValue);
-}
-
-static int calc_rms_db(int8_t* data, unsigned int dataSize, float maxValue) {
-    float rms = 0;
-    for (unsigned int i = 0; i < dataSize; i++)
-        rms += ((float)data[i] * (float)data[i]);
-    rms = sqrt(rms / (float)dataSize);
-    if (rms <= 0)
-        return -99;
-    return rms = 20.0 * log10(rms / maxValue);
-}
-
-static int calc_peak_db(int8_t* data, unsigned int dataSize, float maxValue) {
-    float peak = 0;
-    for (unsigned int i = 0; i < dataSize; i++)
-        if ((float)data[i] > peak)
-            peak = (float)data[i];
-    if (peak <= 0)
-        return -99;
-    return 20.0 * log10(peak / maxValue);
+    return 20.0 * log10(rms);
 }
 
 static void print_vu_bar(int rms_db, int peak_db) {
@@ -864,14 +837,14 @@ static void render_status(const Rx& rx0, const Rx& rx1, const Tx& tx0, const Tx&
     printf("\n");
     printf("\033[0m");
 
-    int rx_rms_r0_db = calc_rms_db(in_history_r0, IN_HISTORY_COUNT, MAX_DAC_VALUE);
-    int rx_peak_r0_db = calc_peak_db(in_history_r0, IN_HISTORY_COUNT, MAX_DAC_VALUE);
+    int rx_rms_r0_db = db(in_rms_r0.getAvg());
+    int rx_peak_r0_db = db(in_rms_r0.getMax());
     printf("RX0 LVL  : ");
     print_vu_bar(rx_rms_r0_db, rx_peak_r0_db);
     printf("\n");
 
-    int tx_rms_r0_db = calc_rms_db(out_history_r0, OUT_HISTORY_COUNT, 128);
-    int tx_peak_r0_db = calc_peak_db(out_history_r0, OUT_HISTORY_COUNT, 128);
+    int tx_rms_r0_db = db(out_rms_r0.getAvg());
+    int tx_peak_r0_db = db(out_rms_r0.getMax());
     printf("TX0 LVL  : ");
     print_vu_bar(tx_rms_r0_db, tx_peak_r0_db);
     printf("\n");
@@ -915,14 +888,14 @@ static void render_status(const Rx& rx0, const Rx& rx1, const Tx& tx0, const Tx&
     printf("\n");
     printf("\033[0m");
 
-    int rx_rms_r1_db = calc_rms_db(in_history_r1, IN_HISTORY_COUNT, MAX_DAC_VALUE);
-    int rx_peak_r1_db = calc_peak_db(in_history_r1, IN_HISTORY_COUNT, MAX_DAC_VALUE);
+    int rx_rms_r1_db = db(in_rms_r1.getAvg());
+    int rx_peak_r1_db = db(in_rms_r1.getMax());
     printf("RX1 LVL  : ");
     print_vu_bar(rx_rms_r1_db, rx_peak_r1_db);
     printf("\n");
 
-    int tx_rms_r1_db = calc_rms_db(out_history_r1, OUT_HISTORY_COUNT, 128);
-    int tx_peak_r1_db = calc_peak_db(out_history_r1, OUT_HISTORY_COUNT, 128);
+    int tx_rms_r1_db = db(out_rms_r1.getAvg());
+    int tx_peak_r1_db = db(out_rms_r1.getMax());
     printf("TX1 LVL  : ");
     print_vu_bar(tx_rms_r1_db, tx_peak_r1_db);
     printf("\n");
