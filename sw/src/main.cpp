@@ -848,7 +848,7 @@ static void render_status(const Rx& rx0, const Rx& rx1, const Tx& tx0, const Tx&
     printf("TX0 LVL  : ");
     print_vu_bar(tx_rms_r0_db, tx_peak_r0_db);
     printf("\n");
-    printf("Tone RMS: %f, Noise RMS: %f, Signal RMS: %f, SNR: %f\n", 
+    printf("Tone RMS: %.2f, Noise RMS: %.2f, Signal RMS: %.2f, SNR: %.1f\n", 
         core0.getCtcssDecodeRms(), 
         core0.getNoiseRms(), core0.getSignalRms(),
         db(core0.getSignalRms() / core0.getNoiseRms()));
@@ -903,7 +903,7 @@ static void render_status(const Rx& rx0, const Rx& rx1, const Tx& tx0, const Tx&
     printf("TX1 LVL  : ");
     print_vu_bar(tx_rms_r1_db, tx_peak_r1_db);
     printf("\n");
-    printf("Tone RMS: %f, Noise RMS: %f, Signal RMS: %f, SNR: %f\n", 
+    printf("Tone RMS: %.2f, Noise RMS: %.2f, Signal RMS: %.2f, SNR: %.1f\n", 
         core1.getCtcssDecodeRms(), 
         core1.getNoiseRms(), 
         core1.getSignalRms(),
