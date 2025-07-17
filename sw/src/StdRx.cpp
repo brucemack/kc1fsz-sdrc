@@ -25,13 +25,7 @@ void StdRx::run() {
 }
 
 bool StdRx::isCOS() const {
-    if (_cosMode == Rx::CosMode::COS_EXT_LOW || 
-        _cosMode == Rx::CosMode::COS_EXT_HIGH) {
-        return _cosDebouncer.get();
-    } else {
-        // TODO: NEED TO SUPPORT SOFT COS
-        return false;
-    }
+    return _cosDebouncer.get();
 }
 
 bool StdRx::isCTCSS() const {

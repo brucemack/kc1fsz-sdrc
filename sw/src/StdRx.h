@@ -34,7 +34,7 @@ namespace kc1fsz {
 /**
  * @brief A utility class that wraps a hardware signal and
  * the AudioCore to produce a unified COS indicator, dependent
- * on the COS mode selected
+ * on the COS mode selected.
  */
 class COSValue : public BinaryWrapper {
 public:
@@ -49,18 +49,18 @@ public:
         if (_useHw)
             return _hwValue.get();
         else 
-            return _core.getSignalRms() > _levelRms;
+            return _core.getSignalRms() > _thresholdRms;
     }
 
     void setUseHw(bool b) { _useHw = b; }
-    void setLevelRMS(float rms) { _levelRms = rms; }
+    void setThresholdRms(float rms) { _thresholdRms = rms; }
 
 private:
 
     BinaryWrapper& _hwValue;
     AudioCore& _core;
     bool _useHw = true;
-    float _levelRms = 0.1;
+    float _thresholdRms = 0.1;
 };
 
 class StdRx : public Rx {
@@ -90,7 +90,7 @@ public:
     void setCosLevel(float db) { 
         // Send the level down to the COSValue object that actually
         // performs the comparison.
-        _cosValue.setLevelRMS(pow(10, (db / 20)));
+        _cosValue.setThresholdRms(pow(10, (db / 20)));
     }
 
     void setToneMode(ToneMode mode) { 
@@ -137,7 +137,6 @@ private:
     unsigned int _state = 0;
 
     CosMode _cosMode = CosMode::COS_EXT_HIGH;
-    //float _cosLevel = 0.0;
 
     ToneMode _toneMode = ToneMode::TONE_IGNORE;
     float _toneLevel = -26;
