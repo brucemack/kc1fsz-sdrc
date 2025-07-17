@@ -24,7 +24,7 @@ taps = 127
 fs = 8000
 print("HPF for CTCSS elimination below 250")
 wc0 = 200 / fs
-wc1 = 375 / fs
+wc1 = 300 / fs
 h, _ = firpm.design(taps, 1, 2, [ 0.00, wc0, wc1, 0.5 ], [ 0.00, 1.0 ], [ 1.0, 1.0 ] )
 h_reverse = list(h)
 h_reverse.reverse()
