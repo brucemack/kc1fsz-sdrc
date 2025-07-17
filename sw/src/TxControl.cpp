@@ -188,7 +188,7 @@ bool TxControl::_anyRxActivity() const {
 
 void TxControl::_enterIdle() {
     _state = State::IDLE;
-    _lastIdleTime = _clock.time();
+    _lastIdleStartTime = _clock.time();
     _tx.setPtt(false);
     _audioSource.setSource(AudioSourceControl::Source::SILENT);
 }
@@ -280,13 +280,15 @@ bool TxControl::_isStateTimedOut() const {
 
 bool TxControl::_isIdRequired(bool inQso) const {
     // Check to see if it's time to send the ID from idle. We ID
-    // if:
+    // if all of these conditions are met:
     // 1. Any communication has happened since the last ID
-    // 2. It's been more than 10 minutes since the last ID
-    // 3. The pause window has passed (to make sure the )
+    // 2  a. We just booted up OR
+    //    b. It's been more than 10 minutes since the last ID
+    // 3. The pause window has passed to make sure that we don't step 
+    //    on an active QSO.
     if (_lastCommunicationTime > _lastIdTime && 
-        (_lastIdTime == 0 || _clock.isPast(_lastIdTime + _idRequiredWindowMs)) &&
-        _clock.isPast(_lastIdleTime + _quietWindowMs)) {
+        (_lastIdTime == 0 || _clock.isPast(_lastIdTime + (_idRequiredIntSec * 1000))) &&
+        _clock.isPast(_lastIdleStartTime + _quietWindowMs)) {
         return true;
     } else {
         return false;

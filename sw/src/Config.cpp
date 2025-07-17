@@ -40,6 +40,7 @@ void Config::setFactoryDefaults(Config* cfg) {
     cfg->general.diagMode = 0;
     cfg->general.diagFreq = 1000;
     cfg->general.diagLevel = -10;
+    cfg->general.idRequiredInt = 10 * 60;
 
     // Receiver
     cfg->rx0.cosMode = 2;
@@ -72,7 +73,6 @@ void Config::setFactoryDefaults(Config* cfg) {
     cfg->txc0.ctLevel = -10;
     cfg->txc0.idLevel = -10;
     cfg->txc1 = cfg->txc0;
-
 }
 
 void Config::_showRx(const Config::ReceiveConfig* cfg,
@@ -115,6 +115,7 @@ void Config::show(const Config* cfg) {
     printf("   testmode      : %d\n", cfg->general.diagMode);
     printf("   testtonefreq  : %.1f\n", cfg->general.diagFreq);
     printf("   testtonelevel : %.1f\n", cfg->general.diagLevel);
+    printf("   idrequiredint : %u\n", cfg->general.idRequiredInt);
     // Receiver configuration
     _showRx(&cfg->rx0, "R0");
     _showRx(&cfg->rx1, "R1");

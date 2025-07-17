@@ -933,9 +933,11 @@ static void transferConfig(const Config& config,
     txc0.setCall(config.general.callSign);
     txc0.setPass(config.general.pass);
     txc0.setRepeatMode((TxControl::RepeatMode)config.general.repeatMode);
+    txc0.setIdRequiredInt(config.general.idRequiredInt);
     txc1.setCall(config.general.callSign);
     txc1.setPass(config.general.pass);
     txc1.setRepeatMode((TxControl::RepeatMode)config.general.repeatMode);
+    txc1.setIdRequiredInt(config.general.idRequiredInt);
 
     // Receiver configuration
     rx0.setCosMode((Rx::CosMode)config.rx0.cosMode);

@@ -63,6 +63,7 @@ public:
     void setCtMode(CtMode mode) { _ctMode = mode; }
     void setCtLevel(float db) { _courtesyToneGenerator.setLevel(db); }
     void setIdLevel(float db) { _idToneGenerator.setLevel(db); } 
+    void setIdRequiredInt(uint32_t sec) { _idRequiredIntSec = sec; }
 
 private:
 
@@ -106,7 +107,7 @@ private:
     IDToneGenerator _idToneGenerator;
     //VoiceGenerator _idToneGenerator;
 
-    uint32_t _lastIdleTime = 0;
+    uint32_t _lastIdleStartTime = 0;
     uint32_t _timeoutTime = 0;
     uint32_t _lastCommunicationTime = 0;
     uint32_t _lastIdTime = 0;
@@ -136,7 +137,7 @@ private:
     // repeater has gone quiet
     uint32_t _quietWindowMs = 1000 * 5;
     // Time between mandatory IDs
-    uint32_t _idRequiredWindowMs = 1000 * 60 * 10; 
+    uint32_t _idRequiredIntSec = 60 * 10; 
     // Length of the grace period before we raise an urgent ID
     uint32_t _idGraceWindowMs = 1000 * 15;
 };

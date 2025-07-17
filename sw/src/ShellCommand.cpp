@@ -102,6 +102,8 @@ void ShellCommand::process(const char* cmd) {
                 _config.general.diagFreq = atof(tokens[2]);
             } else if (strcmp(tokens[1], "testtonelevel") == 0) {
                 _config.general.diagLevel = atof(tokens[2]);
+            } else if (strcmp(tokens[1], "idrequiredint") == 0) {
+                _config.general.idRequiredInt = atoi(tokens[2]);
             } else {
                 printf(INVALID_COMMAND);
             }
