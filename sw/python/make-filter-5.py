@@ -19,7 +19,10 @@ def fir_freq_response(coefficients, sampling_rate):
     frequencies = np.fft.fftfreq(num_coeffs, 1/sampling_rate)
     return frequencies, frequency_response
 
-taps = 127
+#taps = 127
+# Needs to be a multiple of 4 in order to be used for interolation
+# (polyphase with 4 phases)
+taps = 124
 fs = 32000
 wc0 = 3000 / fs
 wc1 = 3600 / fs

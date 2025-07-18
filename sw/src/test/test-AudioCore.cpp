@@ -119,13 +119,10 @@ int main(int argc, const char** argv) {
 
         for (unsigned block = 0; block < test_blocks; block++) {
 
-            // Cycle 0
-            core0.cycle0(adc_in_0, cross_out_0);
-            core1.cycle0(adc_in_1, cross_out_1);
-
-            // Cycle 1
-            core0.cycle1(2, cross_ins, cross_gains, dac_out_0);
-            core1.cycle1(2, cross_ins, cross_gains, dac_out_1);
+            core0.cycleRx(adc_in_0, cross_out_0);
+            core1.cycleRx(adc_in_1, cross_out_1);
+            core0.cycleTx(2, cross_ins, cross_gains, dac_out_0);
+            core1.cycleTx(2, cross_ins, cross_gains, dac_out_1);
 
             adc_in_0 += AudioCore::BLOCK_SIZE_ADC;
             adc_in_1 += AudioCore::BLOCK_SIZE_ADC;

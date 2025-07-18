@@ -48,7 +48,7 @@ public:
      * @param cross_out One block of audio data at the 8k rate 
      * ready to be shared across the repeater.
      */
-    void cycle0(const int32_t* codec_in, float* cross_out);
+    void cycleRx(const int32_t* codec_in, float* cross_out);
 
     /**
      * @brief Called once per CODEC block. Expected to run quickly 
@@ -56,7 +56,7 @@ public:
      *
      * @param dac_out A block of 32-bit signed PCM samples will be written here
      */
-    void cycle1(unsigned cross_count, 
+    void cycleTx(unsigned cross_count, 
         const float** cross_ins, const float* cross_gains, int32_t* codec_out);
 
     /**
@@ -150,10 +150,14 @@ private:
     float32_t _filtFState[FILTER_F_LEN + BLOCK_SIZE - 1];
 
     // Low-pass filter for interpolation 8K->32K, runs at 32k
-    static const unsigned FILTER_N_LEN = 127;
+    //static const unsigned FILTER_N_LEN = 127;
+    // Needs to be multiple of 4 for interpolation 
+    static const unsigned FILTER_N_LEN = 124;
     static const float32_t FILTER_N[FILTER_N_LEN];
-    arm_fir_instance_f32 _filtN;
-    float32_t _filtNState[FILTER_N_LEN + BLOCK_SIZE_ADC - 1];
+    //arm_fir_instance_f32 _filtN;
+    //float32_t _filtNState[FILTER_N_LEN + BLOCK_SIZE_ADC - 1];
+    arm_fir_interpolate_instance_f32 _filtN;
+    float32_t _filtNState[(FILTER_N_LEN / 4) + BLOCK_SIZE_ADC - 1];
 
     // For capturing various measures of energy on each block
     float _noiseRms;
