@@ -25,10 +25,9 @@
 
 #include "Tx.h"
 #include "Rx.h"
+#include "AudioCore.h"
 #include "CourtesyToneGenerator.h"
 #include "IDToneGenerator.h"
-#include "VoiceGenerator.h"
-#include "AudioSourceControl.h"
 
 namespace kc1fsz {
 
@@ -37,25 +36,25 @@ class AudioCore;
 class TxControl {
 public:
 
-    TxControl(Clock& clock, Log& log, Tx& tx, AudioCore& core,
-        AudioSourceControl& audioSource);
+    TxControl(Clock& clock, Log& log, Tx& tx, AudioCore& core);
 
     virtual void run();
 
     /**
-     * Makes a receiver visible to the transmitter.
+     * @brief Makes a receiver visible to the transmitter.
      */
-    void setRx(unsigned int i, Rx* rx);
+    void setRx(unsigned i, Rx* rx);
 
-    void forceId() {
-        _enterPreId();
-    }
+    /**
+     * @brief Controls whether a receiver is visible to the transmitter.
+     */
+    void setRxEligible(unsigned i, bool enabled);
 
-    enum RepeatMode { MODE_INDEPENDENT, MODE_EXCLUSIVE, MODE_MIX };
-
+    void forceId() { _enterPreId(); }
+   
     void setCall(const char* callSign) { _idToneGenerator.setCall(callSign); }
     void setPass(const char* pass) {  }
-    void setRepeatMode(RepeatMode mode) { _repeatMode = mode; }
+    //void setRepeatMode(RepeatMode mode) { _repeatMode = mode; }
     void setTimeoutTime(uint32_t ms) { _timeoutWindowMs = ms; }
     void setLockoutTime(uint32_t ms) { _lockoutWindowMs = ms; }
     void setHangTime(uint32_t ms) { _hangWindowMs = ms; }
@@ -80,7 +79,7 @@ private:
 
     void _enterIdle();
     void _enterVoting();
-    void _enterActive(Rx* rx);
+    void _enterActive();
     void _enterPreId();
     void _enterId();
     void _enterPostId();
@@ -89,34 +88,55 @@ private:
     void _enterCourtesy();
     void _enterHang();
     void _enterLockout();
-    bool _anyRxActivity() const;
 
     Clock& _clock;
     Log& _log;
     Tx& _tx;
-    AudioSourceControl& _audioSource;
+    AudioCore& _audioCore;
 
     State _state = State::INIT;   
 
-    const static unsigned int _maxRxCount = 4;
-    Rx* _rx[_maxRxCount] = { 0, 0, 0, 0 };
-    Rx* _activeRx;
+    const static unsigned int MAX_RX_COUNT = 8;
+
+    // This is where the bindings to the various receivers is stored
+    Rx* _rx[MAX_RX_COUNT] = { 0, 0, 0, 0, 0, 0, 0, 0 };
+    // These flags indicate which receivers are eligible to be 
+    // repeated through this transmitter. This is controlled by the 
+    // configuration.
+    bool _rxEligible[MAX_RX_COUNT] = { 
+        false, false, false, false, 
+        false, false, false, false };
+    // These flags indicate which receivers are actively being repeated.
+    // It is set based on the "voting" logic that is determined when leaving
+    // idle state.
+    bool _rxActive[MAX_RX_COUNT] = { 
+        false, false, false, false, 
+        false, false, false, false };
+
+    /**
+     * @brief Checks to see if there is any receive activity amongst the 
+     * receivers that are marked as eligible.
+    */
+    bool _anyRxActivityAmongstEligible() const;
+
+    void _clearActive();
+
+    unsigned _adjustGains();
 
     CourtesyToneGenerator _courtesyToneGenerator;
     IDToneGenerator _idToneGenerator;
-    //VoiceGenerator _idToneGenerator;
 
     uint32_t _lastIdleStartTime = 0;
     uint32_t _timeoutTime = 0;
     uint32_t _lastCommunicationTime = 0;
     uint32_t _lastIdTime = 0;
+    uint32_t _lastActiveReceiver = 0;
 
     uint32_t _currentStateEndTime = 0;
-    //void (TxControl::*_currentStateTimeoutFuncPtr)() = 0;
 
     // ----- Configurations 
 
-    RepeatMode _repeatMode = RepeatMode::MODE_INDEPENDENT;
+    //RepeatMode _repeatMode = RepeatMode::MODE_INDEPENDENT;
     // Disabled for now
     uint32_t _votingWindowMs = 25;
     // How long between the end of transmission and the courtesy tone

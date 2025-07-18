@@ -37,8 +37,9 @@ public:
     static const unsigned BLOCK_SIZE_ADC = 256;
     static const unsigned FS = FS_ADC / 4;
     static const unsigned BLOCK_SIZE = BLOCK_SIZE_ADC / 4;
+    static const unsigned MAX_CROSS_COUNT = 8;
 
-    AudioCore(unsigned id);
+    AudioCore(unsigned id, unsigned crossCount);
 
     /**
      * @brief Called once per CODEC block. Expected to run quickly 
@@ -56,8 +57,7 @@ public:
      *
      * @param dac_out A block of 32-bit signed PCM samples will be written here
      */
-    void cycleTx(unsigned cross_count, 
-        const float** cross_ins, const float* cross_gains, int32_t* codec_out);
+    void cycleTx(const float** cross_ins, int32_t* codec_out);
 
     /**
      * The "signal" is basically all power below 4kHz, includes the sub-audible 
@@ -79,6 +79,13 @@ public:
      * @returns Signal voltage in Vrms, assuming full-scale is 1.0. Note
      */
     float getOutRms() const { return _outRms; }
+
+    /**
+     * @brief The received audio is multiplied by this value.
+     */
+    void setRxGainLinear(float gain) { _rxGain = gain; }
+
+    void setCrossGainLinear(unsigned i, float gain);
 
     /**
      * @brief Controls the HPF that is intended to filter out the low
@@ -126,6 +133,9 @@ public:
 private:
 
     const unsigned _id;
+    const unsigned _crossCount;
+
+    float _crossGains[MAX_CROSS_COUNT];
 
     // Noise HPF, runs at 32k
     static const unsigned FILTER_B_LEN = 41;
@@ -164,6 +174,7 @@ private:
     float _signalRms;
     float _outRms;
 
+    float _rxGain = 1.0;
     bool _hpfEnabled = true;
 
     // Used for CTCSS encoding

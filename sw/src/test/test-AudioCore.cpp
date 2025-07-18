@@ -55,19 +55,22 @@ unsigned loadFromFile(const char* fn, int32_t* target, unsigned target_max) {
 
 int main(int argc, const char** argv) {
 
-    AudioCore core0(0), core1(1);
-    core0.setCtcssDecodeFreq(123);
+    AudioCore core0(0, 2), core1(1, 2);
 
+    core0.setCtcssDecodeFreq(123);
     core0.setCtcssEncodeFreq(123);
     core0.setCtcssEncodeLevel(-26);
     core0.setCtcssEncodeEnabled(true);
-
     core0.setDelayMs(100);
     core0.setToneEnabled(false);
     core0.setToneFreq(1000);
     core0.setToneLevel(-10);
+    core0.setCrossGainLinear(0, 1.0);
+    core0.setCrossGainLinear(1, 0.0);
 
     core1.setCtcssDecodeFreq(88.5);
+    core1.setCrossGainLinear(0, 0.5);
+    core1.setCrossGainLinear(1, 0.5);
 
     // TEMP
     //core0.setDiagToneFreq(2000);
@@ -110,7 +113,6 @@ int main(int argc, const char** argv) {
         float cross_out_0[AudioCore::BLOCK_SIZE];
         float cross_out_1[AudioCore::BLOCK_SIZE];
         const float* cross_ins[2] = { cross_out_0, cross_out_1 };
-        float cross_gains[2] = { 1.0, 0.0 };
 
         int32_t dac_out_0[AudioCore::BLOCK_SIZE_ADC];
         int32_t dac_out_1[AudioCore::BLOCK_SIZE_ADC];
@@ -121,8 +123,8 @@ int main(int argc, const char** argv) {
 
             core0.cycleRx(adc_in_0, cross_out_0);
             core1.cycleRx(adc_in_1, cross_out_1);
-            core0.cycleTx(2, cross_ins, cross_gains, dac_out_0);
-            core1.cycleTx(2, cross_ins, cross_gains, dac_out_1);
+            core0.cycleTx(cross_ins, dac_out_0);
+            core1.cycleTx(cross_ins, dac_out_1);
 
             adc_in_0 += AudioCore::BLOCK_SIZE_ADC;
             adc_in_1 += AudioCore::BLOCK_SIZE_ADC;

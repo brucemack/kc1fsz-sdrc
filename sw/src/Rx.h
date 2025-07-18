@@ -92,7 +92,13 @@ public:
      * @brief Sets the receiver soft gain. Received
      * audio is multiplied by this value.
      */
-    virtual void setGain(float lvl) = 0;
+    virtual void setGainLinear0(float lvl) = 0;
+
+    /**
+     * @brief Sets the receiver soft gain. Received
+     * audio is multiplied by this value.
+     */
+    virtual void setGainLinear1(float lvl) = 0;
 
     virtual CourtesyToneGenerator::Type getCourtesyType() const = 0;
     

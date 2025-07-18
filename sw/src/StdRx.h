@@ -148,7 +148,9 @@ public:
 
     void setToneFreq(float hz) { _core.setCtcssDecodeFreq(hz); }
 
-    void setGain(float lvl) { _gain = lvl; }
+    void setGainLinear(float lvl) { 
+        _core.setRxGainLinear(lvl);
+    }
 
     virtual CourtesyToneGenerator::Type getCourtesyType() const { 
         return _courtesyType;
@@ -184,8 +186,6 @@ private:
 
     CosMode _cosMode = CosMode::COS_EXT_HIGH;
     ToneMode _toneMode = ToneMode::TONE_IGNORE;
-
-    float _gain = 1.0;
 };
 
 }

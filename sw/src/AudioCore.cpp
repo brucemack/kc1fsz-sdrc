@@ -23,6 +23,7 @@
 #include <cstring>
 #include <fstream>
 #include <cmath>
+#include <cassert>
 
 #include <arm_math.h>
 
@@ -82,8 +83,9 @@ static unsigned decAndWrap(unsigned i, unsigned len) {
         return i - 1;
 }
 
-AudioCore::AudioCore(unsigned id)
+AudioCore::AudioCore(unsigned id, unsigned crossCount)
 :   _id(id),
+    _crossCount(crossCount),
     _tonePhi(0),
     _ctcssEncodePhi(0) {
     // Filter initializations
@@ -97,6 +99,8 @@ AudioCore::AudioCore(unsigned id)
     arm_fir_interpolate_init_f32(&_filtN, 4, FILTER_N_LEN, FILTER_N, _filtNState, BLOCK_SIZE);
     for (unsigned i = 0; i < _delayAreaLen; i++)
         _delayArea[i] = 0;
+    for (unsigned i = 0; i < MAX_CROSS_COUNT; i++)
+        _crossGains[i] = 0;
 }
 
 /**
@@ -144,12 +148,13 @@ void AudioCore::cycleRx(const int32_t* codec_in, float* cross_out) {
         _delayArea[_delayAreaWritePtr] = filtOutF[i];
         _delayAreaWritePtr = incAndWrap(_delayAreaWritePtr, _delayAreaLen);
 
-        // Move a sample from the delay area into the output
+        // Move a sample from the delay area into the output and apply 
+        // the soft gain. This is the final step in the receive process.
         if (_delayCountdown) {
             cross_out[i] = 0;
             _delayCountdown--;
         } else { 
-            cross_out[i] = _delayArea[_delayAreaReadPtr];
+            cross_out[i] = _delayArea[_delayAreaReadPtr] * _rxGain;
         }
         _delayAreaReadPtr = incAndWrap(_delayAreaReadPtr, _delayAreaLen);
     }
@@ -178,8 +183,7 @@ void AudioCore::cycleRx(const int32_t* codec_in, float* cross_out) {
 /**
  * Implementation is approximately 980uS on an RP2350
  */
-void AudioCore::cycleTx(unsigned cross_count, 
-    const float** cross_ins, const float* cross_gains, int32_t* codec_out) {
+void AudioCore::cycleTx(const float** cross_ins, int32_t* codec_out) {
 
     float final_out[BLOCK_SIZE_ADC];
 
@@ -255,8 +259,8 @@ void AudioCore::cycleTx(unsigned cross_count,
             // Normal audio channels get whatever is left over after the 
             // CTCSS and tone levels are determined.
             float audioLevel = 1.0 - toneLevel - ctcssLevel;
-            for (unsigned k = 0; k < cross_count; k++)
-                toneAndAudio += audioLevel * cross_ins[k][i] * cross_gains[k];
+            for (unsigned k = 0; k < _crossCount; k++)
+                toneAndAudio += audioLevel * cross_ins[k][i] * _crossGains[k];
 
             mix[i] = toneAndAudio;
         }
@@ -361,6 +365,11 @@ void AudioCore::setDiagToneFreq(float hz) {
     // Convert frequency to radians/sample.  The tone generation 
     // happens at the CODEC (32k) rate.
     _diagToneOmega = 2.0 * PI * hz / (float)FS_ADC;
+}
+
+void AudioCore::setCrossGainLinear(unsigned i, float gain) {
+    assert(i < MAX_CROSS_COUNT);
+    _crossGains[i] = gain;
 }
 
 }
