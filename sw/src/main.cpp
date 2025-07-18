@@ -148,15 +148,15 @@ static volatile bool dac_buffer_ping_open = false;
 // HISTORY BUFFERS
 // ===========================================================================
 //
-static float in_history_r0[64];
-static float in_history_r1[64];
-static WindowAverage in_rms_r0(6, in_history_r0);
-static WindowAverage in_rms_r1(6, in_history_r1);
+static float in_history_r0[128];
+static float in_history_r1[128];
+static WindowAverage in_rms_r0(7, in_history_r0);
+static WindowAverage in_rms_r1(7, in_history_r1);
 
-static float out_history_r0[64];
-static float out_history_r1[64];
-static WindowAverage out_rms_r0(6, out_history_r0);
-static WindowAverage out_rms_r1(6, out_history_r1);
+static float out_history_r0[128];
+static float out_history_r1[128];
+static WindowAverage out_rms_r0(7, out_history_r0);
+static WindowAverage out_rms_r1(7, out_history_r1);
 
 // ===========================================================================
 // RUNTIME OBJECTS
