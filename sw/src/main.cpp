@@ -910,6 +910,7 @@ static void render_status(const Rx& rx0, const Rx& rx1, const Tx& tx0, const Tx&
         db(core1.getSignalRms() / core1.getNoiseRms()));
 
     printf("\n");
+    printf("Longest ISR (ms) %u\n", longestLoop);
 }
 
 /**
