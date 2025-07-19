@@ -72,6 +72,9 @@ void Config::setFactoryDefaults(Config* cfg) {
     cfg->txc0.hangTime = 1500;
     cfg->txc0.ctLevel = -10;
     cfg->txc0.idLevel = -10;
+    for (unsigned i = 0; i < Config::maxReceivers; i++)
+        cfg->txc0.rxEligible[i] = false;
+
     cfg->txc1 = cfg->txc0;
 }
 
@@ -105,6 +108,11 @@ void Config::_showTxc(const Config::ControlConfig* cfg,
     printf("%s hangtime  : %d\n", pre, cfg->hangTime);
     printf("%s ctlevel  : %.1f\n", pre, cfg->ctLevel);
     printf("%s idlevel  : %.1f\n", pre, cfg->idLevel);
+    printf("%s rxEligible : ", pre);
+    for (unsigned i = 0; i < Config::maxReceivers; i++)
+        if (cfg->rxEligible[i]) 
+            printf("%d ", i);
+    printf("\n");
 }
 
 void Config::show(const Config* cfg) {

@@ -30,11 +30,12 @@ namespace kc1fsz {
  */
 struct Config {
 
-    const static int CONFIG_VERSION = 0xbabe + 8;
+    const static int CONFIG_VERSION = 0xbabe + 9;
     const static int CONFIG_SIZE = 512;
 
     const static int callSignMaxLen = 16;
     const static int passMaxLen = 16;
+    const static int maxReceivers = 8;
 
     int magic;
 
@@ -74,7 +75,8 @@ struct Config {
         uint32_t lockoutTime;
         uint32_t hangTime;
         float ctLevel;
-        float idLevel; 
+        float idLevel;
+        bool rxEligible[maxReceivers];
     } txc0, txc1;
 
     char pad[CONFIG_SIZE - 

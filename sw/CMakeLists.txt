@@ -26,6 +26,7 @@ add_executable(main
   src/test/test-AudioCore.cpp
   src/AudioCore.cpp
   src/TxControl.cpp
+  #src/Config.cpp
   #src/StdRx.cpp
   radlib/util/dsp_util.cpp    
   cmsis-dsp-mock/src/main.cpp

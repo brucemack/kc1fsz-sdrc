@@ -980,12 +980,16 @@ static void transferConfig(const Config& config,
     txc0.setHangTime(config.txc0.hangTime);
     txc0.setCtLevel(config.txc0.ctLevel);
     txc0.setIdLevel(config.txc0.idLevel);
+    for (unsigned i = 0; i < Config::maxReceivers; i++)
+        txc0.setRxEligible(i, config.txc0.rxEligible[i]);
 
     txc1.setTimeoutTime(config.txc1.timeoutTime);
     txc1.setLockoutTime(config.txc1.lockoutTime);
     txc1.setHangTime(config.txc1.hangTime);
     txc1.setCtLevel(config.txc1.ctLevel);
     txc1.setIdLevel(config.txc1.idLevel);
+    for (unsigned i = 0; i < Config::maxReceivers; i++)
+        txc1.setRxEligible(i, config.txc1.rxEligible[i]);
 }
 
 int main(int argc, const char** argv) {
