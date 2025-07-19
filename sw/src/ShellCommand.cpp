@@ -185,7 +185,7 @@ void ShellCommand::process(const char* cmd) {
                     _config.rx1.gain = atof(tokens[3]);
                 else 
                     printf(INVALID_COMMAND);                
-            else if (strcmp(tokens[1], "rxeligible") == 0)
+            else if (strcmp(tokens[1], "rxrepeat") == 0)
                 if (strcmp(tokens[2], "0") == 0) 
                     for (unsigned i = 0; i < strlen(tokens[3]) && i < Config::maxReceivers; i++)
                         _config.txc0.rxEligible[i] = (tokens[3][i] == '1');

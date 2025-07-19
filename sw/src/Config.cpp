@@ -108,7 +108,7 @@ void Config::_showTxc(const Config::ControlConfig* cfg,
     printf("%s hangtime  : %d\n", pre, cfg->hangTime);
     printf("%s ctlevel  : %.1f\n", pre, cfg->ctLevel);
     printf("%s idlevel  : %.1f\n", pre, cfg->idLevel);
-    printf("%s rxEligible : ", pre);
+    printf("%s rxrepeat : ", pre);
     for (unsigned i = 0; i < Config::maxReceivers; i++)
         if (cfg->rxEligible[i]) 
             printf("%d ", i);
