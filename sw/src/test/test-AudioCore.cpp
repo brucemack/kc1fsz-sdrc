@@ -12,10 +12,6 @@ using namespace std;
 using namespace kc1fsz;
 using namespace radlib;
 
-static float db(float l) {
-    return 20.0 * log10(l);
-}
-
 // Function to generate a block of white noise samples
 void generateWhiteNoise(unsigned int numSamples, double amplitude, float* out) {
     // Obtain a random number from hardware
@@ -139,11 +135,11 @@ int main(int argc, const char** argv) {
                 }
             }
                         
-            float n_0 = db(core0.getNoiseRms());
-            float s_0 = db(core0.getSignalRms());
-            float snr = db(core0.getSignalRms() / core0.getNoiseRms());
-            double pl_0 = db(core0.getCtcssDecodeRms());
-            double o_0 = db(core0.getOutRms());
+            float n_0 = AudioCore::vrmsToDbv(core0.getNoiseRms());
+            float s_0 = AudioCore::vrmsToDbv(core0.getSignalRms());
+            float snr = AudioCore::vrmsToDbv(core0.getSignalRms() / core0.getNoiseRms());
+            double pl_0 = AudioCore::vrmsToDbv(core0.getCtcssDecodeRms());
+            double o_0 = AudioCore::vrmsToDbv(core0.getOutRms());
             last_o_0 = o_0;
    
             // Calculate the noise squelch with hysteresis

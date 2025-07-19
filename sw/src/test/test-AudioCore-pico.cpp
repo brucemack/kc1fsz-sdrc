@@ -32,10 +32,6 @@ using namespace radlib;
 
 static PicoClock clock;
 
-static float dB(float l) {
-    return 20.0 * log10(l);
-}
-
 int main(int, const char**) {
 
     // Adjust system clock to more evenly divide the 
@@ -125,10 +121,10 @@ int main(int, const char**) {
         adc_in_0 += AudioCore::BLOCK_SIZE_ADC;
         adc_in_1 += AudioCore::BLOCK_SIZE_ADC;
 
-        float np = dB(core0.getNoiseRms());
-        float sp = dB(core0.getSignalRms());
-        float op = dB(core0.getOutRms());
-        float cp = dB(core0.getCtcssDecodeRms());
+        float np = AudioCore::vrmsToDbv(core0.getNoiseRms());
+        float sp = AudioCore::vrmsToDbv(core0.getSignalRms());
+        float op = AudioCore::vrmsToDbv(core0.getOutRms());
+        float cp = AudioCore::vrmsToDbv(core0.getCtcssDecodeRms());
 
         unsigned elUs = timer.elapsedUs();
 
