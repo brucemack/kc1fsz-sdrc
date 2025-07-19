@@ -44,37 +44,9 @@ void TxControl::setRxEligible(unsigned i, bool b) {
     _rxEligible[i] = b;
 }
 
-void TxControl::_clearActive() {
+void TxControl::_clearSelected() {
     for (unsigned i = 0; i < MAX_RX_COUNT; i++)
-        _rxActive[i] = false;
-}
-
-unsigned TxControl::_adjustGains() {
-
-    // Keep track of the last active receiver
-    unsigned activeCount = 0;
-    bool active[MAX_RX_COUNT];
-    for (unsigned i = 0; i < MAX_RX_COUNT; i++) {
-        if (_rx[i] != 0 && _rxEligible[i] && _rxActive[i] && _rx[i]->isActive()) {
-            _lastActiveReceiver = i;
-            active[i] = true;
-            activeCount++;
-        }
-        else {
-            active[i] = false;
-        }
-    }
-
-    // Divide the gain evenly across the active receivers
-    float gain = 1.0 / (float)activeCount;
-    for (unsigned i = 0; i < MAX_RX_COUNT; i++) {
-        if (active[i]) 
-            _rx[i]->setGainLinear1(gain);
-        else 
-            _rx[i]->setGainLinear1(0);
-    }
-   
-    return activeCount;
+        _rxSelected[i] = false;
 }
 
 void TxControl::run() { 
@@ -82,6 +54,37 @@ void TxControl::run() {
     // Advance sub-components
     _idToneGenerator.run();
     _courtesyToneGenerator.run();
+
+    // ----- Keep Track of Receiver Activity ----------------------------------
+    
+    unsigned activeCount = 0;
+    bool active[MAX_RX_COUNT];
+    for (unsigned i = 0; i < MAX_RX_COUNT; i++) {
+        if (_rx[i] != 0 && _rxEligible[i] && _rxSelected[i] && _rx[i]->isActive()) {
+            _lastActiveReceiver = i;
+            active[i] = true;
+            activeCount++;
+        } else {
+            active[i] = false;
+        }
+    }
+
+    // ----- Adjust Receiver Routing/Mixing -----------------------------------
+    //
+    // This is an ongoing process of adjusting the "cross gains" of the 
+    // transmitter to make sure the audio from the correct receivers is 
+    // being mixed and passed through to this transmitter. 
+    // 
+    // This is a low-cost operation so, to simplify the logic, it is just
+    // done all the time.
+
+    // Divide the gain evenly across the active receivers
+    float gain = (activeCount != 0) ? 1.0 / (float)activeCount : 0;
+    for (unsigned i = 0; i < MAX_RX_COUNT; i++)
+        if (_rx[i] != 0)
+            _audioCore.setCrossGainLinear(i, active[i] ? gain : 0.0);
+
+    // ----- Transmitter State Machine ----------------------------------------
 
     if (_state == State::INIT) {
         _enterIdle();
@@ -122,22 +125,27 @@ void TxControl::run() {
     // In this state we collect receiver status and decide
     // which receiver to select. 
     else if (_state == State::VOTING) {
-        // Make decision on timeout
+
+        // If nothing is seen during the voting period then 
+        // go back to idle.
         if (_isStateTimedOut()) {
+            _enterIdle();
+        }
+
+        // Look for active receivers
+        else {
             // TODO: Current implementation is first-come-first-served
             bool anyActive = false;
             for (unsigned int i = 0; i < MAX_RX_COUNT; i++) {
                 if (_rx[i] != 0 && _rxEligible[i] && _rx[i]->isActive()) {
-                    _log.info("Receiver is selected [%d]", _rx[i]->getId());
-                    _rxActive[i] = true;
-                    _lastActiveReceiver = i;
-                    _enterActive();
+                    _log.info("Receiver is selected [%d]", i);
+                    _rxSelected[i] = true;
                     anyActive = true;
                     break;
                 }
             }
-            if (!anyActive) 
-                _enterIdle();
+            if (anyActive) 
+                _enterActive();
         }
     }
     else if (_state == State::ACTIVE) {
@@ -145,28 +153,30 @@ void TxControl::run() {
         // Keep on updating the timestamp
         _lastCommunicationTime = _clock.time();     
 
-        unsigned activeCount = _adjustGains();
-
         // Look for timeout
         if (_clock.isPast(_timeoutTime)) {
             _log.info("Timeout detected, lockout start");
-            _clearActive();
-            _adjustGains();
             _enterLockout();
         } 
-        // Look for urgent ID situation
+
+        // TODO: Look for urgent ID situation
         //else if (_isIdRequired(true)) {            
         //}
+
         // Look for unkey of all active receivers.
         else if (activeCount == 0) {
             _log.info("Receiver COS dropped [%u]", _lastActiveReceiver);
             _log.info("Pause before courtesy");
+            // The type of courtesy tone is a function of the last receiver
+            // whose activity was being repeated through this transmitter.
             if (_rx[_lastActiveReceiver] != 0)
                 _courtesyToneGenerator.setType(_rx[_lastActiveReceiver]->getCourtesyType());
-            _clearActive();
-            _adjustGains();
+            _clearSelected();
             _enterPreCourtesy();
         } 
+
+        // NOTICE: No matter how we leave the ACTIVE state, the selection
+        // has been cleared.
     }
     // In this state we wait a bit to make sure nobody
     // else is talking and then trigger the courtesy tone.
@@ -230,20 +240,12 @@ bool TxControl::_anyRxActivityAmongstEligible() const {
 void TxControl::_enterIdle() {
     _state = State::IDLE;
     _lastIdleStartTime = _clock.time();
+    _clearSelected();
     _tx.setPtt(false);
-    // Clean slate
-    for (unsigned i = 0; i < MAX_RX_COUNT; i++) {
-        _rxActive[i] = false;
-        if (_rx[i] != 0)
-            _rx[i]->setGainLinear1(0);
-    }
 }
 
 void TxControl::_enterVoting() {
     _setState(State::VOTING, _votingWindowMs);
-    // Clean slate
-    for (unsigned i = 0; i < MAX_RX_COUNT; i++)
-        _rxActive[i] = false;
 }
 
 void TxControl::_enterActive() {
@@ -291,6 +293,7 @@ void TxControl::_enterHang() {
 }
 
 void TxControl::_enterLockout() {
+    _clearSelected();
     _tx.setPtt(false);
     _setState(State::LOCKOUT, _lockoutWindowMs);
 }

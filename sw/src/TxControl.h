@@ -99,17 +99,19 @@ private:
     const static unsigned int MAX_RX_COUNT = 8;
 
     // This is where the bindings to the various receivers is stored
-    Rx* _rx[MAX_RX_COUNT] = { 0, 0, 0, 0, 0, 0, 0, 0 };
+    Rx* _rx[MAX_RX_COUNT] = { 
+        0, 0, 0, 0, 
+        0, 0, 0, 0 };
     // These flags indicate which receivers are eligible to be 
     // repeated through this transmitter. This is controlled by the 
-    // configuration.
+    // user configuration.
     bool _rxEligible[MAX_RX_COUNT] = { 
         false, false, false, false, 
         false, false, false, false };
-    // These flags indicate which receivers are actively being repeated.
+    // These flags indicate which receivers have been selected for repeating.
     // It is set based on the "voting" logic that is determined when leaving
     // idle state.
-    bool _rxActive[MAX_RX_COUNT] = { 
+    bool _rxSelected[MAX_RX_COUNT] = { 
         false, false, false, false, 
         false, false, false, false };
 
@@ -118,10 +120,7 @@ private:
      * receivers that are marked as eligible.
     */
     bool _anyRxActivityAmongstEligible() const;
-
-    void _clearActive();
-
-    unsigned _adjustGains();
+    void _clearSelected();
 
     CourtesyToneGenerator _courtesyToneGenerator;
     IDToneGenerator _idToneGenerator;
