@@ -98,8 +98,7 @@ struct Config {
      */
     static void show(const Config* cfg);
 
-    static float dbToLinear(float db) { return pow(10, (db / 20)); } 
-    //static float linearToDb(float lin) { return 20 * log10(lin); } 
+    //static float dbvToLinear(float dbv) { return pow(10, (dbv / 20)); } 
 
 private:
 

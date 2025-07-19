@@ -106,8 +106,7 @@ public:
 
     void setCtcssEncodeFreq(float hz);
 
-    // TODO: Investigate peak vs RMS here
-    void setCtcssEncodeLevel(float db) { _ctcssEncodeLevel = _dbToLinear(db); }
+    void setCtcssEncodeLevel(float dbv) { _ctcssEncodeLevel = dbvToLinear(dbv); }
 
     void setDelayMs(unsigned ms);
 
@@ -117,8 +116,7 @@ public:
     
     void setToneEnabled(bool b);
     void setToneFreq(float hz);
-    // TODO: Investigate peak vs RMS here
-    void setToneLevel(float db) { _toneLevel = _dbToLinear(db); }
+    void setToneLevel(float dbv) { _toneLevel = dbvToLinear(dbv); }
     void setToneTransitionTime(unsigned ms) { _toneTransitionMs = ms; }
 
     /**
@@ -127,8 +125,20 @@ public:
      */
     void setDiagToneEnabled(bool b) { _diagToneEnabled = b; }
     void setDiagToneFreq(float hz);
-    // TODO: Investigate peak vs RMS here
-    void setDiagToneLevel(float db) { _diagToneLevel = _dbToLinear(db); }
+    void setDiagToneLevel(float dbv) { _diagToneLevel = dbvToLinear(dbv); }
+
+    static float db(float l) {
+        return 20.0 * log10(l);
+    }
+
+    static float vrmsToDbv(float vrms) {
+        // Standard conversion from Vrms to Vpp
+        return db(vrms * 1.4);
+    }
+
+    static float dbvToLinear(float dbv) {
+        return pow(10, (dbv / 20));
+    }
 
 private:
 
@@ -203,7 +213,7 @@ private:
     // Used for synthesis of tone 
     // This is a fixed level that can be used to set the overall
     // (i.e. after transition) level of the tone
-    float _toneLevel =  _dbToLinear(-10);
+    float _toneLevel =  dbvToLinear(-10);
     float _toneOmega = 0;
     float _tonePhi = 0;
     // Tones turn on/off transitions are smoothed to minimize clicks.
@@ -219,17 +229,9 @@ private:
 
     // Diagnostic tone stuff
     bool _diagToneEnabled = false;
-    float _diagToneLevel = _dbToLinear(-10);
+    float _diagToneLevel = dbvToLinear(-10);
     float _diagToneOmega = 0;
     float _diagTonePhi = 0;
-
-    static float db(float l) {
-        return 20.0 * log10(l);
-    }
-
-    static float _dbToLinear(float db) {
-        return pow(10, (db / 20));
-    }
 };
 
 }

@@ -934,7 +934,7 @@ static void transferConfig(const Config& config,
     rx0.setToneInactiveTime(config.rx0.toneInactiveTime);
     rx0.setToneLevel(config.rx0.toneLevel);
     rx0.setToneFreq(config.rx0.toneFreq);
-    rx0.setGainLinear(Config::dbToLinear(config.rx0.gain));
+    rx0.setGainLinear(AudioCore::dbvToLinear(config.rx0.gain));
     rx0.setCtMode((CourtesyToneGenerator::Type)config.rx0.ctMode);
 
     rx1.setCosMode((Rx::CosMode)config.rx1.cosMode);
@@ -946,7 +946,7 @@ static void transferConfig(const Config& config,
     rx1.setToneInactiveTime(config.rx1.toneInactiveTime);
     rx1.setToneLevel(config.rx1.toneLevel);
     rx1.setToneFreq(config.rx1.toneFreq);
-    rx1.setGainLinear(Config::dbToLinear(config.rx1.gain));
+    rx1.setGainLinear(AudioCore::dbvToLinear(config.rx1.gain));
     rx1.setCtMode((CourtesyToneGenerator::Type)config.rx1.ctMode);
 
     // Transmitter configuration
