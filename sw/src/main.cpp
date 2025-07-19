@@ -1148,7 +1148,7 @@ int main(int argc, const char** argv) {
                 log.setEnabled(true);
                 log.info("Entered log mode");
             } 
-            else if (c == 's') {
+            else if (c == 27) {
                 // Clear off the status screen
                 printf("\033[2J");
                 // Show cursor
