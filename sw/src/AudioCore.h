@@ -128,6 +128,8 @@ public:
     void setDiagToneLevel(float dbv) { _diagToneLevel = dbvToLinear(dbv); }
 
     static float db(float l) {
+        if (l < 0.001)
+            return -99.0;
         return 20.0 * log10(l);
     }
 

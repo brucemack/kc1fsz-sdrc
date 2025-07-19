@@ -92,8 +92,8 @@ const uint dac_dout_pin = 9;
 // output path.
 #define MAX_DAC_VALUE (8388607)
 // Size of history buffers (around a second of history)
-#define IN_HISTORY_COUNT (16384)
-#define OUT_HISTORY_COUNT (16384)
+//#define IN_HISTORY_COUNT (16384)
+//#define OUT_HISTORY_COUNT (16384)
 
 // How long an audio source takes to ramp up/down to avoid pops 
 #define AUDIO_FADE_MS (25)
@@ -745,13 +745,7 @@ static void audio_setup() {
     gpio_put(adc_rst_pin, 1);
 }
 
-static float db(float rms) {
-    if (rms < 0.01)
-        return -99;
-    return 20.0 * log10(rms);
-}
-
-static void print_vu_bar(int rms_db, int peak_db) {
+static void print_bar(int rms_db, int peak_db) {
     if (rms_db > -1 || peak_db > -1)
         printf("\033[31m");
     printf("[");
@@ -821,21 +815,21 @@ static void render_status(const Rx& rx0, const Rx& rx1, const Tx& tx0, const Tx&
     printf("\n");
     printf("\033[0m");
 
-    int rx_rms_r0_db = db(in_rms_r0.getAvg());
-    int rx_peak_r0_db = db(in_rms_r0.getMax());
+    int rx_rms_r0_db = AudioCore::vrmsToDbv(in_rms_r0.getAvg());
+    int rx_peak_r0_db = AudioCore::vrmsToDbv(in_rms_r0.getMax());
     printf("RX0 LVL  : ");
-    print_vu_bar(rx_rms_r0_db, rx_peak_r0_db);
+    print_bar(rx_rms_r0_db, rx_peak_r0_db);
     printf("\n");
 
-    int tx_rms_r0_db = db(out_rms_r0.getAvg());
-    int tx_peak_r0_db = db(out_rms_r0.getMax());
+    int tx_rms_r0_db = AudioCore::vrmsToDbv(out_rms_r0.getAvg());
+    int tx_peak_r0_db = AudioCore::vrmsToDbv(out_rms_r0.getMax());
     printf("TX0 LVL  : ");
-    print_vu_bar(tx_rms_r0_db, tx_peak_r0_db);
+    print_bar(tx_rms_r0_db, tx_peak_r0_db);
     printf("\n");
     printf("Tone RMS: %.2f, Noise RMS: %.2f, Signal RMS: %.2f, SNR: %.1f\n", 
         core0.getCtcssDecodeRms(), 
         core0.getNoiseRms(), core0.getSignalRms(),
-        db(core0.getSignalRms() / core0.getNoiseRms()));
+        AudioCore::db(core0.getSignalRms() / core0.getNoiseRms()));
 
     printf("\n");
                 
@@ -876,22 +870,22 @@ static void render_status(const Rx& rx0, const Rx& rx1, const Tx& tx0, const Tx&
     printf("\n");
     printf("\033[0m");
 
-    int rx_rms_r1_db = db(in_rms_r1.getAvg());
-    int rx_peak_r1_db = db(in_rms_r1.getMax());
+    int rx_rms_r1_db = AudioCore::vrmsToDbv(in_rms_r1.getAvg());
+    int rx_peak_r1_db = AudioCore::vrmsToDbv(in_rms_r1.getMax());
     printf("RX1 LVL  : ");
-    print_vu_bar(rx_rms_r1_db, rx_peak_r1_db);
+    print_bar(rx_rms_r1_db, rx_peak_r1_db);
     printf("\n");
 
-    int tx_rms_r1_db = db(out_rms_r1.getAvg());
-    int tx_peak_r1_db = db(out_rms_r1.getMax());
+    int tx_rms_r1_db = AudioCore::vrmsToDbv(out_rms_r1.getAvg());
+    int tx_peak_r1_db = AudioCore::vrmsToDbv(out_rms_r1.getMax());
     printf("TX1 LVL  : ");
-    print_vu_bar(tx_rms_r1_db, tx_peak_r1_db);
+    print_bar(tx_rms_r1_db, tx_peak_r1_db);
     printf("\n");
     printf("Tone RMS: %.2f, Noise RMS: %.2f, Signal RMS: %.2f, SNR: %.1f\n", 
         core1.getCtcssDecodeRms(), 
         core1.getNoiseRms(), 
         core1.getSignalRms(),
-        db(core1.getSignalRms() / core1.getNoiseRms()));
+        AudioCore::db(core1.getSignalRms() / core1.getNoiseRms()));
 
     printf("\n");
     printf("Longest ISR (ms) %u\n", longestLoop);

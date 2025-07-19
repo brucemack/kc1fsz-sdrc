@@ -98,8 +98,6 @@ struct Config {
      */
     static void show(const Config* cfg);
 
-    //static float dbvToLinear(float dbv) { return pow(10, (dbv / 20)); } 
-
 private:
 
     static void _showRx(const ReceiveConfig* cfg, const char* pre);
