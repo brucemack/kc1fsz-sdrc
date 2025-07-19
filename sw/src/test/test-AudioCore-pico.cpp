@@ -59,13 +59,18 @@ int main(int, const char**) {
     log.info("Copyright (C) 2025 Bruce MacKinnon KC1FSZ");
     log.info("AudioCore size in bytes %d", sizeof(AudioCore));
 
-    AudioCore core0(0);
-    AudioCore core1(1);
+    AudioCore core0(0, 2);
     core0.setCtcssDecodeFreq(123);
     core0.setCtcssEncodeFreq(123);
-    core0.setCtcssEncodeLevel(-26);
-    core0.setCtcssEncodeEnabled(true);
+    core0.setCtcssEncodeLevel(-20);
+    core0.setCtcssEncodeEnabled(false);
     //core0.setDelayMs(100);
+    core0.setRxGainLinear(1.0);
+    core0.setCrossGainLinear(0, 1.0);
+    core0.setCrossGainLinear(1, 0.0);
+    core0.setRxGainLinear(1.0);
+
+    AudioCore core1(1, 2);
 
     // Create 230ms of test data for each radio
     // (32,000 / 4) * 4 * 2 = 64,000
@@ -85,8 +90,10 @@ int main(int, const char**) {
     // Noise
     //int ft = 6000;
     // Audio
-    int ft = 1000;
-    make_real_tone_q31(test_in_0, test_in_max, AudioCore::FS_ADC, ft, 0.5); 
+    int ft0 = 123;
+    make_real_tone_q31(test_in_0, test_in_max, AudioCore::FS_ADC, ft0, 1.0); 
+    int ft1 = 1200;
+    make_real_tone_q31(test_in_1, test_in_max, AudioCore::FS_ADC, ft1, 1.0); 
 
     int32_t* adc_in_0 = test_in_0;
     int32_t* adc_in_1 = test_in_1;
@@ -94,7 +101,6 @@ int main(int, const char**) {
     float cross_out_0[AudioCore::BLOCK_SIZE];
     float cross_out_1[AudioCore::BLOCK_SIZE];
     const float* cross_ins[2] = { cross_out_0, cross_out_1 };
-    float cross_gains[2] = { 1.0, 0.0 };
 
     for (unsigned i = 0; i < AudioCore::BLOCK_SIZE; i++) {
         cross_out_0[i] = 0;
@@ -113,26 +119,26 @@ int main(int, const char**) {
 
         timer.reset();
 
-        core0.cycle0(adc_in_0, cross_out_0);
-        core1.cycle0(adc_in_1, cross_out_1);
-        core0.cycle1(2, cross_ins, cross_gains, dac_out_0);
-        core1.cycle1(2, cross_ins, cross_gains, dac_out_1);
+        core0.cycleRx(adc_in_0, cross_out_0);
+        core1.cycleRx(adc_in_1, cross_out_1);
+        core0.cycleTx(cross_ins, dac_out_0);
+        core1.cycleTx(cross_ins, dac_out_1);
 
         adc_in_0 += AudioCore::BLOCK_SIZE_ADC;
         adc_in_1 += AudioCore::BLOCK_SIZE_ADC;
 
         float np = AudioCore::vrmsToDbv(core0.getNoiseRms());
         float sp = AudioCore::vrmsToDbv(core0.getSignalRms());
-        float op = AudioCore::vrmsToDbv(core0.getOutRms());
         float cp = AudioCore::vrmsToDbv(core0.getCtcssDecodeRms());
+        float op = AudioCore::vrmsToDbv(core0.getOutRms());
 
         unsigned elUs = timer.elapsedUs();
 
-        log.info("  Elapsed us      %u", elUs);
-        log.info("  Noise power dB  %f", np);
-        log.info("  Signal power dB %f", sp);
-        log.info("  Output power dB %f", op);
-        log.info("  CTCSS power dB  %f", cp);
+        log.info("  Elapsed         us  %u", elUs);
+        log.info("  Noise in power  dBv %f", np);
+        log.info("  Signal in power dBv %f", sp);
+        log.info("  CTCSS in power  dBv %f", cp);
+        log.info("  Output power    dBv %f", op);
     }
 
     while (true) {

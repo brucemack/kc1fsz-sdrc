@@ -88,7 +88,7 @@ public:
             if (noiseRms == 0)
                 snr = std::numeric_limits<float>::max();
             else
-                snr = 20.0 * log10(_core.getSignalRms() / noiseRms);
+                snr = AudioCore::db(_core.getSignalRms() / noiseRms);
             return snr > 10 && _core.getCtcssDecodeRms() > _thresholdRms;
         }
     }

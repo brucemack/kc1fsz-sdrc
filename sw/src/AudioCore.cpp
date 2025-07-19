@@ -262,7 +262,9 @@ void AudioCore::cycleTx(const float** cross_ins, int32_t* codec_out) {
             for (unsigned k = 0; k < _crossCount; k++)
                 toneAndAudio += audioLevel * cross_ins[k][i] * _crossGains[k];
 
-            mix[i] = toneAndAudio;
+            // IMPORTANT: The 8k->32k interpolation will reduce the magnitude
+            // of the signal by 1/4, this x4.0 compensates.
+            mix[i] = toneAndAudio * 4.0;
         }
 
         // We do this to avoid phi growing very large and 
@@ -270,16 +272,6 @@ void AudioCore::cycleTx(const float** cross_ins, int32_t* codec_out) {
         _tonePhi = fmod(_tonePhi, 2.0 * PI);
 
         // Interpolation x4 [flow diagram reference N]   
-        // Pad the 8K samples with zeros
-        //float filtInN[BLOCK_SIZE_ADC];
-        // TODO: Investigate ARM interpolation function
-        //memset(filtInN, 0, BLOCK_SIZE_ADC * sizeof(float));
-        //for (unsigned i = 0; i < BLOCK_SIZE_ADC; i += 4)
-        //    filtInN[i] = (mix[i / 4]) * 4.0;
-
-        // Apply the interpolation LPF
-        //arm_fir_f32(&_filtN, filtInN, final_out, BLOCK_SIZE_ADC);
-        
         // WARNING: CHECK FOR *4 SITUATION
         arm_fir_interpolate_f32(&_filtN, mix, final_out, BLOCK_SIZE);
     }
