@@ -49,7 +49,6 @@ When targeting RP2350 (Pico 2), command used to load code onto the board:
 #include "StdTx.h"
 #include "StdRx.h"
 #include "Config.h"
-#include "AudioSourceControl.h"
 #include "TxControl.h"
 #include "ShellCommand.h"
 #include "AudioCore.h"
@@ -168,11 +167,8 @@ static Config config;
 static PicoClock clock;
 static PicoPerfTimer perfTimer0;
 
-static AudioCore core0(0);
-static AudioCore core1(1);
-
-static AudioSourceControl audioSource0;
-static AudioSourceControl audioSource1;
+static AudioCore core0(0, 2);
+static AudioCore core1(1, 2);
 
 static uint32_t longestLoop = 0;
 
@@ -291,23 +287,11 @@ static void process_in_frame() {
     float r0_cross[ADC_SAMPLE_COUNT / 4];
     float r1_cross[ADC_SAMPLE_COUNT / 4];
     const float* cross_ins[2] = { r0_cross, r1_cross };
-    float r0_cross_gains[2] = { 0, 0 };
-    float r1_cross_gains[2] = { 0, 0 };
-
-    // Setup mixing
-    if (audioSource0.getSource() == AudioSourceControl::RADIO0)
-        r0_cross_gains[0] = 1.0;
-    else if (audioSource0.getSource() == AudioSourceControl::RADIO1)
-        r0_cross_gains[1] = 1.0;
-    if (audioSource1.getSource() == AudioSourceControl::RADIO0)
-        r1_cross_gains[0] = 1.0;
-    else if (audioSource1.getSource() == AudioSourceControl::RADIO1)
-        r1_cross_gains[1] = 1.0;
 
     core0.cycleRx(r0_samples, r0_cross);
     core1.cycleRx(r1_samples, r1_cross);
-    core0.cycleTx(2, cross_ins, r0_cross_gains, r0_out);
-    core1.cycleTx(2, cross_ins, r1_cross_gains, r1_out);
+    core0.cycleTx(cross_ins, r0_out);
+    core1.cycleTx(cross_ins, r1_out);
 
     // Re-pack data for DAC
     j = 0;
@@ -933,11 +917,11 @@ static void transferConfig(const Config& config,
 
     txc0.setCall(config.general.callSign);
     txc0.setPass(config.general.pass);
-    txc0.setRepeatMode((TxControl::RepeatMode)config.general.repeatMode);
+    //txc0.setRepeatMode((TxControl::RepeatMode)config.general.repeatMode);
     txc0.setIdRequiredInt(config.general.idRequiredInt);
     txc1.setCall(config.general.callSign);
     txc1.setPass(config.general.pass);
-    txc1.setRepeatMode((TxControl::RepeatMode)config.general.repeatMode);
+    //txc1.setRepeatMode((TxControl::RepeatMode)config.general.repeatMode);
     txc1.setIdRequiredInt(config.general.idRequiredInt);
 
     // Receiver configuration
@@ -950,7 +934,7 @@ static void transferConfig(const Config& config,
     rx0.setToneInactiveTime(config.rx0.toneInactiveTime);
     rx0.setToneLevel(config.rx0.toneLevel);
     rx0.setToneFreq(config.rx0.toneFreq);
-    rx0.setGain(config.rx0.gain);
+    rx0.setGainLinear(Config::dbToLinear(config.rx0.gain));
     rx0.setCtMode((CourtesyToneGenerator::Type)config.rx0.ctMode);
 
     rx1.setCosMode((Rx::CosMode)config.rx1.cosMode);
@@ -962,7 +946,7 @@ static void transferConfig(const Config& config,
     rx1.setToneInactiveTime(config.rx1.toneInactiveTime);
     rx1.setToneLevel(config.rx1.toneLevel);
     rx1.setToneFreq(config.rx1.toneFreq);
-    rx1.setGain(config.rx1.gain);
+    rx1.setGainLinear(Config::dbToLinear(config.rx1.gain));
     rx1.setCtMode((CourtesyToneGenerator::Type)config.rx1.ctMode);
 
     // Transmitter configuration
@@ -1074,8 +1058,8 @@ int main(int argc, const char** argv) {
     StdRx rx0(clock, log, 0, R0_COS_PIN, R0_CTCSS_PIN, core0);
     StdRx rx1(clock, log, 1, R1_COS_PIN, R1_CTCSS_PIN, core1);
 
-    TxControl txCtl0(clock, log, tx0, core0, audioSource0);
-    TxControl txCtl1(clock, log, tx1, core1, audioSource1);
+    TxControl txCtl0(clock, log, tx0, core0);
+    TxControl txCtl1(clock, log, tx1, core1);
 
     txCtl0.setRx(0, &rx0);
     txCtl0.setRx(1, &rx1);
@@ -1192,7 +1176,5 @@ int main(int argc, const char** argv) {
         rx1.run();
         txCtl0.run();
         txCtl1.run();
-        audioSource0.run();        
-        audioSource1.run();
     }
 }
