@@ -772,7 +772,8 @@ static void print_bar(int rms_db, int peak_db) {
     printf("\033[0m");
 }
 
-static void render_status(const Rx& rx0, const Rx& rx1, const Tx& tx0, const Tx& tx1) {
+static void render_status(const Rx& rx0, const Rx& rx1, const Tx& tx0, const Tx& tx1,
+    const TxControl& txc0, const TxControl& txc1) {
 
     printf("\033[H");
     printf("W1TKZ Software Defined Repeater Controller\n");
@@ -888,7 +889,7 @@ static void render_status(const Rx& rx0, const Rx& rx1, const Tx& tx0, const Tx&
         AudioCore::db(core1.getSignalRms() / core1.getNoiseRms()));
 
     printf("\n");
-    printf("Longest ISR (ms) %u\n", longestLoop);
+    printf("%u / %d / %d      \n", longestLoop, txc0.getState(), txc1.getState());
 }
 
 static void transferConfigRx(const Config::ReceiveConfig& config, Rx& rx) {
@@ -1139,7 +1140,7 @@ int main(int argc, const char** argv) {
         else if (uiMode == UIMode::UIMODE_STATUS) {
             // Do periodic display/diagnostic stuff
             if (flash)
-                render_status(rx0, rx1, tx0, tx1);
+                render_status(rx0, rx1, tx0, tx1, txCtl0, txCtl1);
             if (c == 'l') {
                 // Clear off the status screen
                 printf("\033[2J");
