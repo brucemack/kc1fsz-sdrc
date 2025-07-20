@@ -104,8 +104,6 @@ void ShellCommand::process(const char* cmd) {
                 strcpyLimited(_config.general.pass, tokens[2], Config::passMaxLen);
             } else if (eq(tokens[1], "repeatmode")) {
                 _config.general.repeatMode = atoi(tokens[2]);
-            } else if (eq(tokens[1], "testmode")) {
-                _config.general.diagMode = atoi(tokens[2]);
             } else if (eq(tokens[1], "testtonefreq")) {
                 _config.general.diagFreq = atof(tokens[2]);
             } else if (eq(tokens[1], "testtonelevel")) {

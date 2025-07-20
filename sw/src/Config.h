@@ -30,7 +30,7 @@ namespace kc1fsz {
  */
 struct Config {
 
-    const static int CONFIG_VERSION = 0xbabe + 11;
+    const static int CONFIG_VERSION = 0xbabe + 12;
     const static int CONFIG_SIZE = 512;
 
     const static int callSignMaxLen = 16;
@@ -43,7 +43,6 @@ struct Config {
         char callSign[callSignMaxLen]; 
         char pass[passMaxLen];
         uint32_t repeatMode;
-        uint32_t diagMode;
         float diagLevel;
         float diagFreq;
         uint32_t idRequiredInt;

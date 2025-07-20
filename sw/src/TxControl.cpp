@@ -55,6 +55,7 @@ void TxControl::run() {
     // Advance sub-components
     _idToneGenerator.run();
     _courtesyToneGenerator.run();
+    _testToneGenerator.run();
 
     // ----- Keep Track of Receiver Activity ----------------------------------
     

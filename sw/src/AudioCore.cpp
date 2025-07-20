@@ -187,94 +187,78 @@ void AudioCore::cycleTx(const float** cross_ins, int32_t* codec_out) {
 
     float final_out[BLOCK_SIZE_ADC];
 
-    // There are two operating modes here:
-    // 1. Diagnostic tone mode
-    // 2. "Normal mode"
+    // This is where the final 8k audio block is created
+    float mix[BLOCK_SIZE];
 
-    if (_diagToneEnabled) {
+    // CTCSS encoder [see flow diagram reference J] 
+    // Notice that all of the calculations needed to 
+    // generate the CTCSS tone are performed regardless 
+    // of whether the encoding is enabled.  This is to 
+    // maintain a consistent CPU cost.
+    float ctcssLevel = _ctcssEncodeEnabled ? _ctcssEncodeLevel : 0;
+    for (unsigned i = 0; 
+        i < BLOCK_SIZE; 
+        i++, _ctcssEncodePhi += _ctcssEncodeOmega)
+        mix[i] = ctcssLevel * arm_cos_f32(_ctcssEncodePhi);
 
-        for (unsigned i = 0; i < BLOCK_SIZE_ADC; 
-            i++, _diagTonePhi += _diagToneOmega)
-            final_out[i] = _diagToneLevel * arm_cos_f32(_diagTonePhi);
+    // We do this to avoid phi growing very large and 
+    // creating overflow/precision problems.
+    _ctcssEncodePhi = fmod(_ctcssEncodePhi, 2.0 * PI);
 
-        // We do this to avoid phi growing very large and 
-        // creating overflow/precision problems.
-        _diagTonePhi = fmod(_diagTonePhi, 2.0 * PI);
-    }
-    else {
-        // This is where the final 8k audio block is created
-        float mix[BLOCK_SIZE];
+    // Tone and audio mixing
+    for (unsigned i = 0; 
+        i < BLOCK_SIZE; 
+        i++, _tonePhi += _toneOmega) {
 
-        // CTCSS encoder [see flow diagram reference J] 
+        // Tone generation [see flow diagram reference K] 
         // Notice that all of the calculations needed to 
-        // generate the CTCSS tone are performed regardless 
-        // of whether the encoding is enabled.  This is to 
+        // generate the tone(s) are performed regardless 
+        // of whether the tone is enabled.  This is to 
         // maintain a consistent CPU cost.
-        float ctcssLevel = _ctcssEncodeEnabled ? _ctcssEncodeLevel : 0;
-        for (unsigned i = 0; 
-            i < BLOCK_SIZE; 
-            i++, _ctcssEncodePhi += _ctcssEncodeOmega)
-            mix[i] = ctcssLevel * arm_cos_f32(_ctcssEncodePhi);
-
-        // We do this to avoid phi growing very large and 
-        // creating overflow/precision problems.
-        _ctcssEncodePhi = fmod(_ctcssEncodePhi, 2.0 * PI);
-
-        // Tone and audio mixing
-        for (unsigned i = 0; 
-            i < BLOCK_SIZE; 
-            i++, _tonePhi += _toneOmega) {
-
-            // Tone generation [see flow diagram reference K] 
-            // Notice that all of the calculations needed to 
-            // generate the tone(s) are performed regardless 
-            // of whether the tone is enabled.  This is to 
-            // maintain a consistent CPU cost.
-            // 
-            // Tone level changes during transition windows
-            if (_toneTransitionIncrement > 0) {
-                if (_toneTransitionLevel < _toneTransitionLimit) {
-                    _toneTransitionLevel += _toneTransitionIncrement;
-                }
-            } else if (_toneTransitionIncrement < 0) {
-                if (_toneTransitionLevel > _toneTransitionLimit) {
-                    _toneTransitionLevel += _toneTransitionIncrement;
-                }
+        // 
+        // Tone level changes during transition windows
+        if (_toneTransitionIncrement > 0) {
+            if (_toneTransitionLevel < _toneTransitionLimit) {
+                _toneTransitionLevel += _toneTransitionIncrement;
             }
-            // Saturate
-            if (_toneTransitionLevel < 0) 
-                _toneTransitionLevel = 0;
-            else if (_toneTransitionLevel > 1.0)
-                _toneTransitionLevel = 1.0;
-
-            // At the moment the transition is linear (i.e. trapazoidal
-            // shaping).  We may consider a more complex envelope later.
-            float toneLevel = _toneLevel * _toneTransitionLevel;
-
-            float toneAndAudio = mix[i];
-            toneAndAudio += toneLevel * arm_cos_f32(_tonePhi);
-
-            // Transmit Mix [float diagram reference L]
-            //
-            // Normal audio channels get whatever is left over after the 
-            // CTCSS and tone levels are determined.
-            float audioLevel = 1.0 - toneLevel - ctcssLevel;
-            for (unsigned k = 0; k < _crossCount; k++)
-                toneAndAudio += audioLevel * cross_ins[k][i] * _crossGains[k];
-
-            // IMPORTANT: The 8k->32k interpolation will reduce the magnitude
-            // of the signal by 1/4, this x4.0 compensates.
-            mix[i] = toneAndAudio * 4.0;
+        } else if (_toneTransitionIncrement < 0) {
+            if (_toneTransitionLevel > _toneTransitionLimit) {
+                _toneTransitionLevel += _toneTransitionIncrement;
+            }
         }
+        // Saturate
+        if (_toneTransitionLevel < 0) 
+           _toneTransitionLevel = 0;
+        else if (_toneTransitionLevel > 1.0)
+            _toneTransitionLevel = 1.0;
 
-        // We do this to avoid phi growing very large and 
-        // creating overflow/precision problems.
-        _tonePhi = fmod(_tonePhi, 2.0 * PI);
+        // At the moment the transition is linear (i.e. trapazoidal
+        // shaping).  We may consider a more complex envelope later.
+        float toneLevel = _toneLevel * _toneTransitionLevel;
 
-        // Interpolation x4 [flow diagram reference N]   
-        // WARNING: CHECK FOR *4 SITUATION
-        arm_fir_interpolate_f32(&_filtN, mix, final_out, BLOCK_SIZE);
+        float toneAndAudio = mix[i];
+        toneAndAudio += toneLevel * arm_cos_f32(_tonePhi);
+
+        // Transmit Mix [float diagram reference L]
+        //
+        // Normal audio channels get whatever is left over after the 
+        // CTCSS and tone levels are determined.
+        float audioLevel = 1.0 - toneLevel - ctcssLevel;
+        for (unsigned k = 0; k < _crossCount; k++)
+            toneAndAudio += audioLevel * cross_ins[k][i] * _crossGains[k];
+
+        // IMPORTANT: The 8k->32k interpolation will reduce the magnitude
+        // of the signal by 1/4, this x4.0 compensates.
+        mix[i] = toneAndAudio * 4.0;
     }
+
+    // We do this to avoid phi growing very large and 
+    // creating overflow/precision problems.
+    _tonePhi = fmod(_tonePhi, 2.0 * PI);
+
+    // Interpolation x4 [flow diagram reference N]   
+    // WARNING: CHECK FOR *4 SITUATION
+    arm_fir_interpolate_f32(&_filtN, mix, final_out, BLOCK_SIZE);
 
     // Compute output RMS
     arm_rms_f32(final_out, BLOCK_SIZE_ADC, &_outRms);
@@ -351,12 +335,6 @@ void AudioCore::setToneFreq(float hz) {
     // Convert frequency to radians/sample.  The tone generation 
     // happens at the FS (8k) rate.
     _toneOmega = 2.0 * PI * hz / (float)FS;
-}
-
-void AudioCore::setDiagToneFreq(float hz) { 
-    // Convert frequency to radians/sample.  The tone generation 
-    // happens at the CODEC (32k) rate.
-    _diagToneOmega = 2.0 * PI * hz / (float)FS_ADC;
 }
 
 void AudioCore::setCrossGainLinear(unsigned i, float gain) {

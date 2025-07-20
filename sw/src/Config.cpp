@@ -37,7 +37,6 @@ void Config::setFactoryDefaults(Config* cfg) {
     strcpyLimited(cfg->general.callSign, "W1TKZ", Config::callSignMaxLen);
     strcpyLimited(cfg->general.pass, "781", Config::passMaxLen);
     cfg->general.repeatMode = 2;
-    cfg->general.diagMode = 0;
     cfg->general.diagFreq = 1000;
     cfg->general.diagLevel = -10;
     cfg->general.idRequiredInt = 10 * 60;
@@ -134,7 +133,6 @@ void Config::show(const Config* cfg) {
     printf("   callsign      : %s\n", cfg->general.callSign);
     printf("   pass          : %s\n", cfg->general.pass);
     printf("   repeatmode    : %d\n", cfg->general.repeatMode);
-    printf("   testmode      : %d\n", cfg->general.diagMode);
     printf("   testtonefreq  : %.1f\n", cfg->general.diagFreq);
     printf("   testtonelevel : %.1f\n", cfg->general.diagLevel);
     printf("   idrequiredint : %u\n", cfg->general.idRequiredInt);

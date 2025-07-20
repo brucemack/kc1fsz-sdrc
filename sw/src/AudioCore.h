@@ -119,14 +119,6 @@ public:
     void setToneLevel(float dbv) { _toneLevel = dbvToLinear(dbv); }
     void setToneTransitionTime(unsigned ms) { _toneTransitionMs = ms; }
 
-    /**
-     * @brief When enabled, the diagnostic tone is transmitted directly
-     * without any other inputs (i.e. no CTCSS, no mixing, etc.)
-     */
-    void setDiagToneEnabled(bool b) { _diagToneEnabled = b; }
-    void setDiagToneFreq(float hz);
-    void setDiagToneLevel(float dbv) { _diagToneLevel = dbvToLinear(dbv); }
-
     static float db(float l) {
         if (l < 0.001)
             return -99.0;
@@ -228,12 +220,6 @@ private:
     float _toneTransitionLimit = 0;
     // Controls how long the transition should last.
     unsigned _toneTransitionMs = 20;
-
-    // Diagnostic tone stuff
-    bool _diagToneEnabled = false;
-    float _diagToneLevel = dbvToLinear(-10);
-    float _diagToneOmega = 0;
-    float _diagTonePhi = 0;
 };
 
 }

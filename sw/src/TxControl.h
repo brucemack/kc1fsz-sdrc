@@ -63,6 +63,8 @@ public:
     void setCtLevel(float db) { _courtesyToneGenerator.setLevel(db); }
     void setIdLevel(float db) { _idToneGenerator.setLevel(db); } 
     void setIdRequiredInt(uint32_t sec) { _idRequiredIntSec = sec; }
+    void setDiagToneFreq(float hz) { _testToneGenerator.setFreq(hz); }
+    void setDiagToneLevel(float dbv) { _testToneGenerator.setLevel(dbv); }
 
 private:
 

@@ -926,19 +926,17 @@ static void transferConfig(const Config& config,
     AudioCore& core0, AudioCore& core1) 
 {
     // General configuration
-    core0.setDiagToneEnabled(config.general.diagMode == 1);
-    core0.setDiagToneFreq(config.general.diagFreq);
-    core1.setDiagToneEnabled(config.general.diagMode == 1);
-    core1.setDiagToneFreq(config.general.diagFreq);
-
     txc0.setCall(config.general.callSign);
     txc0.setPass(config.general.pass);
-    //txc0.setRepeatMode((TxControl::RepeatMode)config.general.repeatMode);
     txc0.setIdRequiredInt(config.general.idRequiredInt);
+    txc0.setDiagToneFreq(config.general.diagFreq);
+    txc0.setDiagToneLevel(config.general.diagLevel);
+
     txc1.setCall(config.general.callSign);
     txc1.setPass(config.general.pass);
-    //txc1.setRepeatMode((TxControl::RepeatMode)config.general.repeatMode);
     txc1.setIdRequiredInt(config.general.idRequiredInt);
+    txc1.setDiagToneFreq(config.general.diagFreq);
+    txc1.setDiagToneLevel(config.general.diagLevel);
 
     // Receiver configuration
     transferConfigRx(config.rx0, rx0);
@@ -1088,9 +1086,9 @@ int main(int argc, const char** argv) {
         [&txCtl0, &txCtl1, &log]() {
             txCtl0.forceId();
             txCtl1.forceId();        
-        }
+        },
         // Test trigger
-        [&txCtl0, &txCtl1, &log](int r) {
+        [&txCtl0, &txCtl1](int r) {
             if (r == 0)
                 txCtl0.startTest();
             else if (r == 1)
