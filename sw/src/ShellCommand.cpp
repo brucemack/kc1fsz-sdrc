@@ -28,6 +28,10 @@ namespace kc1fsz {
 
 static const char* INVALID_COMMAND = "Invalid Command\n";
 
+static bool eq(const char* a, const char* b) {
+    return strcmp(a, b) == 0;
+}
+
 void ShellCommand::process(const char* cmd) {
     // Tokenize
     const unsigned int maxTokenCount = 4;
@@ -53,32 +57,32 @@ void ShellCommand::process(const char* cmd) {
     bool configChanged = false;
 
     if (tokenCount == 1) {
-        if (strcmp(tokens[0], "reset") == 0) {
+        if (eq(tokens[0], "reset")) {
             printf("Reboot requested");
             // The watchdog will take over from here
             while (true);            
         }
-        else if (strcmp(tokens[0], "factoryreset") == 0) {
+        else if (eq(tokens[0], "factoryreset")) {
             Config::setFactoryDefaults(&_config);
             Config::saveConfig(&_config);
             configChanged = true;
         }
-        else if (strcmp(tokens[0], "save") == 0) {
+        else if (eq(tokens[0], "save")) {
             Config::saveConfig(&_config);
         }
-        else if (strcmp(tokens[0], "ping") == 0) {
+        else if (eq(tokens[0], "ping")) {
             printf("pong\n");
         }
-        else if (strcmp(tokens[0], "show") == 0) {
+        else if (eq(tokens[0], "show")) {
             Config::show(&_config);
         }
-        else if (strcmp(tokens[0], "log") == 0) {
+        else if (eq(tokens[0], "log")) {
             _logTrigger();
         }
-        else if (strcmp(tokens[0], "status") == 0) {
+        else if (eq(tokens[0], "status")) {
             _statusTrigger();
         }
-        else if (strcmp(tokens[0], "id") == 0) {
+        else if (eq(tokens[0], "id")) {
             _idTrigger();
         }
         else
@@ -88,21 +92,21 @@ void ShellCommand::process(const char* cmd) {
         printf(INVALID_COMMAND);
     }
     else if (tokenCount == 3) {
-        if (strcmp(tokens[0], "set") == 0) {
+        if (eq(tokens[0], "set")) {
             configChanged = true;
-            if (strcmp(tokens[1], "call") == 0) {
+            if (eq(tokens[1], "call")) {
                 strcpyLimited(_config.general.callSign, tokens[2], Config::callSignMaxLen);
-            } else if (strcmp(tokens[1], "pass") == 0) {
+            } else if (eq(tokens[1], "pass")) {
                 strcpyLimited(_config.general.pass, tokens[2], Config::passMaxLen);
-            } else if (strcmp(tokens[1], "repeatmode") == 0) {
+            } else if (eq(tokens[1], "repeatmode")) {
                 _config.general.repeatMode = atoi(tokens[2]);
-            } else if (strcmp(tokens[1], "testmode") == 0) {
+            } else if (eq(tokens[1], "testmode")) {
                 _config.general.diagMode = atoi(tokens[2]);
-            } else if (strcmp(tokens[1], "testtonefreq") == 0) {
+            } else if (eq(tokens[1], "testtonefreq")) {
                 _config.general.diagFreq = atof(tokens[2]);
-            } else if (strcmp(tokens[1], "testtonelevel") == 0) {
+            } else if (eq(tokens[1], "testtonelevel")) {
                 _config.general.diagLevel = atof(tokens[2]);
-            } else if (strcmp(tokens[1], "idrequiredint") == 0) {
+            } else if (eq(tokens[1], "idrequiredint")) {
                 _config.general.idRequiredInt = atoi(tokens[2]);
             } else {
                 printf(INVALID_COMMAND);
@@ -113,154 +117,154 @@ void ShellCommand::process(const char* cmd) {
         }
     }
     else if (tokenCount == 4) {
-        if (strcmp(tokens[0], "set") == 0)
+        if (eq(tokens[0], "set"))
             configChanged = true;
-            if (strcmp(tokens[1], "cosmode") == 0)
-                if (strcmp(tokens[2], "0") == 0)
+            if (eq(tokens[1], "cosmode"))
+                if (eq(tokens[2], "0"))
                     _config.rx0.cosMode = atoi(tokens[3]);
-                else if (strcmp(tokens[2], "1") == 0)
+                else if (eq(tokens[2], "1"))
                     _config.rx1.cosMode = atoi(tokens[3]);
                 else 
                     printf(INVALID_COMMAND);
-            else if (strcmp(tokens[1], "cosactivetime") == 0)
-                if (strcmp(tokens[2], "0") == 0)
+            else if (eq(tokens[1], "cosactivetime"))
+                if (eq(tokens[2], "0"))
                     _config.rx0.cosActiveTime = atoi(tokens[3]);
-                else if (strcmp(tokens[2], "1") == 0)
+                else if (eq(tokens[2], "1"))
                     _config.rx1.cosActiveTime = atoi(tokens[3]);
                 else 
                     printf(INVALID_COMMAND);
-            else if (strcmp(tokens[1], "cosinactivetime") == 0)
-                if (strcmp(tokens[2], "0") == 0)
+            else if (eq(tokens[1], "cosinactivetime"))
+                if (eq(tokens[2], "0"))
                     _config.rx0.cosInactiveTime = atoi(tokens[3]);
-                else if (strcmp(tokens[2], "1") == 0)
+                else if (eq(tokens[2], "1"))
                     _config.rx1.cosInactiveTime = atoi(tokens[3]);
                 else 
                     printf(INVALID_COMMAND);                
-            else if (strcmp(tokens[1], "coslevel") == 0)
-                if (strcmp(tokens[2], "0") == 0)
+            else if (eq(tokens[1], "coslevel"))
+                if (eq(tokens[2], "0"))
                     _config.rx0.cosLevel = atof(tokens[3]);
-                else if (strcmp(tokens[2], "1") == 0)
+                else if (eq(tokens[2], "1"))
                     _config.rx1.cosLevel = atof(tokens[3]);
                 else 
                     printf(INVALID_COMMAND);                
-            else if (strcmp(tokens[1], "rxtonemode") == 0)
-                if (strcmp(tokens[2], "0") == 0)
+            else if (eq(tokens[1], "rxtonemode"))
+                if (eq(tokens[2], "0"))
                     _config.rx0.toneMode = atoi(tokens[3]);
-                else if (strcmp(tokens[2], "1") == 0)
+                else if (eq(tokens[2], "1"))
                     _config.rx1.toneMode = atoi(tokens[3]);
                 else 
                     printf(INVALID_COMMAND);                
-            else if (strcmp(tokens[1], "rxtonectivetime") == 0)
-                if (strcmp(tokens[2], "0") == 0)
+            else if (eq(tokens[1], "rxtonectivetime"))
+                if (eq(tokens[2], "0"))
                     _config.rx0.toneActiveTime = atoi(tokens[3]);
-                else if (strcmp(tokens[2], "1") == 0)
+                else if (eq(tokens[2], "1"))
                     _config.rx1.toneActiveTime = atoi(tokens[3]);
                 else 
                     printf(INVALID_COMMAND);
-            else if (strcmp(tokens[1], "rxtoneinactivetime") == 0)
-                if (strcmp(tokens[2], "0") == 0)
+            else if (eq(tokens[1], "rxtoneinactivetime"))
+                if (eq(tokens[2], "0"))
                     _config.rx0.toneInactiveTime = atoi(tokens[3]);
-                else if (strcmp(tokens[2], "1") == 0)
+                else if (eq(tokens[2], "1"))
                     _config.rx1.toneInactiveTime = atoi(tokens[3]);
                 else 
                     printf(INVALID_COMMAND);                
-            else if (strcmp(tokens[1], "rxtonelevel") == 0)
-                if (strcmp(tokens[2], "0") == 0)
+            else if (eq(tokens[1], "rxtonelevel"))
+                if (eq(tokens[2], "0"))
                     _config.rx0.toneLevel = atof(tokens[3]);
-                else if (strcmp(tokens[2], "1") == 0)
+                else if (eq(tokens[2], "1"))
                     _config.rx1.toneLevel = atof(tokens[3]);
                 else 
                     printf(INVALID_COMMAND);                
-            else if (strcmp(tokens[1], "rxtonefreq") == 0)
-                if (strcmp(tokens[2], "0") == 0)
+            else if (eq(tokens[1], "rxtonefreq"))
+                if (eq(tokens[2], "0"))
                     _config.rx0.toneFreq =  atof(tokens[3]);
-                else if (strcmp(tokens[2], "1") == 0)
+                else if (eq(tokens[2], "1"))
                     _config.rx1.toneFreq = atof(tokens[3]);
                 else 
                     printf(INVALID_COMMAND);                
-            else if (strcmp(tokens[1], "rxgain") == 0)
-                if (strcmp(tokens[2], "0") == 0)
+            else if (eq(tokens[1], "rxgain"))
+                if (eq(tokens[2], "0"))
                     _config.rx0.gain = atof(tokens[3]);
-                else if (strcmp(tokens[2], "1") == 0)
+                else if (eq(tokens[2], "1"))
                     _config.rx1.gain = atof(tokens[3]);
                 else 
                     printf(INVALID_COMMAND);                
-            else if (strcmp(tokens[1], "delaytime") == 0)
-                if (strcmp(tokens[2], "0") == 0)
+            else if (eq(tokens[1], "delaytime"))
+                if (eq(tokens[2], "0"))
                     _config.rx0.delayTime = atoi(tokens[3]);
-                else if (strcmp(tokens[2], "1") == 0)
+                else if (eq(tokens[2], "1"))
                     _config.rx1.delayTime = atoi(tokens[3]);
                 else 
                     printf(INVALID_COMMAND);                
-            else if (strcmp(tokens[1], "txenabled") == 0)
-                if (strcmp(tokens[2], "0") == 0)
+            else if (eq(tokens[1], "txenable"))
+                if (eq(tokens[2], "0"))
                     _config.tx0.enabled = atoi(tokens[3]) == 1;
-                else if (strcmp(tokens[2], "1") == 0)
+                else if (eq(tokens[2], "1"))
                     _config.tx1.enabled = atoi(tokens[3]) == 1;
                 else 
                     printf(INVALID_COMMAND);                
-            else if (strcmp(tokens[1], "txtonemode") == 0)
-                if (strcmp(tokens[2], "0") == 0)
+            else if (eq(tokens[1], "txtonemode"))
+                if (eq(tokens[2], "0"))
                     _config.tx0.toneMode = atoi(tokens[3]);
-                else if (strcmp(tokens[2], "1") == 0)
+                else if (eq(tokens[2], "1"))
                     _config.tx1.toneMode = atoi(tokens[3]);
                 else 
                     printf(INVALID_COMMAND);                
-            else if (strcmp(tokens[1], "txtonelevel") == 0)
-                if (strcmp(tokens[2], "0") == 0)
+            else if (eq(tokens[1], "txtonelevel"))
+                if (eq(tokens[2], "0"))
                     _config.tx0.toneLevel = atof(tokens[3]);
-                else if (strcmp(tokens[2], "1") == 0)
+                else if (eq(tokens[2], "1"))
                     _config.tx1.toneLevel = atof(tokens[3]);
                 else 
                     printf(INVALID_COMMAND);                
-            else if (strcmp(tokens[1], "txtonefreq") == 0)
-                if (strcmp(tokens[2], "0") == 0)
+            else if (eq(tokens[1], "txtonefreq"))
+                if (eq(tokens[2], "0"))
                     _config.tx0.toneFreq =  atof(tokens[3]);
-                else if (strcmp(tokens[2], "1") == 0)
+                else if (eq(tokens[2], "1"))
                     _config.tx1.toneFreq = atof(tokens[3]);
                 else 
                     printf(INVALID_COMMAND);                
-            else if (strcmp(tokens[1], "rxrepeat") == 0)
-                if (strcmp(tokens[2], "0") == 0) 
+            else if (eq(tokens[1], "rxrepeat"))
+                if (eq(tokens[2], "0")) 
                     for (unsigned i = 0; i < strlen(tokens[3]) && i < Config::maxReceivers; i++)
                         _config.txc0.rxEligible[i] = (tokens[3][i] == '1');
-                else if (strcmp(tokens[2], "1") == 0)
+                else if (eq(tokens[2], "1"))
                     for (unsigned i = 0; i < strlen(tokens[3]) && i < Config::maxReceivers; i++)
                         _config.txc1.rxEligible[i] = (tokens[3][i] == '1');
                 else 
                     printf(INVALID_COMMAND);                
-            else if (strcmp(tokens[1], "timeouttime") == 0)
-                if (strcmp(tokens[2], "0") == 0)
+            else if (eq(tokens[1], "timeouttime"))
+                if (eq(tokens[2], "0"))
                     _config.txc0.timeoutTime = atoi(tokens[3]);
-                else if (strcmp(tokens[2], "1") == 0)
+                else if (eq(tokens[2], "1"))
                     _config.txc1.timeoutTime = atoi(tokens[3]);
                 else 
                     printf(INVALID_COMMAND);                
-            else if (strcmp(tokens[1], "lockouttime") == 0)
-                if (strcmp(tokens[2], "0") == 0)
+            else if (eq(tokens[1], "lockouttime"))
+                if (eq(tokens[2], "0"))
                     _config.txc0.lockoutTime = atoi(tokens[3]);
-                else if (strcmp(tokens[2], "1") == 0)
+                else if (eq(tokens[2], "1"))
                     _config.txc1.lockoutTime = atoi(tokens[3]);
                 else 
                     printf(INVALID_COMMAND);                
-            else if (strcmp(tokens[1], "ctmode") == 0)
-                if (strcmp(tokens[2], "0") == 0)
+            else if (eq(tokens[1], "ctmode"))
+                if (eq(tokens[2], "0"))
                     _config.rx0.ctMode = atoi(tokens[3]);
-                else if (strcmp(tokens[2], "1") == 0)
+                else if (eq(tokens[2], "1"))
                     _config.rx1.ctMode = atoi(tokens[3]);
                 else 
                     printf(INVALID_COMMAND);                
-            else if (strcmp(tokens[1], "ctlevel") == 0)
-                if (strcmp(tokens[2], "0") == 0)
+            else if (eq(tokens[1], "ctlevel"))
+                if (eq(tokens[2], "0"))
                     _config.txc0.ctLevel = atof(tokens[3]);
-                else if (strcmp(tokens[2], "1") == 0)
+                else if (eq(tokens[2], "1"))
                     _config.txc1.ctLevel = atof(tokens[3]);
                 else 
                     printf(INVALID_COMMAND);                
-            else if (strcmp(tokens[1], "idlevel") == 0)
-                if (strcmp(tokens[2], "0") == 0)
+            else if (eq(tokens[1], "idlevel"))
+                if (eq(tokens[2], "0"))
                     _config.txc0.idLevel = atof(tokens[3]);
-                else if (strcmp(tokens[2], "1") == 0)
+                else if (eq(tokens[2], "1"))
                     _config.txc1.idLevel = atof(tokens[3]);
                 else 
                     printf(INVALID_COMMAND);                

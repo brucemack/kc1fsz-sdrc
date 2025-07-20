@@ -33,8 +33,11 @@ StdTx::StdTx(Clock& clock, Log& log, int id, int pttPin, AudioCore& core)
 
 void StdTx::setEnabled(bool en) {
     _enabled = en;
-    _keyed = false;
-    gpio_put(_pttPin, 0);
+    // Do an immediate shut off if needed
+    if (!_enabled) {
+        _keyed = false;
+        gpio_put(_pttPin, 0);
+    }
     if (_enabled)
         _log.info("Transmitter enabled [%d]", _id);
     else

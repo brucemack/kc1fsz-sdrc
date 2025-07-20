@@ -46,12 +46,15 @@ void Config::setFactoryDefaults(Config* cfg) {
     cfg->rx0.cosMode = 2;
     cfg->rx0.cosActiveTime = 25;
     cfg->rx0.cosInactiveTime = 50;
+    // This is in dB!
     cfg->rx0.cosLevel = -20;
     cfg->rx0.toneMode = 2;
     cfg->rx0.toneActiveTime = 25;
     cfg->rx0.toneInactiveTime = 50;
+    // This is in dB!
     cfg->rx0.toneLevel = -25;
     cfg->rx0.toneFreq = 123;
+    // This is in dB!
     cfg->rx0.gain = 0;
     cfg->rx0.ctMode = 1;
     cfg->rx0.delayTime = 0;
@@ -60,15 +63,19 @@ void Config::setFactoryDefaults(Config* cfg) {
     // Transmitter
     cfg->tx0.enabled = false;
     cfg->tx0.toneMode = 0;
-    cfg->tx0.toneFreq = 0;
+    cfg->tx0.toneFreq = 123;
+    // This is in dB!
     cfg->tx0.toneLevel = -16;
-    cfg->tx0.gain = 1.0;
+    // This is in dB!
+    cfg->tx0.gain = 0;
 
     cfg->tx1.enabled = false;
     cfg->tx1.toneMode = 1;
-    cfg->tx1.toneFreq = 123;
+    cfg->tx1.toneFreq = 88.5;
+    // This is in dB!
     cfg->tx1.toneLevel = -16;
-    cfg->tx1.gain = 1.0;
+    // This is in dB!
+    cfg->tx1.gain = 0;
 
     // Controller
     cfg->txc0.timeoutTime = 120 * 1000;
@@ -101,7 +108,7 @@ void Config::_showRx(const Config::ReceiveConfig* cfg,
 
 void Config::_showTx(const Config::TransmitConfig* cfg,
     const char* pre) {
-    printf("%s txenabled: %d\n", pre, cfg->enabled);
+    printf("%s txenable: %d\n", pre, cfg->enabled);
     printf("%s txtonemode  : %d\n", pre, cfg->toneMode);
     printf("%s txtonelevel  : %.1f\n", pre, cfg->toneLevel);
     printf("%s txtonefreq  : %.1f\n", pre, cfg->toneFreq);
@@ -131,12 +138,12 @@ void Config::show(const Config* cfg) {
     printf("   testtonefreq  : %.1f\n", cfg->general.diagFreq);
     printf("   testtonelevel : %.1f\n", cfg->general.diagLevel);
     printf("   idrequiredint : %u\n", cfg->general.idRequiredInt);
-    // Receiver configuration
+    printf("\nRadio 0\n");
     _showRx(&cfg->rx0, "R0");
-    _showRx(&cfg->rx1, "R1");
-    // Transmitter configuration
     _showTx(&cfg->tx0, "T0");
     _showTxc(&cfg->txc0, "T0");
+    printf("\nRadio 1\n");
+    _showRx(&cfg->rx1, "R1");
     _showTx(&cfg->tx1, "T1");
     _showTxc(&cfg->txc1, "T1");
 }
