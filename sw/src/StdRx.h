@@ -115,6 +115,7 @@ public:
     virtual bool isActive() const;
     virtual bool isCOS() const;
     virtual bool isCTCSS() const;
+    virtual void resetDelay() { _core.resetDelay(); }
 
     void setCosMode(CosMode mode) { 
         _cosMode = mode; 
@@ -159,6 +160,8 @@ public:
     void setCtMode(CourtesyToneGenerator::Type ctType) {
         _courtesyType = ctType;
     }
+
+    void setDelayTime(unsigned ms) { _core.setRxDelayMs(ms); }
 
 private:
 

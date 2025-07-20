@@ -54,6 +54,7 @@ void Config::setFactoryDefaults(Config* cfg) {
     cfg->rx0.toneFreq = 123;
     cfg->rx0.gain = 0;
     cfg->rx0.ctMode = 1;
+    cfg->rx0.delayTime = 0;
     cfg->rx1 = cfg->rx0;
 
     // Transmitter
@@ -74,8 +75,11 @@ void Config::setFactoryDefaults(Config* cfg) {
     cfg->txc0.idLevel = -10;
     for (unsigned i = 0; i < Config::maxReceivers; i++)
         cfg->txc0.rxEligible[i] = false;
-
+    cfg->txc0.rxEligible[0] = true;
+    cfg->txc0.rxEligible[1] = true;
     cfg->txc1 = cfg->txc0;
+    cfg->txc1.rxEligible[0] = true;
+    cfg->txc1.rxEligible[1] = true;
 }
 
 void Config::_showRx(const Config::ReceiveConfig* cfg,
@@ -91,6 +95,7 @@ void Config::_showRx(const Config::ReceiveConfig* cfg,
     printf("%s tonefreq: %.1f\n", pre, cfg->toneFreq);
     printf("%s gain: %.1f\n", pre, cfg->gain);
     printf("%s ctmode: %d\n", pre, cfg->ctMode);
+    printf("%s delaytime: %d\n", pre, cfg->delayTime);
 }
 
 void Config::_showTx(const Config::TransmitConfig* cfg,

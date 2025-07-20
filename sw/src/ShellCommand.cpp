@@ -250,6 +250,14 @@ void ShellCommand::process(const char* cmd) {
                     _config.txc1.idLevel = atof(tokens[3]);
                 else 
                     printf(INVALID_COMMAND);                
+            else if (strcmp(tokens[1], "delaytime") == 0)
+                if (strcmp(tokens[2], "0") == 0)
+                    _config.rx0.delayTime = atoi(tokens[3]);
+                else if (strcmp(tokens[2], "1") == 0)
+                    _config.rx1.delayTime = atoi(tokens[3]);
+                else 
+                    printf(INVALID_COMMAND);                
+
         else
             printf(INVALID_COMMAND);
     }

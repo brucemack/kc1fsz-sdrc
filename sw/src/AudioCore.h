@@ -108,7 +108,7 @@ public:
 
     void setCtcssEncodeLevel(float dbv) { _ctcssEncodeLevel = dbvToLinear(dbv); }
 
-    void setDelayMs(unsigned ms);
+    void setRxDelayMs(unsigned ms);
 
     void resetDelay() { _delayCountdown = _delaySamples; }
 

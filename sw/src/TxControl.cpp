@@ -251,6 +251,11 @@ void TxControl::_enterVoting() {
 void TxControl::_enterActive() {
     _setState(State::ACTIVE, 0);
     _timeoutTime = _clock.time() + _timeoutWindowMs;
+    // Reset the audio delay since we are about to start passing 
+    // audio through the system.
+    for (unsigned i = 0; i < MAX_RX_COUNT; i++)
+        if (_rx[i] != 0 && _rxSelected[i])
+            _rx[i]->resetDelay();
     // Key the transmitter
     _tx.setPtt(true);
 }

@@ -313,7 +313,7 @@ void AudioCore::setCtcssEncodeFreq(float hz) {
     _ctcssEncodeOmega = 2.0 * PI * hz / (float)FS;
 }
 
-void AudioCore::setDelayMs(unsigned ms) {
+void AudioCore::setRxDelayMs(unsigned ms) {
 
     _delaySamples = FS * ms / 1000;
 

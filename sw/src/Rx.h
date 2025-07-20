@@ -33,6 +33,13 @@ public:
      */
     virtual bool isCTCSS() const = 0;
 
+    /**
+     * @brief Used when we first start repeating audio from this receiver.
+     * Clears the audio delay line with silence so that we don't hear the 
+     * preceding static, etc.
+     */
+    virtual void resetDelay() = 0;
+
     // ----- CONFIGURATION ---------------------------------------------------
 
     enum CosMode {
@@ -97,6 +104,8 @@ public:
     virtual CourtesyToneGenerator::Type getCourtesyType() const = 0;
     
     virtual void setCtMode(CourtesyToneGenerator::Type t) = 0;
+
+    virtual void setDelayTime(unsigned ms) = 0;
 };
 
 }

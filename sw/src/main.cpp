@@ -891,6 +891,21 @@ static void render_status(const Rx& rx0, const Rx& rx1, const Tx& tx0, const Tx&
     printf("Longest ISR (ms) %u\n", longestLoop);
 }
 
+static void transferConfigRx(const Config::ReceiveConfig& config, Rx& rx) {
+    rx.setCosMode((Rx::CosMode)config.cosMode);
+    rx.setCosActiveTime(config.cosActiveTime);
+    rx.setCosInactiveTime(config.cosInactiveTime);
+    rx.setCosLevel(config.cosLevel);
+    rx.setToneMode((Rx::ToneMode)config.toneMode);
+    rx.setToneActiveTime(config.toneActiveTime);
+    rx.setToneInactiveTime(config.toneInactiveTime);
+    rx.setToneLevel(config.toneLevel);
+    rx.setToneFreq(config.toneFreq);
+    rx.setGainLinear(AudioCore::dbvToLinear(config.gain));
+    rx.setCtMode((CourtesyToneGenerator::Type)config.ctMode);
+    rx.setDelayTime(config.delayTime);
+}
+
 /**
  * @brief Transfers configuration parameters from the 
  * Config structure into the actual repeater controller.
@@ -919,29 +934,8 @@ static void transferConfig(const Config& config,
     txc1.setIdRequiredInt(config.general.idRequiredInt);
 
     // Receiver configuration
-    rx0.setCosMode((Rx::CosMode)config.rx0.cosMode);
-    rx0.setCosActiveTime(config.rx0.cosActiveTime);
-    rx0.setCosInactiveTime(config.rx0.cosInactiveTime);
-    rx0.setCosLevel(config.rx0.cosLevel);
-    rx0.setToneMode((Rx::ToneMode)config.rx0.toneMode);
-    rx0.setToneActiveTime(config.rx0.toneActiveTime);
-    rx0.setToneInactiveTime(config.rx0.toneInactiveTime);
-    rx0.setToneLevel(config.rx0.toneLevel);
-    rx0.setToneFreq(config.rx0.toneFreq);
-    rx0.setGainLinear(AudioCore::dbvToLinear(config.rx0.gain));
-    rx0.setCtMode((CourtesyToneGenerator::Type)config.rx0.ctMode);
-
-    rx1.setCosMode((Rx::CosMode)config.rx1.cosMode);
-    rx1.setCosActiveTime(config.rx1.cosActiveTime);
-    rx1.setCosInactiveTime(config.rx1.cosInactiveTime);
-    rx1.setCosLevel(config.rx1.cosLevel);
-    rx1.setToneMode((Rx::ToneMode)config.rx1.toneMode);
-    rx1.setToneActiveTime(config.rx1.toneActiveTime);
-    rx1.setToneInactiveTime(config.rx1.toneInactiveTime);
-    rx1.setToneLevel(config.rx1.toneLevel);
-    rx1.setToneFreq(config.rx1.toneFreq);
-    rx1.setGainLinear(AudioCore::dbvToLinear(config.rx1.gain));
-    rx1.setCtMode((CourtesyToneGenerator::Type)config.rx1.ctMode);
+    transferConfigRx(config.rx0, rx0);
+    transferConfigRx(config.rx1, rx1);
 
     // Transmitter configuration
     tx0.setToneMode((Tx::ToneMode)config.tx0.toneMode);
