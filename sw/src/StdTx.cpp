@@ -31,16 +31,28 @@ StdTx::StdTx(Clock& clock, Log& log, int id, int pttPin, AudioCore& core)
     _core(core) {
 }
 
+void StdTx::setEnabled(bool en) {
+    _enabled = en;
+    _keyed = false;
+    gpio_put(_pttPin, 0);
+    if (_enabled)
+        _log.info("Transmitter enabled [%d]", _id);
+    else
+        _log.info("Transmitter disabled [%d]", _id);
+}
+
 void StdTx::setPtt(bool ptt) {
-    if (ptt != _keyed)
-        if (ptt) {
-            gpio_put(_pttPin, 1);
-            _log.info("Transmitter keyed [%d]", _id);
-        } else {
-            gpio_put(_pttPin, 0);
-            _log.info("Transmitter unkeyed [%d]", _id);
-        }
-    _keyed = ptt;
+    if (_enabled) {
+        if (ptt != _keyed)
+            if (ptt) {
+                gpio_put(_pttPin, 1);
+                _log.info("Transmitter keyed [%d]", _id);
+            } else {
+                gpio_put(_pttPin, 0);
+                _log.info("Transmitter unkeyed [%d]", _id);
+            }
+        _keyed = ptt;
+    }
 }
 
 bool StdTx::getPtt() const {

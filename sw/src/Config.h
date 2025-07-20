@@ -65,6 +65,7 @@ struct Config {
     } rx0, rx1;
 
     struct TransmitConfig {
+        bool enabled;
         uint32_t toneMode;
         float toneLevel;
         float toneFreq;

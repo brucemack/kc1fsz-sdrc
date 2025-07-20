@@ -906,6 +906,13 @@ static void transferConfigRx(const Config::ReceiveConfig& config, Rx& rx) {
     rx.setDelayTime(config.delayTime);
 }
 
+static void transferConfigTx(const Config::TransmitConfig& config, Tx& tx) {
+    tx.setEnabled((bool)config.enabled);
+    tx.setToneMode((Tx::ToneMode)config.toneMode);
+    tx.setToneLevel(config.toneLevel);
+    tx.setToneFreq(config.toneFreq);
+}
+
 /**
  * @brief Transfers configuration parameters from the 
  * Config structure into the actual repeater controller.
@@ -938,13 +945,8 @@ static void transferConfig(const Config& config,
     transferConfigRx(config.rx1, rx1);
 
     // Transmitter configuration
-    tx0.setToneMode((Tx::ToneMode)config.tx0.toneMode);
-    tx0.setToneLevel(config.tx0.toneLevel);
-    tx0.setToneFreq(config.tx0.toneFreq);
-
-    tx1.setToneMode((Tx::ToneMode)config.tx1.toneMode);
-    tx1.setToneLevel(config.tx1.toneLevel);
-    tx1.setToneFreq(config.tx1.toneFreq);
+    transferConfigTx(config.tx0, tx0);
+    transferConfigTx(config.tx1, tx1);
 
     // Controller configuration
     txc0.setTimeoutTime(config.txc0.timeoutTime);

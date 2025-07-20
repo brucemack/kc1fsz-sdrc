@@ -58,10 +58,13 @@ void Config::setFactoryDefaults(Config* cfg) {
     cfg->rx1 = cfg->rx0;
 
     // Transmitter
+    cfg->tx0.enabled = false;
     cfg->tx0.toneMode = 0;
     cfg->tx0.toneFreq = 0;
     cfg->tx0.toneLevel = -16;
     cfg->tx0.gain = 1.0;
+
+    cfg->tx1.enabled = false;
     cfg->tx1.toneMode = 1;
     cfg->tx1.toneFreq = 123;
     cfg->tx1.toneLevel = -16;
@@ -78,8 +81,6 @@ void Config::setFactoryDefaults(Config* cfg) {
     cfg->txc0.rxEligible[0] = true;
     cfg->txc0.rxEligible[1] = true;
     cfg->txc1 = cfg->txc0;
-    cfg->txc1.rxEligible[0] = true;
-    cfg->txc1.rxEligible[1] = true;
 }
 
 void Config::_showRx(const Config::ReceiveConfig* cfg,
@@ -88,22 +89,23 @@ void Config::_showRx(const Config::ReceiveConfig* cfg,
     printf("%s cosactivetime: %d\n", pre, cfg->cosActiveTime);
     printf("%s cosinactivetime: %d\n", pre, cfg->cosInactiveTime);
     printf("%s coslevel: %.1f\n", pre, cfg->cosLevel);
-    printf("%s tonemode: %d\n", pre, cfg->toneMode);
-    printf("%s toneactivetime: %d\n", pre, cfg->toneActiveTime);
-    printf("%s toneinactivetime: %d\n", pre, cfg->toneInactiveTime);
-    printf("%s tonelevel: %.1f\n", pre, cfg->toneLevel);
-    printf("%s tonefreq: %.1f\n", pre, cfg->toneFreq);
-    printf("%s gain: %.1f\n", pre, cfg->gain);
+    printf("%s rxtonemode: %d\n", pre, cfg->toneMode);
+    printf("%s rxtoneactivetime: %d\n", pre, cfg->toneActiveTime);
+    printf("%s rxtoneinactivetime: %d\n", pre, cfg->toneInactiveTime);
+    printf("%s rxtonelevel: %.1f\n", pre, cfg->toneLevel);
+    printf("%s rxtonefreq: %.1f\n", pre, cfg->toneFreq);
+    printf("%s rxgain: %.1f\n", pre, cfg->gain);
     printf("%s ctmode: %d\n", pre, cfg->ctMode);
     printf("%s delaytime: %d\n", pre, cfg->delayTime);
 }
 
 void Config::_showTx(const Config::TransmitConfig* cfg,
     const char* pre) {
-    printf("%s tonemode  : %d\n", pre, cfg->toneMode);
-    printf("%s tonelevel  : %.1f\n", pre, cfg->toneLevel);
-    printf("%s tonefreq  : %.1f\n", pre, cfg->toneFreq);
-    printf("%s gain  : %.1f\n", pre, cfg->gain);
+    printf("%s txenabled: %d\n", pre, cfg->enabled);
+    printf("%s txtonemode  : %d\n", pre, cfg->toneMode);
+    printf("%s txtonelevel  : %.1f\n", pre, cfg->toneLevel);
+    printf("%s txtonefreq  : %.1f\n", pre, cfg->toneFreq);
+    printf("%s txgain  : %.1f\n", pre, cfg->gain);
 }
 
 void Config::_showTxc(const Config::ControlConfig* cfg,

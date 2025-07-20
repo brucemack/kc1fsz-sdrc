@@ -27,10 +27,13 @@ namespace kc1fsz {
 class Tx : public Runnable {
 public:
 
-    virtual void setPtt(bool ptt) = 0;
-    virtual bool getPtt() const = 0;
     virtual void run() = 0;
 
+    virtual void setEnabled(bool en) = 0;
+    virtual bool getEnabled() const;
+    virtual void setPtt(bool ptt) = 0;
+    virtual bool getPtt() const = 0;
+    
     // ----- CONFIGURATION ---------------------------------------------------
 
     enum ToneMode { NONE, SOFT };

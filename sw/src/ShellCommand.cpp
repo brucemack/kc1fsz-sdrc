@@ -185,13 +185,18 @@ void ShellCommand::process(const char* cmd) {
                     _config.rx1.gain = atof(tokens[3]);
                 else 
                     printf(INVALID_COMMAND);                
-            else if (strcmp(tokens[1], "rxrepeat") == 0)
-                if (strcmp(tokens[2], "0") == 0) 
-                    for (unsigned i = 0; i < strlen(tokens[3]) && i < Config::maxReceivers; i++)
-                        _config.txc0.rxEligible[i] = (tokens[3][i] == '1');
+            else if (strcmp(tokens[1], "delaytime") == 0)
+                if (strcmp(tokens[2], "0") == 0)
+                    _config.rx0.delayTime = atoi(tokens[3]);
                 else if (strcmp(tokens[2], "1") == 0)
-                    for (unsigned i = 0; i < strlen(tokens[3]) && i < Config::maxReceivers; i++)
-                        _config.txc1.rxEligible[i] = (tokens[3][i] == '1');
+                    _config.rx1.delayTime = atoi(tokens[3]);
+                else 
+                    printf(INVALID_COMMAND);                
+            else if (strcmp(tokens[1], "txenabled") == 0)
+                if (strcmp(tokens[2], "0") == 0)
+                    _config.tx0.enabled = atoi(tokens[3]) == 1;
+                else if (strcmp(tokens[2], "1") == 0)
+                    _config.tx1.enabled = atoi(tokens[3]) == 1;
                 else 
                     printf(INVALID_COMMAND);                
             else if (strcmp(tokens[1], "txtonemode") == 0)
@@ -213,6 +218,15 @@ void ShellCommand::process(const char* cmd) {
                     _config.tx0.toneFreq =  atof(tokens[3]);
                 else if (strcmp(tokens[2], "1") == 0)
                     _config.tx1.toneFreq = atof(tokens[3]);
+                else 
+                    printf(INVALID_COMMAND);                
+            else if (strcmp(tokens[1], "rxrepeat") == 0)
+                if (strcmp(tokens[2], "0") == 0) 
+                    for (unsigned i = 0; i < strlen(tokens[3]) && i < Config::maxReceivers; i++)
+                        _config.txc0.rxEligible[i] = (tokens[3][i] == '1');
+                else if (strcmp(tokens[2], "1") == 0)
+                    for (unsigned i = 0; i < strlen(tokens[3]) && i < Config::maxReceivers; i++)
+                        _config.txc1.rxEligible[i] = (tokens[3][i] == '1');
                 else 
                     printf(INVALID_COMMAND);                
             else if (strcmp(tokens[1], "timeouttime") == 0)
@@ -248,13 +262,6 @@ void ShellCommand::process(const char* cmd) {
                     _config.txc0.idLevel = atof(tokens[3]);
                 else if (strcmp(tokens[2], "1") == 0)
                     _config.txc1.idLevel = atof(tokens[3]);
-                else 
-                    printf(INVALID_COMMAND);                
-            else if (strcmp(tokens[1], "delaytime") == 0)
-                if (strcmp(tokens[2], "0") == 0)
-                    _config.rx0.delayTime = atoi(tokens[3]);
-                else if (strcmp(tokens[2], "1") == 0)
-                    _config.rx1.delayTime = atoi(tokens[3]);
                 else 
                     printf(INVALID_COMMAND);                
 

@@ -37,6 +37,8 @@ public:
 
     virtual void run();
 
+    virtual void setEnabled(bool en);
+    virtual bool getEnabled() const { return _enabled; }
     virtual void setPtt(bool ptt);
     virtual bool getPtt() const;
 
@@ -65,6 +67,7 @@ private:
     const int _pttPin;
     AudioCore& _core;
 
+    bool _enabled = false;
     bool _keyed = false;
 
     // Configuration
