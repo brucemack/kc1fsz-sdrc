@@ -34,12 +34,14 @@ public:
         std::function<void()> logTrigger, 
         std::function<void()> statusTrigger,
         std::function<void()> configChangedTrigger,
-        std::function<void()> idTrigger) 
+        std::function<void()> idTrigger,
+        std::function<void(int)> testTrigger) 
     :   _config(config),
         _logTrigger(logTrigger), 
         _statusTrigger(statusTrigger),
         _configChangedTrigger(configChangedTrigger),
-        _idTrigger(idTrigger) { }
+        _idTrigger(idTrigger),
+        _testTrigger(testTrigger) { }
 
     void process(const char* cmd);
 
@@ -50,6 +52,7 @@ private:
     std::function<void()> _statusTrigger;
     std::function<void()> _configChangedTrigger;
     std::function<void()> _idTrigger;
+    std::function<void(int)> _testTrigger;
 };
 
 }

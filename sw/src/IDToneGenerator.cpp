@@ -18,7 +18,6 @@
  * NOT FOR COMMERCIAL USE WITHOUT PERMISSION.
  */
 #include "IDToneGenerator.h"
-#include "Config.h"
 #include "AudioCore.h"
 
 namespace kc1fsz {

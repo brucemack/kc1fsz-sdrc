@@ -26,6 +26,7 @@ add_executable(main
   src/test/test-AudioCore.cpp
   src/AudioCore.cpp
   src/TxControl.cpp
+  src/TestToneGenerator.cpp
   #src/Config.cpp
   #src/StdRx.cpp
   radlib/util/dsp_util.cpp    
@@ -97,6 +98,7 @@ add_executable(main
   src/TxControl.cpp
   src/CourtesyToneGenerator.cpp
   src/IDToneGenerator.cpp
+  src/TestToneGenerator.cpp
   #src/VoiceGenerator.cpp
   radlib/util/dsp_util.cpp  
   kc1fsz-tools-cpp/src/Common.cpp

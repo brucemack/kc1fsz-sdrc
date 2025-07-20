@@ -113,6 +113,9 @@ void arm_fir_decimate_f32(const arm_fir_decimate_instance_f32* S,
     uint32_t blockSize
 );
 
+/**
+ * @brief NOTE: This filter has a gain of 1/L!! That may not be expected.
+ */
 void arm_fir_interpolate_f32(const arm_fir_interpolate_instance_f32* s,
     const float32_t* pSrc,
     float32_t* pDst,

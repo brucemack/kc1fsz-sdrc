@@ -28,6 +28,7 @@
 #include "AudioCore.h"
 #include "CourtesyToneGenerator.h"
 #include "IDToneGenerator.h"
+#include "TestToneGenerator.h"
 
 namespace kc1fsz {
 
@@ -51,10 +52,10 @@ public:
     void setRxEligible(unsigned i, bool enabled);
 
     void forceId() { _enterPreId(); }
+    void startTest() { _enterTest(); }
    
     void setCall(const char* callSign) { _idToneGenerator.setCall(callSign); }
     void setPass(const char* pass) {  }
-    //void setRepeatMode(RepeatMode mode) { _repeatMode = mode; }
     void setTimeoutTime(uint32_t ms) { _timeoutWindowMs = ms; }
     void setLockoutTime(uint32_t ms) { _lockoutWindowMs = ms; }
     void setHangTime(uint32_t ms) { _hangWindowMs = ms; }
@@ -65,7 +66,8 @@ public:
 
 private:
 
-    enum State { INIT, IDLE, VOTING, ACTIVE, PRE_ID, ID, POST_ID, ID_URGENT, PRE_COURTESY, COURTESY, HANG, LOCKOUT };
+    enum State { INIT, IDLE, VOTING, ACTIVE, PRE_ID, ID, POST_ID, 
+        ID_URGENT, PRE_COURTESY, COURTESY, HANG, LOCKOUT, TEST };
 
     void _setState(State state, uint32_t timeoutWindowMs = 0);
     bool _isStateTimedOut() const;
@@ -88,6 +90,7 @@ private:
     void _enterCourtesy();
     void _enterHang();
     void _enterLockout();
+    void _enterTest();
 
     Clock& _clock;
     Log& _log;
@@ -124,6 +127,7 @@ private:
 
     CourtesyToneGenerator _courtesyToneGenerator;
     IDToneGenerator _idToneGenerator;
+    TestToneGenerator _testToneGenerator;
 
     uint32_t _lastIdleStartTime = 0;
     uint32_t _timeoutTime = 0;

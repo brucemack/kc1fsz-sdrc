@@ -1087,7 +1087,14 @@ int main(int argc, const char** argv) {
         // ID trigger
         [&txCtl0, &txCtl1, &log]() {
             txCtl0.forceId();
-            //txCtl1.forceId();        
+            txCtl1.forceId();        
+        }
+        // Test trigger
+        [&txCtl0, &txCtl1, &log](int r) {
+            if (r == 0)
+                txCtl0.startTest();
+            else if (r == 1)
+                txCtl1.startTest();
         }
         );
 

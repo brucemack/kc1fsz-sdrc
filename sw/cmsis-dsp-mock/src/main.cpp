@@ -166,10 +166,8 @@ void arm_fir_interpolate_f32(const arm_fir_interpolate_instance_f32* s,
             //assert( j < numTaps);
             a += dataHistory[i] * s->pCoeffs[j];
         }
-        // WE NEED TO SCALE UP EACH OUTPUT BECAUSE WE ARE ONLY USING 1/s->L OF 
-        // THE SAMPLES.
         //assert(k < blockSize * s->L);
-        pDst[k] = a * (float)s->L;
+        pDst[k] = a;
         // Advance on the data history and filter coefficient starting point.
         if (phaseStart == 0) {
             // At the completion of phase 0 we shift to the next input sample

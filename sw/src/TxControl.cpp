@@ -30,6 +30,7 @@ TxControl::TxControl(Clock& clock, Log& log, Tx& tx, AudioCore& core)
     _tx(tx),
     _courtesyToneGenerator(log, clock, core),
     _idToneGenerator(log, clock, core),
+    _testToneGenerator(log, clock, core),
     _audioCore(core)
 {
 }
@@ -228,6 +229,16 @@ void TxControl::run() {
             _enterPreId();
         }
     }
+    else if (_state == State::TEST) {
+        // Look for timeout
+        if (_clock.isPast(_timeoutTime)) {
+            _log.info("Timeout detected, lockout start");
+            _enterLockout();
+        } 
+        else if (_testToneGenerator.isFinished()) {
+            _enterIdle();
+        }
+    }
 }
 
 bool TxControl::_anyRxActivityAmongstEligible() const {
@@ -246,6 +257,13 @@ void TxControl::_enterIdle() {
 
 void TxControl::_enterVoting() {
     _setState(State::VOTING, _votingWindowMs);
+}
+
+void TxControl::_enterTest() {
+    _tx.setPtt(true);
+    _testToneGenerator.start();
+    _timeoutTime = _clock.time() + _timeoutWindowMs;
+    _setState(State::TEST, 0);
 }
 
 void TxControl::_enterActive() {

@@ -57,7 +57,7 @@ int main(int argc, const char** argv) {
     core0.setCtcssEncodeFreq(123);
     core0.setCtcssEncodeLevel(-26);
     core0.setCtcssEncodeEnabled(true);
-    core0.setDelayMs(100);
+    core0.setRxDelayMs(100);
     core0.setToneEnabled(false);
     core0.setToneFreq(1000);
     core0.setToneLevel(-10);

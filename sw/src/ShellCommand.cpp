@@ -89,7 +89,11 @@ void ShellCommand::process(const char* cmd) {
             printf(INVALID_COMMAND);
     }
     else if (tokenCount == 2) {
-        printf(INVALID_COMMAND);
+        if (eq(tokens[0], "test")) {
+            _testTrigger(atoi(tokens[1]));
+        }
+        else 
+            printf(INVALID_COMMAND);
     }
     else if (tokenCount == 3) {
         if (eq(tokens[0], "set")) {
