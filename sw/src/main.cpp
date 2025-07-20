@@ -913,6 +913,17 @@ static void transferConfigTx(const Config::TransmitConfig& config, Tx& tx) {
     tx.setToneFreq(config.toneFreq);
 }
 
+static void transferControlConfig(const Config::ControlConfig& config, TxControl& txc) {
+    txc.setTimeoutTime(config.timeoutTime);
+    txc.setLockoutTime(config.lockoutTime);
+    txc.setHangTime(config.hangTime);
+    txc.setCtLevel(config.ctLevel);
+    txc.setIdMode(config.idMode);
+    txc.setIdLevel(config.idLevel);
+    for (unsigned i = 0; i < Config::maxReceivers; i++)
+        txc.setRxEligible(i, config.rxEligible[i]);
+}
+
 /**
  * @brief Transfers configuration parameters from the 
  * Config structure into the actual repeater controller.
@@ -947,21 +958,8 @@ static void transferConfig(const Config& config,
     transferConfigTx(config.tx1, tx1);
 
     // Controller configuration
-    txc0.setTimeoutTime(config.txc0.timeoutTime);
-    txc0.setLockoutTime(config.txc0.lockoutTime);
-    txc0.setHangTime(config.txc0.hangTime);
-    txc0.setCtLevel(config.txc0.ctLevel);
-    txc0.setIdLevel(config.txc0.idLevel);
-    for (unsigned i = 0; i < Config::maxReceivers; i++)
-        txc0.setRxEligible(i, config.txc0.rxEligible[i]);
-
-    txc1.setTimeoutTime(config.txc1.timeoutTime);
-    txc1.setLockoutTime(config.txc1.lockoutTime);
-    txc1.setHangTime(config.txc1.hangTime);
-    txc1.setCtLevel(config.txc1.ctLevel);
-    txc1.setIdLevel(config.txc1.idLevel);
-    for (unsigned i = 0; i < Config::maxReceivers; i++)
-        txc1.setRxEligible(i, config.txc1.rxEligible[i]);
+    transferControlConfig(config.txc0, txc0);
+    transferControlConfig(config.txc1, txc1);
 }
 
 int main(int argc, const char** argv) {
@@ -1105,6 +1103,8 @@ int main(int argc, const char** argv) {
 
     // ===== Main Event Loop =================================================
 
+    printf("\033[?25h");
+
     while (true) { 
 
         watchdog_update();
@@ -1113,7 +1113,7 @@ int main(int argc, const char** argv) {
         bool flash = flashTimer.poll();
 
         if (uiMode == UIMode::UIMODE_LOG) {
-            if (c == 's') {
+            if (c == 27) {
                 uiMode = UIMode::UIMODE_SHELL;
                 log.setEnabled(false);
                 shell.reset();

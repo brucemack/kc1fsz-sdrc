@@ -285,10 +285,17 @@ void TxControl::_enterPreId() {
 }
 
 void TxControl::_enterId() {
-    _tx.setPtt(true);
-    _idToneGenerator.start();
+ 
     _lastIdTime = _clock.time();
-    _setState(State::ID, 0);
+
+    if (_idMode == 0) {
+        _enterIdle();
+    }
+    else if (_idMode == 1) {
+        _tx.setPtt(true);
+        _idToneGenerator.start();
+        _setState(State::ID, 0);
+    }
 }
 
 void TxControl::_enterPostId() {

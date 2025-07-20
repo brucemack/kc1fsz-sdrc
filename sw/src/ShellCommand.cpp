@@ -263,6 +263,13 @@ void ShellCommand::process(const char* cmd) {
                     _config.txc1.ctLevel = atof(tokens[3]);
                 else 
                     printf(INVALID_COMMAND);                
+            else if (eq(tokens[1], "idmode"))
+                if (eq(tokens[2], "0"))
+                    _config.txc0.idMode = atoi(tokens[3]);
+                else if (eq(tokens[2], "1"))
+                    _config.txc1.idMode = atoi(tokens[3]);
+                else 
+                    printf(INVALID_COMMAND);                
             else if (eq(tokens[1], "idlevel"))
                 if (eq(tokens[2], "0"))
                     _config.txc0.idLevel = atof(tokens[3]);

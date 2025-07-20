@@ -50,7 +50,7 @@ private:
 
     static const unsigned _maxCallSignLen = 16;
     char _callSign[_maxCallSignLen];
-    float _level;
+    float _level = -10;
     
     bool _running = false;
     uint32_t _endTime = 0;

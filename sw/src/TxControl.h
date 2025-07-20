@@ -61,6 +61,7 @@ public:
     void setHangTime(uint32_t ms) { _hangWindowMs = ms; }
     void setCtMode(CourtesyToneGenerator::Type mode) { _courtesyToneGenerator.setType(mode); }
     void setCtLevel(float db) { _courtesyToneGenerator.setLevel(db); }
+    void setIdMode(int mode) { _idMode = mode; }
     void setIdLevel(float db) { _idToneGenerator.setLevel(db); } 
     void setIdRequiredInt(uint32_t sec) { _idRequiredIntSec = sec; }
     void setDiagToneFreq(float hz) { _testToneGenerator.setFreq(hz); }
@@ -141,7 +142,6 @@ private:
 
     // ----- Configurations 
 
-    //RepeatMode _repeatMode = RepeatMode::MODE_INDEPENDENT;
     // Disabled for now
     uint32_t _votingWindowMs = 25;
     // How long between the end of transmission and the courtesy tone
@@ -163,6 +163,8 @@ private:
     uint32_t _idRequiredIntSec = 60 * 10; 
     // Length of the grace period before we raise an urgent ID
     uint32_t _idGraceWindowMs = 1000 * 15;
+    // ID mode
+    int _idMode = 1;
 };
 
 }

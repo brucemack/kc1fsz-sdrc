@@ -81,6 +81,7 @@ void Config::setFactoryDefaults(Config* cfg) {
     cfg->txc0.lockoutTime = 60 * 1000;
     cfg->txc0.hangTime = 1500;
     cfg->txc0.ctLevel = -10;
+    cfg->txc0.idMode = 1;
     cfg->txc0.idLevel = -10;
     for (unsigned i = 0; i < Config::maxReceivers; i++)
         cfg->txc0.rxEligible[i] = false;
@@ -120,7 +121,8 @@ void Config::_showTxc(const Config::ControlConfig* cfg,
     printf("%s lockouttime  : %d\n", pre, cfg->lockoutTime);
     printf("%s hangtime  : %d\n", pre, cfg->hangTime);
     printf("%s ctlevel  : %.1f\n", pre, cfg->ctLevel);
-    printf("%s idlevel  : %.1f\n", pre, cfg->idLevel);
+    printf("%s idmode: %d\n", pre, cfg->idMode);
+    printf("%s idlevel: %.1f\n", pre, cfg->idLevel);
     printf("%s rxrepeat : ", pre);
     for (unsigned i = 0; i < Config::maxReceivers; i++)
         if (cfg->rxEligible[i]) 
