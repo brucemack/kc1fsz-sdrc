@@ -214,4 +214,16 @@ void arm_float_to_q31(const float32_t* pSrc, q31_t* pDst, uint32_t blockSize) {
         pDst[i] = pSrc[i] * 2147483648.0;
 }
 
-
+void arm_absmax_f32(const float32_t* pSrc, uint32_t	blockSize, float32_t* pResult,
+    uint32_t* pIndex) {
+    uint32_t ix = 0;
+    float32_t max = 0;
+    for (unsigned i = 0; i < blockSize; i++) {
+        if (fabs(pSrc[i]) > max) {
+            max = fabs(pSrc[i]);
+            ix = i;
+        }
+    }
+    *pResult = max;
+    *pIndex = ix;
+}

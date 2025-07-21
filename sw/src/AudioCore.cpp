@@ -176,8 +176,20 @@ void AudioCore::cycleRx(const int32_t* codec_in, float* cross_out) {
     // Compute noise RMS
     arm_rms_f32(filtOutB, BLOCK_SIZE_ADC, &_noiseRms);
 
-    // Compute the signal RMS
+    // Compute the signal RMS/peak
     arm_rms_f32(filtOutD, BLOCK_SIZE, &_signalRms);
+    uint32_t signalPeakIndex;
+    arm_absmax_f32(filtOutD, BLOCK_SIZE, &_signalPeak, &signalPeakIndex);
+
+    // RMS smoothing function
+    float c = (_signalRms > _signalRmsAvg) ? 
+        _signalRmsAvgAttackCoeff : _signalRmsAvgDecayCoeff;
+    _signalRmsAvg += c * (_signalRms - _signalRmsAvg);
+
+    // Peak smoothing function
+    c = (_signalPeak > _signalPeakAvg) ? 
+        _signalPeakAvgAttackCoeff : _signalPeakAvgDecayCoeff;
+    _signalPeakAvg += c * (_signalPeak - _signalPeakAvg);
 }
 
 /**
@@ -262,6 +274,18 @@ void AudioCore::cycleTx(const float** cross_ins, int32_t* codec_out) {
 
     // Compute output RMS
     arm_rms_f32(final_out, BLOCK_SIZE_ADC, &_outRms);
+    uint32_t outPeakIndex;
+    arm_absmax_f32(final_out, BLOCK_SIZE_ADC, &_outPeak, &outPeakIndex);
+
+    // RMS smoothing function
+    float c = (_outRms > _outRmsAvg) ? 
+        _outRmsAvgAttackCoeff : _outRmsAvgDecayCoeff;
+    _outRmsAvg += c * (_outRms - _outRmsAvg);
+
+    // Peak smoothing function
+    c = (_outPeak > _outPeakAvg) ? 
+        _outPeakAvgAttackCoeff : _outPeakAvgDecayCoeff;
+    _outPeakAvg += c * (_outPeak - _outPeakAvg);
 
     // Convert back to fixed point
     arm_float_to_q31(final_out, codec_out, BLOCK_SIZE_ADC);

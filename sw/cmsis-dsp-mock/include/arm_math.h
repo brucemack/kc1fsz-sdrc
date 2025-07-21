@@ -133,4 +133,7 @@ float32_t arm_sin_f32(float32_t a);
 void arm_q31_to_float(const q31_t* pSrc, float32_t* pDst, uint32_t blockSize);
 void arm_float_to_q31(const float32_t* pSrc, q31_t* pDst, uint32_t blockSize);
 
+void arm_absmax_f32(const float32_t* pSrc, uint32_t	blockSize, float32_t* pResult,
+    uint32_t* pIndex);	
+
 #endif

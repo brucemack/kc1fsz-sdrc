@@ -25,8 +25,8 @@ if (HOST)
 add_executable(main
   src/test/test-AudioCore.cpp
   src/AudioCore.cpp
-  src/TxControl.cpp
-  src/TestToneGenerator.cpp
+  #src/TxControl.cpp
+  #src/TestToneGenerator.cpp
   #src/Config.cpp
   #src/StdRx.cpp
   radlib/util/dsp_util.cpp    

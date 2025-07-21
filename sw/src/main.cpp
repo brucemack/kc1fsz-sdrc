@@ -147,15 +147,15 @@ static volatile bool dac_buffer_ping_open = false;
 // HISTORY BUFFERS
 // ===========================================================================
 //
-static float in_history_r0[128];
-static float in_history_r1[128];
-static WindowAverage in_rms_r0(7, in_history_r0);
-static WindowAverage in_rms_r1(7, in_history_r1);
+//static float in_history_r0[128];
+//static float in_history_r1[128];
+//static WindowAverage in_rms_r0(7, in_history_r0);
+//static WindowAverage in_rms_r1(7, in_history_r1);
 
-static float out_history_r0[128];
-static float out_history_r1[128];
-static WindowAverage out_rms_r0(7, out_history_r0);
-static WindowAverage out_rms_r1(7, out_history_r1);
+//static float out_history_r0[128];
+//static float out_history_r1[128];
+//static WindowAverage out_rms_r0(7, out_history_r0);
+//static WindowAverage out_rms_r1(7, out_history_r1);
 
 // ===========================================================================
 // RUNTIME OBJECTS
@@ -301,10 +301,10 @@ static void process_in_frame() {
     }
 
     // Capture RMS history
-    in_rms_r0.captureSample(core0.getSignalRms());
-    in_rms_r1.captureSample(core1.getSignalRms());
-    out_rms_r0.captureSample(core0.getOutRms());
-    out_rms_r1.captureSample(core1.getOutRms());
+    //in_rms_r0.captureSample(core0.getSignalRms());
+    //in_rms_r1.captureSample(core1.getSignalRms());
+    //out_rms_r0.captureSample(core0.getOutRms());
+    //out_rms_r1.captureSample(core1.getOutRms());
 
     uint32_t t = perfTimer0.elapsedUs();
     if (t > longestLoop)
@@ -816,14 +816,18 @@ static void render_status(const Rx& rx0, const Rx& rx1, const Tx& tx0, const Tx&
     printf("\n");
     printf("\033[0m");
 
-    int rx_rms_r0_db = AudioCore::vrmsToDbv(in_rms_r0.getAvg());
-    int rx_peak_r0_db = AudioCore::vrmsToDbv(in_rms_r0.getMax());
+    //int rx_rms_r0_db = AudioCore::vrmsToDbv(in_rms_r0.getAvg());
+    //int rx_peak_r0_db = AudioCore::vrmsToDbv(in_rms_r0.getMax());
+    int rx_rms_r0_db = core0.getSignalRms2();
+    int rx_peak_r0_db = core0.getSignalPeak2();
     printf("RX0 LVL  : ");
     print_bar(rx_rms_r0_db, rx_peak_r0_db);
     printf("\n");
 
-    int tx_rms_r0_db = AudioCore::vrmsToDbv(out_rms_r0.getAvg());
-    int tx_peak_r0_db = AudioCore::vrmsToDbv(out_rms_r0.getMax());
+    //int tx_rms_r0_db = AudioCore::vrmsToDbv(out_rms_r0.getAvg());
+    //int tx_peak_r0_db = AudioCore::vrmsToDbv(out_rms_r0.getMax());
+    int tx_rms_r0_db = core0.getOutRms2();
+    int tx_peak_r0_db = core0.getOutPeak2();
     printf("TX0 LVL  : ");
     print_bar(tx_rms_r0_db, tx_peak_r0_db);
     printf("\n");
@@ -871,14 +875,18 @@ static void render_status(const Rx& rx0, const Rx& rx1, const Tx& tx0, const Tx&
     printf("\n");
     printf("\033[0m");
 
-    int rx_rms_r1_db = AudioCore::vrmsToDbv(in_rms_r1.getAvg());
-    int rx_peak_r1_db = AudioCore::vrmsToDbv(in_rms_r1.getMax());
+    //int rx_rms_r1_db = AudioCore::vrmsToDbv(in_rms_r1.getAvg());
+    //int rx_peak_r1_db = AudioCore::vrmsToDbv(in_rms_r1.getMax());
+    int rx_rms_r1_db = core1.getSignalRms2();
+    int rx_peak_r1_db = core1.getSignalRms2();
     printf("RX1 LVL  : ");
     print_bar(rx_rms_r1_db, rx_peak_r1_db);
     printf("\n");
 
-    int tx_rms_r1_db = AudioCore::vrmsToDbv(out_rms_r1.getAvg());
-    int tx_peak_r1_db = AudioCore::vrmsToDbv(out_rms_r1.getMax());
+    //int tx_rms_r1_db = AudioCore::vrmsToDbv(out_rms_r1.getAvg());
+    //int tx_peak_r1_db = AudioCore::vrmsToDbv(out_rms_r1.getMax());
+    int tx_rms_r1_db = core1.getOutRms2();
+    int tx_peak_r1_db = core1.getOutPeak2();
     printf("TX1 LVL  : ");
     print_bar(tx_rms_r1_db, tx_peak_r1_db);
     printf("\n");

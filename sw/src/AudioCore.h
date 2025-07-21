@@ -60,17 +60,22 @@ public:
     void cycleTx(const float** cross_ins, int32_t* codec_out);
 
     /**
-     * The "signal" is basically all power below 4kHz, includes the sub-audible 
-     * CTCSS tones.
-     * @returns Signal voltage in Vrms, assuming full-scale is 1.0. Note
-     */
-    float getSignalRms() const { return _signalRms; }
-
-    /**
      * The "noise" is basically all power above ~5kHz.
      * @returns Signal voltage in Vrms, assuming full-scale is 1.0. Note
      */
     float getNoiseRms() const { return _noiseRms; }
+
+    /**
+     * The "signal" is basically all power below 4kHz, includes the sub-audible 
+     * CTCSS tones.
+     *
+     * @returns Signal voltage in Vrms, assuming full-scale is 1.0. Note
+     */
+    float getSignalRms() const { return _signalRms; }
+    float getSignalPeak() const { return _signalPeak; }    
+
+    float getSignalRms2() const { return _signalRmsAvg; }
+    float getSignalPeak2() const { return _signalPeakAvg; }
 
     /**
      * Voltage of all audio being routed to the transmitter, inclusive of 
@@ -78,7 +83,11 @@ public:
      *
      * @returns Signal voltage in Vrms, assuming full-scale is 1.0. Note
      */
-    float getOutRms() const { return _outRms; }
+    float getOutRms() const { return _outRms; }    
+    float getOutPeak() const { return _outPeak; }    
+
+    float getOutRms2() const { return _outRmsAvg; }
+    float getOutPeak2() const { return _outPeakAvg; }
 
     /**
      * @brief The received audio is multiplied by this value.
@@ -176,7 +185,25 @@ private:
     // For capturing various measures of energy on each block
     float _noiseRms;
     float _signalRms;
+    float _signalPeak;
     float _outRms;
+    float _outPeak;
+
+    float _signalRmsAvgAttackCoeff = 0.12;
+    float _signalRmsAvgDecayCoeff = 0.12;
+    float _signalRmsAvg = 0;    
+
+    float _signalPeakAvgAttackCoeff = 0.50;
+    float _signalPeakAvgDecayCoeff = 0.12;
+    float _signalPeakAvg = 0;
+
+    float _outRmsAvgAttackCoeff = 0.12;
+    float _outRmsAvgDecayCoeff = 0.12;
+    float _outRmsAvg = 0;    
+
+    float _outPeakAvgAttackCoeff = 0.50;
+    float _outPeakAvgDecayCoeff = 0.12;
+    float _outPeakAvg = 0;
 
     float _rxGain = 1.0;
     bool _hpfEnabled = true;
