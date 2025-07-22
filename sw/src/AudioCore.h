@@ -115,7 +115,7 @@ public:
 
     void setCtcssEncodeFreq(float hz);
 
-    void setCtcssEncodeLevel(float dbv) { _ctcssEncodeLevel = dbvToLinear(dbv); }
+    void setCtcssEncodeLevel(float dbv) { _ctcssEncodeLevel = dbvToPeak(dbv); }
 
     void setRxDelayMs(unsigned ms);
 
@@ -125,7 +125,7 @@ public:
     
     void setToneEnabled(bool b);
     void setToneFreq(float hz);
-    void setToneLevel(float dbv) { _toneLevel = dbvToLinear(dbv); }
+    void setToneLevel(float dbv) { _toneLevel = dbvToPeak(dbv); }
     void setToneTransitionTime(unsigned ms) { _toneTransitionMs = ms; }
 
     static float db(float l) {
@@ -134,12 +134,27 @@ public:
         return 20.0 * log10(l);
     }
 
+    /**
+     * Example for sanity: (0.3535 Vrms / 0.707) is 0.5 Vp. 
+     * 0.5 Vp * 2.0 is 1.0 Vpp. 20 * log10(1.0) is 0 dBv.
+     */
     static float vrmsToDbv(float vrms) {
+        float vpp = (vrms / 0.707) * 2.0;
         // Standard conversion from Vrms to Vpp
-        return db(vrms * 1.4);
+        return db(vpp);
     }
 
-    static float dbvToLinear(float dbv) {
+    /**
+     * Example for sanity: 0dBv is 0.5 Vp.
+     */
+    static float dbvToPeak(float dbv) {
+        return pow(10, (dbv / 20)) * 0.5;
+    }
+
+    /**
+     * Example for sanity: 0dB is 1.0
+     */
+    static float dbToLinear(float dbv) {
         return pow(10, (dbv / 20));
     }
 
@@ -234,7 +249,7 @@ private:
     // Used for synthesis of tone 
     // This is a fixed level that can be used to set the overall
     // (i.e. after transition) level of the tone
-    float _toneLevel =  dbvToLinear(-10);
+    float _toneLevel =  dbvToPeak(-10);
     float _toneOmega = 0;
     float _tonePhi = 0;
     // Tones turn on/off transitions are smoothed to minimize clicks.
@@ -247,6 +262,14 @@ private:
     float _toneTransitionLimit = 0;
     // Controls how long the transition should last.
     unsigned _toneTransitionMs = 20;
+
+    // Input injection feature for testing
+    bool _injectEnabled = true;
+    float _injectHz = 800;
+    float _injectLevel =  dbvToPeak(-10);
+    // Injection runs at CODEC speed
+    float _injectOmega = 2.0 * PI * _injectHz / (float)FS_ADC;
+    float _injectPhi = 0;
 };
 
 }

@@ -110,7 +110,21 @@ void AudioCore::cycleRx(const int32_t* codec_in, float* cross_out) {
 
     // Convert fixed-point to floating point
     float adc_in[BLOCK_SIZE_ADC];
-    arm_q31_to_float(codec_in, adc_in, BLOCK_SIZE_ADC);
+
+    if (!_injectEnabled) {
+        // Convert fixed-point to floating point
+        arm_q31_to_float(codec_in, adc_in, BLOCK_SIZE_ADC);
+    } else {
+        // This is a special feature that allows a signal to be 
+        // injected into the input of the core.
+        for (unsigned i = 0; i < BLOCK_SIZE_ADC; i++) {
+            adc_in[i] = _injectLevel * arm_cos_f32(_injectPhi);
+            _injectPhi += _injectOmega;
+        }
+        // We do this to avoid phi growing very large and 
+        // creating overflow/precision problems.
+        _injectPhi = fmod(_injectPhi, 2.0 * PI);
+    }
 
     // Apply HPF to 32kHz samples to isolate noise energy
     float filtOutB[BLOCK_SIZE_ADC];
@@ -256,6 +270,8 @@ void AudioCore::cycleTx(const float** cross_ins, int32_t* codec_out) {
         // Normal audio channels get whatever is left over after the 
         // CTCSS and tone levels are determined.
         float audioLevel = 1.0 - toneLevel - ctcssLevel;
+        //float audioLevel = 0.0;
+
         for (unsigned k = 0; k < _crossCount; k++)
             toneAndAudio += audioLevel * cross_ins[k][i] * _crossGains[k];
 
