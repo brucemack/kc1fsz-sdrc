@@ -25,10 +25,12 @@ if (HOST)
 add_executable(main
   src/test/test-AudioCore.cpp
   src/AudioCore.cpp
+  src/DTMFDetector2.cpp
   #src/TxControl.cpp
   #src/TestToneGenerator.cpp
   #src/Config.cpp
   #src/StdRx.cpp
+  gsm-0610-codec/src/fixed_math.cpp
   radlib/util/dsp_util.cpp    
   cmsis-dsp-mock/src/main.cpp
 )
