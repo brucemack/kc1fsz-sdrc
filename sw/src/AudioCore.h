@@ -144,7 +144,7 @@ public:
     void setAgcEnabled(bool e) { _agcEnabled = e; }
     void setAgcTargetDbv(float dbv) { _agcTargetRms = dbvToVrms(dbv); }
     float getAgcGain () const { return _agcGain; }
-    
+
     static float db(float l) {
         if (l < 0.001)
             return -99.0;

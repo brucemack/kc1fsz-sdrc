@@ -70,6 +70,8 @@ int main(int argc, const char** argv) {
     core1.setCrossGainLinear(0, 0.5);
     core1.setCrossGainLinear(1, 0.5);
 
+    float  plDecodeLevel = -50;
+
     // TEMP
     //core0.setDiagToneFreq(2000);
     //core0.setDiagToneLevel(-3);
@@ -107,6 +109,24 @@ int main(int argc, const char** argv) {
         //make_real_tone_q31(test_in_0, test_in_max, AudioCore::FS_ADC, ft, 0.98); 
         //loadFromFile("../tests/clip-3.txt", test_in_0, test_in_max);
 
+        // Modulate amplitude
+        {
+            float target_a = AudioCore::dbToLinear(0);
+            float a = target_a;
+            float c = 0.01;
+
+            for (unsigned i = 0; i < test_in_max; i++) {
+                // Change gain?
+                //if (i == test_in_max / 4)
+                //    target_a *= AudioCore::dbToLinear(-6);
+                if (i == (test_in_max / 2) - 100)
+                    target_a *= AudioCore::dbToLinear(-10);
+                // Smoothly transition gain 
+                a += (target_a - a) * c;
+                test_in_0[i] = (int)(a * (float)test_in_0[i]);
+            }
+        }
+
         // Two parts with different volumes, phase continuous
         {
             float omega = 2.0 * PI * ft / (float)AudioCore::FS_ADC;
@@ -127,9 +147,6 @@ int main(int argc, const char** argv) {
                 phi = fmod(phi, 2.0 * PI);
             }
         }
-
-        //make_real_tone_q31(test_in_0, test_in_max / 2, AudioCore::FS_ADC, ft, AudioCore::dbToLinear(-6)); 
-        //make_real_tone_q31(&(test_in_0[test_in_max / 2]), test_in_max / 2, AudioCore::FS_ADC, ft, AudioCore::dbToLinear(-16)); 
 
         int32_t* adc_in_0 = test_in_0;
         int32_t* adc_in_1 = test_in_1;
@@ -171,7 +188,7 @@ int main(int argc, const char** argv) {
             last_o_0 = o_0;
    
             // Calculate the noise squelch with hysteresis
-            bool threshold = snr > 10 && pl_0 > -31;
+            bool threshold = snr > 10 && pl_0 > plDecodeLevel;
 
             char state;
             if (squelchState == SquelchState::CLOSED)
@@ -181,6 +198,7 @@ int main(int argc, const char** argv) {
 
             cout << block << " " << snr << " " << state << " " << pl_0 << " " << o_0 << endl;
             //cout << block << " " << s_0 << " " << n_0 << " " << pl_0 << endl;
+            cout << AudioCore::db(core0.getAgcGain()) << endl;
 
             if (squelchState == SquelchState::CLOSED) {
                 // Look for unsquelch
