@@ -217,16 +217,15 @@ void AudioCore::cycleRx(const int32_t* codec_in, float* cross_out) {
 
     // AGC control loop
     float agcGainNeeded = 1.0;
-    if (_agcEnabled && _signalRmsAvgMoving != 0) {
+    // TODO: SETUP A MINIMUM RMS
+    if (_agcEnabled && _signalRmsAvgMoving > 0.001) {
         agcGainNeeded = _agcTargetRms / _signalRmsAvgMoving;
         // Keep inside of the range
         if (agcGainNeeded > _agcMaxGain) {
             agcGainNeeded = _agcMaxGain;
-            printf("AGC limit up\n");
         }
         else if (agcGainNeeded < _agcMinGain) {
             agcGainNeeded = _agcMinGain;
-            printf("AGC limit down\n");
         }
     }
 
