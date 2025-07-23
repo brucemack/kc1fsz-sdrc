@@ -42,15 +42,15 @@ void Config::setFactoryDefaults(Config* cfg) {
     cfg->general.idRequiredInt = 10 * 60;
 
     // Receiver
-    cfg->rx0.cosMode = 0;
+    cfg->rx0.cosMode = 3;
     cfg->rx0.cosActiveTime = 25;
-    cfg->rx0.cosInactiveTime = 50;
+    cfg->rx0.cosInactiveTime = 250;
     // This is in dB!
-    cfg->rx0.cosLevel = -20;
+    cfg->rx0.cosLevel = -40;
     // Soft
-    cfg->rx0.toneMode = 3;
-    cfg->rx0.toneActiveTime = 25;
-    cfg->rx0.toneInactiveTime = 100;
+    cfg->rx0.toneMode = 0;
+    cfg->rx0.toneActiveTime = 50;
+    cfg->rx0.toneInactiveTime = 150;
     // This is in dB!
     cfg->rx0.toneLevel = -60;
     cfg->rx0.toneFreq = 123;
@@ -62,20 +62,23 @@ void Config::setFactoryDefaults(Config* cfg) {
     cfg->rx0.agcLevel = -10;
     cfg->rx1 = cfg->rx0;
 
+    cfg->rx0.cosMode = 0;
+    cfg->rx0.toneMode = 3;
+
     // Transmitter
     cfg->tx0.enabled = false;
     cfg->tx0.toneMode = 0;
-    cfg->tx0.toneFreq = 123;
     // This is in dB!
     cfg->tx0.toneLevel = -16;
+    cfg->tx0.toneFreq = 123;
     // This is in dB!
     cfg->tx0.gain = 0;
 
     cfg->tx1.enabled = false;
     cfg->tx1.toneMode = 0;
-    cfg->tx1.toneFreq = 88.5;
     // This is in dB!
     cfg->tx1.toneLevel = -16;
+    cfg->tx1.toneFreq = 88.5;
     // This is in dB!
     cfg->tx1.gain = 0;
 
@@ -93,6 +96,7 @@ void Config::setFactoryDefaults(Config* cfg) {
     cfg->txc1 = cfg->txc0;
 
     // Cross-band setup
+    cfg->txc0.idMode = 1;
     cfg->txc0.rxEligible[0] = false;
     cfg->txc1.rxEligible[1] = false;
 }
