@@ -156,7 +156,7 @@ void ShellCommand::process(const char* cmd) {
                     _config.rx1.toneMode = atoi(tokens[3]);
                 else 
                     printf(INVALID_COMMAND);                
-            else if (eq(tokens[1], "rxtonectivetime"))
+            else if (eq(tokens[1], "rxtoneactivetime"))
                 if (eq(tokens[2], "0"))
                     _config.rx0.toneActiveTime = atoi(tokens[3]);
                 else if (eq(tokens[2], "1"))

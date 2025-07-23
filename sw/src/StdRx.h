@@ -89,7 +89,7 @@ public:
                 snr = std::numeric_limits<float>::max();
             else
                 snr = AudioCore::db(_core.getSignalRms() / noiseRms);
-            return snr > 10 && _core.getCtcssDecodeRms() > _thresholdRms;
+            return snr > _thresholdSnr && _core.getCtcssDecodeRms() > _thresholdRms;
         }
     }
 
@@ -102,6 +102,7 @@ private:
     AudioCore& _core;
     bool _useHw = true;
     float _thresholdRms = 0.1;
+    float _thresholdSnr = 10;
 };
 
 class StdRx : public Rx {
@@ -128,10 +129,10 @@ public:
 
     void setCosInactiveTime(unsigned ms) { _cosDebouncer.setInactiveTime(ms); }
 
-    void setCosLevel(float db) { 
+    void setCosLevel(float dbfs) { 
         // Send the level down to the COSValue object that actually
         // performs the comparison.
-        _cosValue.setThresholdRms(pow(10, (db / 20)));
+        _cosValue.setThresholdRms(AudioCore::dbvToVrms(dbfs));
     }
 
     void setToneMode(ToneMode mode) { 
@@ -145,13 +146,11 @@ public:
 
     void setToneInactiveTime(unsigned ms) { _toneDebouncer.setInactiveTime(ms); }
 
-    void setToneLevel(float db) { _toneValue.setThresholdRms(std::pow(10, (db / 20))); }
+    void setToneLevel(float dbv) { _toneValue.setThresholdRms(AudioCore::dbvToVrms(dbv)); }
 
     void setToneFreq(float hz) { _core.setCtcssDecodeFreq(hz); }
 
-    void setGainLinear(float lvl) { 
-        _core.setRxGainLinear(lvl);
-    }
+    void setGainLinear(float lvl) { _core.setRxGainLinear(lvl); }
 
     virtual CourtesyToneGenerator::Type getCourtesyType() const { 
         return _courtesyType;

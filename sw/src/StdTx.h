@@ -36,6 +36,7 @@ public:
     StdTx(Clock& clock, Log& log, int id, int pttPin, AudioCore& core);
 
     virtual void run();
+    virtual int getId() const { return _id; };
 
     virtual void setEnabled(bool en);
     virtual bool getEnabled() const { return _enabled; }
@@ -51,13 +52,8 @@ public:
         }
     }
 
-    void setToneFreq(float hz) { 
-        _core.setCtcssEncodeFreq(hz); 
-    }
-
-    void setToneLevel(float db) {
-        _core.setCtcssEncodeLevel(db);
-    }
+    void setToneFreq(float hz) { _core.setCtcssEncodeFreq(hz); }
+    void setToneLevel(float db) { _core.setCtcssEncodeLevel(db); }
 
 private:
 

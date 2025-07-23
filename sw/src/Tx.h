@@ -29,6 +29,7 @@ public:
 
     virtual void run() = 0;
 
+    virtual int getId() const = 0;
     virtual void setEnabled(bool en) = 0;
     virtual bool getEnabled() const;
     virtual void setPtt(bool ptt) = 0;

@@ -135,6 +135,15 @@ public:
     }
 
     /**
+     * Example for sanity: 0 dBv is 1 Vpp, which is 0.5 Vp, which is 0.3535 Vrms.
+     */
+    static float dbvToVrms(float dbv) {
+        float vpp = pow(10, (dbv / 20));
+        float vp = vpp / 2.0;
+        return vp * 0.707;
+    }
+
+    /**
      * Example for sanity: (0.3535 Vrms / 0.707) is 0.5 Vp. 
      * 0.5 Vp * 2.0 is 1.0 Vpp. 20 * log10(1.0) is 0 dBv.
      */
@@ -264,7 +273,7 @@ private:
     unsigned _toneTransitionMs = 20;
 
     // Input injection feature for testing
-    bool _injectEnabled = true;
+    bool _injectEnabled = false;
     float _injectHz = 800;
     float _injectLevel =  dbvToPeak(-10);
     // Injection runs at CODEC speed

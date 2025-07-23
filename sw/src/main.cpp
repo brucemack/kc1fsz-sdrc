@@ -772,7 +772,7 @@ static void print_bar(float vrms, float vpeak) {
         else 
             printf(" ");
     }
-    printf("\033[37m] %4.1f VU (Peak %4.1f) %4.1f dbV (Peak %4.1f)   ", 
+    printf("\033[37m] %5.1f VU (Pk %5.1f) %5.1f dBFS (Pk %5.1f)   ", 
         dbrms_vu, dbpeak_vu, dbrms, dbpeak);
     printf("\033[0m");
 }
@@ -832,6 +832,7 @@ static void render_status(const Rx& rx0, const Rx& rx1, const Tx& tx0, const Tx&
         core0.getCtcssDecodeRms(), 
         core0.getNoiseRms(), core0.getSignalRms2(),
         AudioCore::db(core0.getSignalRms() / core0.getNoiseRms()));
+    printf("Tone dBFS: %f\n", AudioCore::vrmsToDbv(core0.getCtcssDecodeRms()));
     printf("\n");
                 
     printf("\033[30;47m");
@@ -883,8 +884,9 @@ static void render_status(const Rx& rx0, const Rx& rx1, const Tx& tx0, const Tx&
         core1.getNoiseRms(), 
         core1.getSignalRms(),
         AudioCore::db(core1.getSignalRms() / core1.getNoiseRms()));
-
+    printf("Tone dBFS: %f\n", AudioCore::vrmsToDbv(core1.getCtcssDecodeRms()));
     printf("\n");
+
     printf("%u / %d / %d      \n", longestLoop, txc0.getState(), txc1.getState());
     //printf("%f %f       \n", core0.getSignalPeak2(), core1.getSignalPeak2());
 
@@ -1035,7 +1037,7 @@ int main(int argc, const char** argv) {
 
     // Display/diagnostic should happen once per second
     PicoPollTimer flashTimer;
-    flashTimer.setIntervalUs(500 * 1000);
+    flashTimer.setIntervalUs(250 * 1000);
 
     StdTx tx0(clock, log, 0, R0_PTT_PIN, core0);
     StdTx tx1(clock, log, 1, R1_PTT_PIN, core1);

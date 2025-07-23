@@ -98,7 +98,7 @@ void TxControl::run() {
         // Check all of the receivers for activity. If anything happens then enter
         // the voting mode to decide which receiver to focus on.
         else if (_anyRxActivityAmongstEligible()) {
-            _log.info("RX activity seen");
+            //_log.info("RX activity seen");
             _enterVoting();
         }
     }
@@ -140,7 +140,7 @@ void TxControl::run() {
             bool anyActive = false;
             for (unsigned int i = 0; i < MAX_RX_COUNT; i++) {
                 if (_rx[i] != 0 && _rxEligible[i] && _rx[i]->isActive()) {
-                    _log.info("Receiver is selected [%d]", i);
+                    _log.info("%d: Receiver [%d] is selected", _tx.getId(), i);
                     _rxSelected[i] = true;
                     anyActive = true;
                     break;
