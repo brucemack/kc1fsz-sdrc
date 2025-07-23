@@ -106,6 +106,9 @@ public:
     virtual void setCtMode(CourtesyToneGenerator::Type t) = 0;
 
     virtual void setDelayTime(unsigned ms) = 0;
+
+    virtual void setAgcMode(uint32_t mode) = 0;
+    virtual void setAgcLevel(float dbfs) = 0;
 };
 
 }

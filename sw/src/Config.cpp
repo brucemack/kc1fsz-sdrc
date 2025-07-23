@@ -34,7 +34,7 @@ void Config::setFactoryDefaults(Config* cfg) {
     cfg->magic = CONFIG_VERSION;
 
     // General
-    strcpyLimited(cfg->general.callSign, "W1TKZ", Config::callSignMaxLen);
+    strcpyLimited(cfg->general.callSign, "KC1FSZ", Config::callSignMaxLen);
     strcpyLimited(cfg->general.pass, "781", Config::passMaxLen);
     cfg->general.repeatMode = 2;
     cfg->general.diagFreq = 1000;
@@ -42,21 +42,24 @@ void Config::setFactoryDefaults(Config* cfg) {
     cfg->general.idRequiredInt = 10 * 60;
 
     // Receiver
-    cfg->rx0.cosMode = 2;
+    cfg->rx0.cosMode = 0;
     cfg->rx0.cosActiveTime = 25;
     cfg->rx0.cosInactiveTime = 50;
     // This is in dB!
     cfg->rx0.cosLevel = -20;
-    cfg->rx0.toneMode = 2;
+    // Soft
+    cfg->rx0.toneMode = 3;
     cfg->rx0.toneActiveTime = 25;
-    cfg->rx0.toneInactiveTime = 50;
+    cfg->rx0.toneInactiveTime = 100;
     // This is in dB!
-    cfg->rx0.toneLevel = -25;
+    cfg->rx0.toneLevel = -60;
     cfg->rx0.toneFreq = 123;
     // This is in dB!
     cfg->rx0.gain = 0;
-    cfg->rx0.ctMode = 1;
+    cfg->rx0.ctMode = 0;
     cfg->rx0.delayTime = 0;
+    cfg->rx0.agcMode = 1;
+    cfg->rx0.agcLevel = -10;
     cfg->rx1 = cfg->rx0;
 
     // Transmitter
@@ -69,7 +72,7 @@ void Config::setFactoryDefaults(Config* cfg) {
     cfg->tx0.gain = 0;
 
     cfg->tx1.enabled = false;
-    cfg->tx1.toneMode = 1;
+    cfg->tx1.toneMode = 0;
     cfg->tx1.toneFreq = 88.5;
     // This is in dB!
     cfg->tx1.toneLevel = -16;
@@ -81,13 +84,17 @@ void Config::setFactoryDefaults(Config* cfg) {
     cfg->txc0.lockoutTime = 60 * 1000;
     cfg->txc0.hangTime = 1500;
     cfg->txc0.ctLevel = -10;
-    cfg->txc0.idMode = 1;
+    cfg->txc0.idMode = 0;
     cfg->txc0.idLevel = -10;
     for (unsigned i = 0; i < Config::maxReceivers; i++)
         cfg->txc0.rxEligible[i] = false;
     cfg->txc0.rxEligible[0] = true;
     cfg->txc0.rxEligible[1] = true;
     cfg->txc1 = cfg->txc0;
+
+    // Cross-band setup
+    cfg->txc0.rxEligible[0] = false;
+    cfg->txc1.rxEligible[1] = false;
 }
 
 void Config::_showRx(const Config::ReceiveConfig* cfg,
@@ -104,6 +111,8 @@ void Config::_showRx(const Config::ReceiveConfig* cfg,
     printf("%s rxgain: %.1f\n", pre, cfg->gain);
     printf("%s ctmode: %d\n", pre, cfg->ctMode);
     printf("%s delaytime: %d\n", pre, cfg->delayTime);
+    printf("%s agcmode: %d\n", pre, cfg->agcMode);
+    printf("%s agclevel: %.1f\n", pre, cfg->agcLevel);
 }
 
 void Config::_showTx(const Config::TransmitConfig* cfg,

@@ -139,10 +139,16 @@ public:
     void setToneEnabled(bool b);
     void setToneFreq(float hz);
     void setToneLevel(float dbv) { _toneLevel = dbvToPeak(dbv); }
+
     void setToneTransitionTime(unsigned ms) { _toneTransitionMs = ms; }
 
     void setAgcEnabled(bool e) { _agcEnabled = e; }
+
+    /**
+     * @brief Sets AGC target level in dBFS
+     */
     void setAgcTargetDbv(float dbv) { _agcTargetRms = dbvToVrms(dbv); }
+    
     float getAgcGain () const { return _agcGain; }
 
     static float db(float l) {
@@ -261,7 +267,7 @@ private:
     float _agcMinGain = pow(10.0, (-10.0 / 20.0));
     // These parameters control how quickly the AGC gain comes up or down.
     float _agcAttackCoeff = 0.05;
-    float _agcDecayCoeff = 0.02;
+    float _agcDecayCoeff = 0.05;
 
     bool _hpfEnabled = true;
 
