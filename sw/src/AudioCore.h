@@ -74,6 +74,10 @@ public:
     float getSignalRms() const { return _signalRms; }
     float getSignalPeak() const { return _signalPeak; }    
 
+    /**
+     * These versions of the RMS/peak functions include smoothing that is 
+     * compatible with VU meter ballistics.
+     */
     float getSignalRms2() const { return _signalRmsAvg; }
     float getSignalPeak2() const { return _signalPeakAvg; }
 
@@ -86,6 +90,10 @@ public:
     float getOutRms() const { return _outRms; }    
     float getOutPeak() const { return _outPeak; }    
 
+    /**
+     * These versions of the RMS/peak functions include smoothing that is 
+     * compatible with VU meter ballistics.
+     */
     float getOutRms2() const { return _outRmsAvg; }
     float getOutPeak2() const { return _outPeakAvg; }
 
