@@ -285,17 +285,10 @@ void TxControl::_enterPreId() {
 }
 
 void TxControl::_enterId() {
- 
     _lastIdTime = _clock.time();
-
-    if (_idMode == 0) {
-        _enterIdle();
-    }
-    else if (_idMode == 1) {
-        _tx.setPtt(true);
-        _idToneGenerator.start();
-        _setState(State::ID, 0);
-    }
+    _tx.setPtt(true);
+    _idToneGenerator.start();
+    _setState(State::ID, 0);
 }
 
 void TxControl::_enterPostId() {
@@ -344,12 +337,14 @@ bool TxControl::_isStateTimedOut() const {
 bool TxControl::_isIdRequired(bool inQso) const {
     // Check to see if it's time to send the ID from idle. We ID
     // if all of these conditions are met:
+    // 0. ID mode must be enabled
     // 1. Any communication has happened since the last ID
     // 2  a. We just booted up OR
     //    b. It's been more than 10 minutes since the last ID
     // 3. The pause window has passed to make sure that we don't step 
     //    on an active QSO.
-    if (_lastCommunicationTime > _lastIdTime && 
+    if (_idMode == 1 &&
+        _lastCommunicationTime > _lastIdTime && 
         (_lastIdTime == 0 || _clock.isPast(_lastIdTime + (_idRequiredIntSec * 1000))) &&
         _clock.isPast(_lastIdleStartTime + _quietWindowMs)) {
         return true;
