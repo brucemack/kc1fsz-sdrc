@@ -833,6 +833,7 @@ static void render_status(const Rx& rx0, const Rx& rx1, const Tx& tx0, const Tx&
         core0.getNoiseRms(), core0.getSignalRms2(),
         AudioCore::db(core0.getSignalRms() / core0.getNoiseRms()));
     printf("Tone dBFS: %f\n", AudioCore::vrmsToDbv(core0.getCtcssDecodeRms()));
+    printf("AGC gain: %.1f\n", AudioCore::db(core0.getAgcGain()));
     printf("\n");
                 
     printf("\033[30;47m");
@@ -885,6 +886,7 @@ static void render_status(const Rx& rx0, const Rx& rx1, const Tx& tx0, const Tx&
         core1.getSignalRms(),
         AudioCore::db(core1.getSignalRms() / core1.getNoiseRms()));
     printf("Tone dBFS: %f\n", AudioCore::vrmsToDbv(core1.getCtcssDecodeRms()));
+    printf("AGC gain: %.1f\n", AudioCore::db(core1.getAgcGain()));
     printf("\n");
 
     printf("%u / %d / %d      \n", longestLoop, txc0.getState(), txc1.getState());

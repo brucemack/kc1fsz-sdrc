@@ -101,6 +101,8 @@ AudioCore::AudioCore(unsigned id, unsigned crossCount)
         _delayArea[i] = 0;
     for (unsigned i = 0; i < MAX_CROSS_COUNT; i++)
         _crossGains[i] = 0;
+    for (unsigned i = 0; i < SIGNAL_RMS_HISTORY_SIZE; i++)
+        _signalRmsHistory[i] = 0;
 }
 
 /**
@@ -168,7 +170,7 @@ void AudioCore::cycleRx(const int32_t* codec_in, float* cross_out) {
             cross_out[i] = 0;
             _delayCountdown--;
         } else { 
-            cross_out[i] = _delayArea[_delayAreaReadPtr] * _rxGain;
+            cross_out[i] = _delayArea[_delayAreaReadPtr] * _rxGain * _agcGain;
         }
         _delayAreaReadPtr = incAndWrap(_delayAreaReadPtr, _delayAreaLen);
     }
@@ -204,6 +206,36 @@ void AudioCore::cycleRx(const int32_t* codec_in, float* cross_out) {
     c = (_signalPeak > _signalPeakAvg) ? 
         _signalPeakAvgAttackCoeff : _signalPeakAvgDecayCoeff;
     _signalPeakAvg += c * (_signalPeak - _signalPeakAvg);
+
+    // RMS moving average
+    _signalRmsAvgMoving -= _signalRmsHistory[_signalRmsHistoryPtr];
+    float rms2 = _signalRms / (float)SIGNAL_RMS_HISTORY_SIZE;
+    _signalRmsHistory[_signalRmsHistoryPtr] = rms2;
+    _signalRmsAvgMoving += rms2;
+    if (++_signalRmsHistoryPtr == SIGNAL_RMS_HISTORY_SIZE)
+        _signalRmsHistoryPtr = 0;
+
+    // AGC control loop
+    float agcGainNeeded = 1.0;
+    if (_agcEnabled && _signalRmsAvgMoving != 0) {
+        agcGainNeeded = _agcTargetRms / _signalRmsAvgMoving;
+        // Keep inside of the range
+        if (agcGainNeeded > _agcMaxGain) {
+            agcGainNeeded = _agcMaxGain;
+            printf("AGC limit up\n");
+        }
+        else if (agcGainNeeded < _agcMinGain) {
+            agcGainNeeded = _agcMinGain;
+            printf("AGC limit down\n");
+        }
+    }
+
+    if (agcGainNeeded > _agcGain) 
+        _agcGain += (agcGainNeeded - _agcGain) * _agcAttackCoeff;
+    else 
+        _agcGain += (agcGainNeeded - _agcGain) * _agcDecayCoeff;
+
+    //printf("agcGain %.03f\n", _agcGain);
 }
 
 /**

@@ -75,6 +75,11 @@ public:
     float getSignalPeak() const { return _signalPeak; }    
 
     /**
+     * A version of the signal RMS smoothed over some period (around 64ms)
+     */
+    float getSignalRmsAvgMoving() const { return _signalRmsAvgMoving; }
+
+    /**
      * These versions of the RMS/peak functions include smoothing that is 
      * compatible with VU meter ballistics.
      */
@@ -136,6 +141,10 @@ public:
     void setToneLevel(float dbv) { _toneLevel = dbvToPeak(dbv); }
     void setToneTransitionTime(unsigned ms) { _toneTransitionMs = ms; }
 
+    void setAgcEnabled(bool e) { _agcEnabled = e; }
+    void setAgcTargetDbv(float dbv) { _agcTargetRms = dbvToVrms(dbv); }
+    float getAgcGain () const { return _agcGain; }
+    
     static float db(float l) {
         if (l < 0.001)
             return -99.0;
@@ -188,7 +197,7 @@ private:
     arm_fir_instance_f32 _filtB;
     float32_t _filtBState[FILTER_B_LEN + BLOCK_SIZE_ADC - 1];
   
-    // Decimation LPF (half-band)
+    // Decimation LPFs (two half-band filters)
     static const unsigned FILTER_C_LEN = 41;
     static const float32_t FILTER_C[FILTER_C_LEN];
     // For the 16k filter, but still runs on 32k audio
@@ -205,12 +214,9 @@ private:
     float32_t _filtFState[FILTER_F_LEN + BLOCK_SIZE - 1];
 
     // Low-pass filter for interpolation 8K->32K, runs at 32k
-    //static const unsigned FILTER_N_LEN = 127;
     // Needs to be multiple of 4 for interpolation 
     static const unsigned FILTER_N_LEN = 124;
     static const float32_t FILTER_N[FILTER_N_LEN];
-    //arm_fir_instance_f32 _filtN;
-    //float32_t _filtNState[FILTER_N_LEN + BLOCK_SIZE_ADC - 1];
     arm_fir_interpolate_instance_f32 _filtN;
     float32_t _filtNState[(FILTER_N_LEN / 4) + BLOCK_SIZE_ADC - 1];
 
@@ -237,7 +243,26 @@ private:
     float _outPeakAvgDecayCoeff = 0.12;
     float _outPeakAvg = 0;
 
+    // Signal RMS history used for maintaining an RMS average.
+    static const unsigned SIGNAL_RMS_HISTORY_SIZE = 8;
+    unsigned _signalRmsHistoryPtr = 0;
+    float _signalRmsHistory[SIGNAL_RMS_HISTORY_SIZE];
+    float _signalRmsAvgMoving = 0;
+
+    // A soft gain that is applied to received audio just before it
+    // it passed into the crossing network.
     float _rxGain = 1.0;
+
+    // AGC related
+    bool _agcEnabled = true;
+    float _agcTargetRms = dbvToVrms(-10);
+    float _agcGain = 1.0;    
+    float _agcMaxGain = pow(10.0, (10.0 / 20.0));
+    float _agcMinGain = pow(10.0, (-10.0 / 20.0));
+    // These parameters control how quickly the AGC gain comes up or down.
+    float _agcAttackCoeff = 0.05;
+    float _agcDecayCoeff = 0.02;
+
     bool _hpfEnabled = true;
 
     // Used for CTCSS encoding
