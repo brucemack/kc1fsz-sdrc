@@ -34,13 +34,31 @@ class DTMFDetector2 {
 public:
 
     /**
-     * @param block 256 input samples in 32-bit signed PCM format.
+     * @param block 256 input (8ms) samples in 32-bit signed PCM format.
+     * @return An indication of whether a valid symbol has been detected.
      */
     void processBlock(const int32_t* block);
 
+    /**
+     * @return True if a valid detected symbol is availble to be fetched
+     * via the popDetection() method.
+     */
+    bool isDetectionPending() const { return _isDSC; }
+
+    /**
+     * @return Pops the queue with the oldest detected symbol.
+     */
+    char popDetection() { _isDSC = false; return _detectedSymbol; }
+
 private:
 
-// This is 2 * cos(2 * PI * fk / fs) for each of the 8 frequencies
+    /*
+    * @brief Indicates which valid symbol (if any) is in the block.
+    * @return 0 for noise/silence, otherwise the character that is valid.
+    */
+    static char _detectVSC(int16_t* samples, uint32_t N);
+
+    // This is 2 * cos(2 * PI * fk / fs) for each of the 8 frequencies
     static int32_t coeffRow[4];
     // This is 2 * cos(2 * PI * fk / fs) for each of the 8 frequencies
     static int32_t coeffCol[4];
@@ -55,12 +73,17 @@ private:
     static const unsigned FS = 8000;
     static const unsigned N = 256;
 
-    // VSC history
-    static const uint32_t _vscHistSize = 8;
-    char _vscHist[_vscHistSize];
-    // Indicates whether we are currently in the middle of a valid
-    // detection.
-    bool _inDSC = false;
+    // Are currently in the middle of a valid detection?
+    bool _inVSC = false;
+    // If we are not in a valid symbol, how long has the invalid period lasted?
+    unsigned _invalidCount = 0;
+    // If we are in a valid symbol, how long has valid symbol lasted?
+    unsigned _validCount = 0;
+    // What is the valid symbol that we are watching?
+    char _validSymbol = 0;
+    // Was a symbol detected?
+    bool _isDSC = false;
+    // What was the detected symbol that we saw?
     char _detectedSymbol = 0;
 };
 
