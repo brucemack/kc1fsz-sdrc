@@ -20,6 +20,8 @@
 #ifndef _DTMFDetector2_h
 #define _DTMFDetector2_h
 
+#include "AudioCore.h"
+
 #include <cstdint>
 
 namespace kc1fsz {
@@ -32,6 +34,8 @@ namespace kc1fsz {
  */
 class DTMFDetector2 {
 public:
+
+    DTMFDetector2();
 
     /**
      * @param block 256 input (8ms) samples in 32-bit signed PCM format.
@@ -50,13 +54,22 @@ public:
      */
     char popDetection() { _isDSC = false; return _detectedSymbol; }
 
+    /**
+     *
+     * The DTMF activity needs to exceed this threshold to even be
+     * considered valid.
+     */
+    void setSignalThreshold(float dbfs) { 
+        _signalThreshold = AudioCore::dbvToVrms(dbfs) * 32767.0; 
+    }
+
 private:
 
     /*
     * @brief Indicates which valid symbol (if any) is in the block.
     * @return 0 for noise/silence, otherwise the character that is valid.
     */
-    static char _detectVSC(int16_t* samples, uint32_t N);
+    char _detectVSC(int16_t* samples, uint32_t N);
 
     // This is 2 * cos(2 * PI * fk / fs) for each of the 8 frequencies
     static int32_t coeffRow[4];
@@ -71,16 +84,22 @@ private:
     static char symbolGrid[4 * 4];
 
     static const unsigned FS = 8000;
-    static const unsigned N = 256;
+    static const unsigned N = 64;
+    static const unsigned N3 = 64 * 3;
 
+    // Set the RMS threshold in Q15 format, but squared so that it can be
+    // compared to other powers.
+    int16_t _signalThreshold = std::pow(AudioCore::dbvToVrms(-30) * 32767.0, 2.0);
+    // This is where the last three blocks of N samples is stored for processing
+    int16_t _history[N3];
     // Are currently in the middle of a valid detection?
     bool _inVSC = false;
     // If we are not in a valid symbol, how long has the invalid period lasted?
     unsigned _invalidCount = 0;
     // If we are in a valid symbol, how long has valid symbol lasted?
     unsigned _validCount = 0;
-    // What is the valid symbol that we are watching?
-    char _validSymbol = 0;
+    // What is the valid symbol that we are attempting to detect?
+    char _potentialSymbol = 0;
     // Was a symbol detected?
     bool _isDSC = false;
     // What was the detected symbol that we saw?

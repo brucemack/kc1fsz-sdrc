@@ -43,10 +43,16 @@ target_include_directories(main PRIVATE
 
 add_executable(dtmf-test-1
   src/test/dtmf-test-1.cpp
+  src/DTMFDetector2.cpp
   kc1fsz-tools-cpp/src/Common.cpp
-  kc1fsz-tools-cpp/src/DTMFDetector.cpp
   gsm-0610-codec/src/fixed_math.cpp
 ) 
+target_include_directories(dtmf-test-1 PRIVATE
+  src
+  cmsis-dsp-mock/include
+  radlib
+  kc1fsz-tools-cpp/include
+)
 target_compile_options(dtmf-test-1 PRIVATE -fstack-protector-all -Wall -Wpedantic -g)
 target_include_directories(dtmf-test-1 PRIVATE kc1fsz-tools-cpp/include)
 

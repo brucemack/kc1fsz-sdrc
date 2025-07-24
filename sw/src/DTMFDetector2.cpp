@@ -17,8 +17,12 @@
  *
  * NOT FOR COMMERCIAL USE WITHOUT PERMISSION.
  */
+#include <iostream>
 #include <cmath>
+#include <cstring>
 #include "DTMFDetector2.h"
+
+using namespace std;
 
 namespace kc1fsz {
 
@@ -31,7 +35,11 @@ int32_t L_mult(int16_t var1, int16_t var2);
 int32_t L_add(int32_t L_var1, int32_t L_var2);
 int32_t L_sub(int32_t L_var1, int32_t L_var2);
 
-int16_t div2(int16_t var1, int16_t var2) {
+/**
+ * IMPORTANT: Requires that the numerator (var1) be smaller than the 
+ * denominator (var2)!
+ */
+static int16_t div2(int16_t var1, int16_t var2) {
     if (var1 == var2) {
         return 1;
     }
@@ -87,21 +95,24 @@ char DTMFDetector2::symbolGrid[4 * 4] = {
     '*', '0', '#', 'D'
 };
 
+DTMFDetector2::DTMFDetector2() {
+    for (unsigned i = 0; i < N3; i++)
+        _history[i] = 0;
+}
+
 void DTMFDetector2::processBlock(const int32_t* block) {  
 
-    // Convert to 16-bit PCM and find the largest amplitude
-    // in order to normalize the entire block of samples.
-    int16_t samples[N];
-    int16_t maxVal = 0;
-    for (unsigned i = 0; i < N; i++) {
-        samples[i] = block[i] >> 16;
-        maxVal = std::max(s_abs(samples[i]), maxVal);
-    }   
-    // Apply the normalization
-    for (unsigned i = 0; i < N; i++) 
-        samples[i] = div2(samples[i], maxVal);
+    // Shift the history to the left. Areas are overlapping.
+    std::memmove((void*)_history, (const void*)(_history + N), N * 2 * sizeof(int16_t));
 
-    char vscSymbol = _detectVSC(samples, N);
+    // Convert to 16-bit PCM and place in the most recent section 
+    // of the history buffer
+    int16_t* historyStart = &(_history[N * 2]);
+    for (unsigned i = 0; i < N; i++)
+        historyStart[i] = block[i] >> 16;
+
+    // Run VSC detection on the last 3x 8ms of samples.
+    const char vscSymbol = _detectVSC(_history, N3);
     //cout << "VSC Symbol " << (int)vscSymbol << " " << vscSymbol << endl;
 
     // The VSC->DSC transition requires some history.
@@ -117,14 +128,15 @@ void DTMFDetector2::processBlock(const int32_t* block) {
     if (!_inVSC) {
         // If we're still not in a valid symbol then accumulate the period of 
         // invalidity. This will be used later to see if we've had enough
-        // of a gap to consider a new symbol.
+        // of a gap to consider a new symbol detection.
         if (vscSymbol == 0)
             _invalidCount++;
         // Check to see if we had enough of a gap to consider a new start.
+        // If so, register the start of a possible detection.
         // 8ms x 3 = 24ms, close enough
         else if (_invalidCount >= 3) {
             _inVSC = true;
-            _validSymbol = vscSymbol;
+            _potentialSymbol = vscSymbol;
             _validCount = 1;
         }
     }
@@ -135,21 +147,21 @@ void DTMFDetector2::processBlock(const int32_t* block) {
             // 8ms x 5 = 40ms
             if (_validCount >= 5) {
                 _isDSC = true;
-                _detectedSymbol = _validSymbol;
+                _detectedSymbol = _potentialSymbol;
             }
             // Regardless, go back to invalid state and start preparing to 
             // detect a new symbol.
             _inVSC = false;
             _invalidCount = 1;
         } 
-        // If we see a valid but different symbol then drop back to invalid state.
-        else if (vscSymbol != _validSymbol) {
+        // If we're in a valid, persistent symbol keep incrementing
+        else if (vscSymbol == _potentialSymbol) {
+            _validCount++;
+        }
+        // Otherwise we got something bad, so drop back to invalid state.
+        else {
             _inVSC = false;
             _invalidCount = 1;
-        }
-        // If we're in a valid, persistent symbol keep incrementing
-        else if (vscSymbol == _validSymbol) {
-            _validCount++;
         }
     }
 }
@@ -164,7 +176,7 @@ void DTMFDetector2::processBlock(const int32_t* block) {
  * @returns An "MS" magnitude of the signal at the designed frequency.
  * The final root in RMS is not performed for efficiency sake.
  */
-static int16_t computePower(int16_t* samples, uint32_t N, int32_t coeff) {
+static int16_t computePower(int16_t* samples, uint32_t n, int32_t coeff) {
 
     int32_t vk_1 = 0, vk_2 = 0;
 
@@ -174,7 +186,7 @@ static int16_t computePower(int16_t* samples, uint32_t N, int32_t coeff) {
     // if N changes.
     const int sampleShift = 7;
 
-    for (unsigned i = 0; i < N; i++) {        
+    for (unsigned i = 0; i < n; i++) {        
         int16_t sample = samples[i];
         // Take out a factor to avoid overflow later
         sample >>= sampleShift;
@@ -204,19 +216,24 @@ static int16_t computePower(int16_t* samples, uint32_t N, int32_t coeff) {
     r = r - (((m >> 15) * vk_2));
     // Remove the extra 32767 (squared, because this is power)
     // Re-introduce the factor (squared, because this is power)
-    r >>= (15 + 15 - (sampleShift + sampleShift));
+    // ORGINAL
+    //r >>= (15 + 15 - (sampleShift + sampleShift));
+    // TODO: FIGURE OUT THIS EXTRA FACTOR OF TWO
+    r >>= (14 + 15 - (sampleShift + sampleShift));
     return (int16_t)r;
 }
 
-char DTMFDetector2::_detectVSC(int16_t* samples, uint32_t N) {
+char DTMFDetector2::_detectVSC(int16_t* samples, uint32_t n) {
 
     // Compute the power on the fundamental frequencies across rows
     // and columns.
     bool nonZeroFound = false;
     int16_t powerRow[4], powerCol[4];
     for (unsigned k = 0; k < 4; k++) {
-        powerRow[k] = computePower(samples, N, coeffRow[k]);
-        powerCol[k] = computePower(samples, N, coeffCol[k]);
+        powerRow[k] = computePower(samples, n, coeffRow[k]);
+        //printf("Row %d %f\n", k, sqrt((float)powerRow[k] / 32767.0));
+        powerCol[k] = computePower(samples, n, coeffCol[k]);
+        //printf("Col %d %f\n", k, sqrt((float)powerCol[k] / 32767.0));
         if (powerRow[k] > 0 || powerCol[k] > 0)
             nonZeroFound = true;
     }
@@ -227,70 +244,104 @@ char DTMFDetector2::_detectVSC(int16_t* samples, uint32_t N) {
 
     // Find the maximum of the **combined** powers
     unsigned maxRow = 0, maxCol = 0;
-    int32_t maxRowPower = 0, maxColPower = 0, maxCombPower = 0;
+    int32_t maxRowPower = 0, maxColPower = 0;
     for (unsigned r = 0; r < 4; r++) {
         int16_t rowPower = powerRow[r];
-        for (unsigned c = 0; c < 4; c++) {
-            int16_t colPower = powerCol[c];
-            int32_t combPower = rowPower + colPower;
-            if (combPower > maxCombPower) {
-                maxCombPower = combPower;
-                maxRow = r;
-                maxRowPower = rowPower;
-                maxCol = c;
-                maxColPower = colPower;
-            }
+        if (rowPower > maxRowPower) {
+            maxRowPower = rowPower;
+            maxRow = r;
+        }
+    }
+    for (unsigned c = 0; c < 4; c++) {
+        int16_t colPower = powerCol[c];
+        if (colPower > maxColPower) {
+            maxColPower = colPower;
+            maxCol = c;
         }
     }
 
-    // Now see if any pair comes close to the maximum
-    for (unsigned r = 0; r < 4; r++) {
-        int16_t rowPower = powerRow[r];
-        for (unsigned c = 0; c < 4; c++) {
-            int16_t colPower = powerRow[c];
-            int32_t combPower = rowPower + colPower;
-            // If the power advantage of the first place is less than 10x
-            // of the second place then the symbol is not valid.
-            if (r != maxRow && 
-                c != maxCol && 
-                combPower != 0 && 
-                (maxCombPower / combPower) < 10) {
+    // Per TI app note: "the sum of row and column peak provides a better
+    // parameter for signal strength than separate row and column checks."
+    //
+    // It is safe to sum these because they are all (Vrms)^2
+    int32_t combPower = maxRowPower + maxColPower;
+    //printf("Combined %f\n", sqrt(combPower / 32767.0));
+    if (combPower < (int32_t)_signalThreshold) {
+        //cout << "Below threshold" << endl;
+        return 0;
+    }
+
+    // Per TI app note: "The spectral information can reflect two types of twists. 
+    // The more likely one, called “reverse twist”, assumes the row peak to be 
+    // larger than the column peak. Row frequencies (lower frequency band) are 
+    // typically less attenuated as than column frequencies (higher frequency
+    // band), assuming a low-pass filter type telephone line. The decoder computes 
+    // therefore a reverse twist ratio and sets a threshold (THR_TWIREV) of 8dB 
+    // acceptable reverse twist.
+
+    // 8dB -> 2.5 linear
+    static const int16_t threshold8dB = (1.0 / pow(2.5, 2.0)) * 32767.0;
+    if (maxRowPower > maxColPower) {
+        int16_t reverseTwistRatio = div2(maxColPower, maxRowPower);
+        // INEQUALITY IS REVERSED BECAUSE WE ARE COMPARING 1/a to 1/b
+        if (reverseTwistRatio < threshold8dB) {
+            //cout << "Reverse twist problem" << endl;
+            return 0;
+        }
+    }
+
+    // The other twist, called “standard twist”, occurs when the row peak is 
+    // smaller than the column peak. Similarly, a “standard twist ratio” is 
+    // computed and its threshold (THR_TWISTD) is set to 4dB acceptable standard twist.
+
+    // 4dB -> 1.58 linear
+    static const int16_t threshold4dB = (1.0 / pow(1.58, 2.0)) * 32767.0;
+    if (maxColPower > maxRowPower) {
+        int16_t standardTwistRatio = div2(maxRowPower, maxColPower);
+        //printf("Twist %f %f\n", maxRowPower / 32767.0, maxColPower / 32767.0);
+        // INEQUALITY IS REVERSED BECAUSE WE ARE COMPARING 1/a to 1/b
+        if (standardTwistRatio < threshold4dB) {
+            //cout << "Standard twist problem" << endl;
+            return 0;
+        }
+    }
+
+    // The program makes a comparison of spectral components within the row group 
+    // as well as within the column group. The strongest component must stand out 
+    // (in terms of squared amplitude) from its proximity tones within its group 
+    // by more than a certain threshold ratio (THR_ROWREL, THR_COLREL).
+    for (unsigned r = 0; r < 4; r++)
+        if (r != maxRow)
+            // INEQUALITY IS REVERSED BECAUSE WE ARE COMPARING 1/a to 1/b
+            if (div2(powerRow[r], maxRowPower) > threshold8dB) {
+                //cout << "Row doesn't stand out" << endl;
                 return 0;
             }
-        }
-    }
-
-    // Now check the "twist" between the two.  
-
-    // Make sure that the column (high group) power is not >4dB the row (low 
-    // group) power. We are shifting the numerator by 4 to allow more accurate 
-    // comparison in fixed point.
-    //
-    // The +4dB level is equivalent to x ~1.58 linear. Testing a/b > ~1.58 is 
-    // the same as * testing 4a/b > ~6.
-    if ((4 * maxColPower) / maxRowPower > 6) {
-        return 0;
-    }
-    
-    // Make sure that the row (low group) power is not >8dB the column (high
-    // group) power. We are shifting the numerator by 4 to allow more accurate 
-    // comparison in fixed point.
-    // TEMP: EXPANDING THE RANGE TO 12dB BECAUSE OF PROBLEMS ON THE HIGH END WITH
-    // THE FT-65
-    if ((4 * maxRowPower) / maxColPower > 10) {
-        //cout << "Twist failed: row too high " << maxRowPower << " " << maxColPower << endl;
-        return 0;
-    }
+    for (unsigned c = 0; c < 4; c++)
+        if (c != maxCol)
+            // INEQUALITY IS REVERSED BECAUSE WE ARE COMPARING 1/a to 1/b
+            if (div2(powerCol[c], maxColPower) > threshold8dB) {
+                //cout << "Col doesn't stand out" << endl;
+                return 0;
+            }
 
     // If we're still alive here then compute the harmonic for the row and column
-    int16_t maxRowHarmonicPower = computePower(samples, N, harmonicCoeffRow[maxRow]);
-    int16_t maxColHarmonicPower = computePower(samples, N, harmonicCoeffCol[ maxCol]);
+    int16_t maxRowHarmonicPower = computePower(samples, n, harmonicCoeffRow[maxRow]);
+    int16_t maxColHarmonicPower = computePower(samples, n, harmonicCoeffCol[maxCol]);
 
-    // Make sure the harmonics are 20dB down from the fundamentals
-    if (maxRowHarmonicPower != 0 && maxRowPower / maxRowHarmonicPower < 10) {
+    // Make sure the harmonics are -20dB down from the fundamentals
+    // NOTE: Threshold is shifted down to avoid overflow
+    static const int16_t threshold20dB = pow(1.0 / 10, 2.0) * 32767.0;
+    if (maxRowHarmonicPower != 0 && 
+        ((maxRowHarmonicPower > maxRowPower) ||
+         (div2(maxRowHarmonicPower, maxRowPower) > threshold20dB))) {
+        //cout << "Row harmonic problem" << endl;
         return 0;
     }
-    if (maxColHarmonicPower != 0 && maxColPower / maxColHarmonicPower < 10) {
+    if (maxColHarmonicPower != 0 && 
+        ((maxColHarmonicPower > maxColPower) ||
+        (div2(maxColHarmonicPower, maxColPower) < threshold20dB))) {
+        //cout << "Col harmonic problem" << endl;
         return 0;
     }
 
