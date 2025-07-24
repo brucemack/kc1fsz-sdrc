@@ -51,6 +51,8 @@ public:
         if (_useHw)
             return _hwValue.get();
         else 
+            // TODO: when COS is completely disabled (mode=0)
+            // this should return false
             return _core.getSignalRms() > _thresholdRms;
     }
 

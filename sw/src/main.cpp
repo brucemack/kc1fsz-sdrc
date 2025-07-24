@@ -785,8 +785,12 @@ static void render_status(const Rx& rx0, const Rx& rx1, const Tx& tx0, const Tx&
     printf("\n");
 
     printf("\033[30;47m");
-    printf(" Radio 0 \n");
+    printf(" Radio 0 ");
     printf("\033[0m");
+    if (tx0.getEnabled()) 
+        printf(" TX ENABLED   \n");
+    else 
+        printf(" TX DISABLED  \n");
 
     printf("RX0 COS  : ");
     if (rx0.isCOS()) {
@@ -837,8 +841,12 @@ static void render_status(const Rx& rx0, const Rx& rx1, const Tx& tx0, const Tx&
     printf("\n");
                 
     printf("\033[30;47m");
-    printf(" Radio 1 \n");
+    printf(" Radio 1 ");
     printf("\033[0m");
+    if (tx1.getEnabled()) 
+        printf(" TX ENABLED   \n");
+    else 
+        printf(" TX DISABLED  \n");
 
     printf("RX1 COS  : ");
     if (rx1.isCOS()) {
