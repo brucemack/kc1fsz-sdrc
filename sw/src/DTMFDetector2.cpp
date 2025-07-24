@@ -114,8 +114,44 @@ void DTMFDetector2::processBlock(const int32_t* block) {
     //     than 23ms must be rejected.
     //   - The gap between symbols must be at least 40ms.
     //
-    // If we're not in a valid symbol then look for 
-    
+    if (!_inVSC) {
+        // If we're still not in a valid symbol then accumulate the period of 
+        // invalidity. This will be used later to see if we've had enough
+        // of a gap to consider a new symbol.
+        if (vscSymbol == 0)
+            _invalidCount++;
+        // Check to see if we had enough of a gap to consider a new start.
+        // 8ms x 3 = 24ms, close enough
+        else if (_invalidCount >= 3) {
+            _inVSC = true;
+            _validSymbol = vscSymbol;
+            _validCount = 1;
+        }
+    }
+    else {
+        // If the symbol just dropped 
+        if (vscSymbol == 0) {
+            // Check to see if it persisted long enough to be a detection.
+            // 8ms x 5 = 40ms
+            if (_validCount >= 5) {
+                _isDSC = true;
+                _detectedSymbol = _validSymbol;
+            }
+            // Regardless, go back to invalid state and start preparing to 
+            // detect a new symbol.
+            _inVSC = false;
+            _invalidCount = 1;
+        } 
+        // If we see a valid but different symbol then drop back to invalid state.
+        else if (vscSymbol != _validSymbol) {
+            _inVSC = false;
+            _invalidCount = 1;
+        }
+        // If we're in a valid, persistent symbol keep incrementing
+        else if (vscSymbol == _validSymbol) {
+            _validCount++;
+        }
+    }
 }
 
 /**
@@ -124,6 +160,9 @@ void DTMFDetector2::processBlock(const int32_t* block) {
  * @param coeff This is what controls the frequency that we are filtering
  * for. Notice that the coefficient is 32-bits and starts off 32,767 
  * higher in magnitude than the samples.
+ *
+ * @returns An "MS" magnitude of the signal at the designed frequency.
+ * The final root in RMS is not performed for efficiency sake.
  */
 static int16_t computePower(int16_t* samples, uint32_t N, int32_t coeff) {
 
