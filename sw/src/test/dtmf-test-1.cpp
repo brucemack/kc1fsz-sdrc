@@ -94,6 +94,39 @@ int main(int,const char**) {
     }
 
     {
+        cout << "----- Test 1b (Acceptable twist: col > row) ------" << endl;
+        // Make a test signal (48ms)
+        int32_t test1[N * 6];
+        for (unsigned int i = 0; i < N * 6; i++) {
+            // Two valid tones
+            // COLUMN 0
+            float a = vp_target * 1.25 * cos((float)i * 2.0 * PI * 1209.0 / (float)FS);
+            // ROW 1
+            float b = vp_target * cos((float)i * 2.0 * PI * 770.0 / (float)FS);
+            float t = a + b;
+            // Scale up to a int32 fixed 
+            test1[i] = 2147483648.0f * t;
+        }
+
+        // 40ms tone w/ 40ms silence (valid DSC)
+        detector.processBlock(silence);
+        detector.processBlock(silence);
+        detector.processBlock(silence);
+        detector.processBlock(test1);
+        detector.processBlock(test1 + N);
+        detector.processBlock(test1 + N * 2);
+        detector.processBlock(test1 + N * 3);
+        detector.processBlock(test1 + N * 4);
+        detector.processBlock(test1 + N * 5);
+        detector.processBlock(silence);
+        detector.processBlock(silence);
+
+        assert(detector.isDetectionPending());
+        assert(detector.popDetection() == '4');
+        assert(!detector.isDetectionPending());
+    }
+
+    {
         cout << "----- Test 2 ------" << endl;
         // Make a bogus signal (48ms)
         int32_t testBad[N * 6];
