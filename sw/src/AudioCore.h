@@ -29,6 +29,8 @@
 
 namespace kc1fsz {
 
+class Clock;
+
 /**
  * @brief Audio processing core.
  */
@@ -41,7 +43,7 @@ public:
     static const unsigned BLOCK_SIZE = BLOCK_SIZE_ADC / 4;
     static const unsigned MAX_CROSS_COUNT = 8;
 
-    AudioCore(unsigned id, unsigned crossCount);
+    AudioCore(unsigned id, unsigned crossCount, Clock& clock);
 
     /**
      * @brief Called once per CODEC block. Expected to run quickly 

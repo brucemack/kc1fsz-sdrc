@@ -21,6 +21,8 @@
 #include <cmath>
 #include <cstring>
 
+#include <kc1fsz-tools/Clock.h>
+
 #include "DTMFDetector2.h"
 #include "AudioCore.h"
 
@@ -97,8 +99,9 @@ const char DTMFDetector2::symbolGrid[4 * 4] = {
     '*', '0', '#', 'D'
 };
 
-DTMFDetector2::DTMFDetector2() 
-:   _signalThreshold(std::pow(AudioCore::dbvToVrms(-30), 2.0) * 32767.0)
+DTMFDetector2::DTMFDetector2(Clock& clock) 
+:   _clock(clock),
+    _signalThreshold(std::pow(AudioCore::dbvToVrms(-50), 2.0) * 32767.0)
 {
     for (unsigned i = 0; i < N3; i++)
         _history[i] = 0;
@@ -122,6 +125,8 @@ void DTMFDetector2::processBlock(const float* block) {
         historyStart[i] = block[i] * 32767.0;
     // Run VSC detection on the last N3 (136) samples.
     const char vscSymbol = _detectVSC(_history, N3);
+    if (vscSymbol != 0)
+        _lastVscTime = _clock.time();
     //cout << "VSC Symbol " << (int)vscSymbol << " " << vscSymbol << endl;
 
     // The VSC->DSC transition requires some history.

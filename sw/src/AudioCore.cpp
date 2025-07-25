@@ -27,6 +27,10 @@
 
 #include <arm_math.h>
 
+#ifdef PICO_BUILD
+#include <hardware/sync.h>
+#endif
+
 using namespace std;
 
 namespace kc1fsz {
@@ -83,9 +87,10 @@ static unsigned decAndWrap(unsigned i, unsigned len) {
         return i - 1;
 }
 
-AudioCore::AudioCore(unsigned id, unsigned crossCount)
+AudioCore::AudioCore(unsigned id, unsigned crossCount, Clock& clock)
 :   _id(id),
     _crossCount(crossCount),
+    _dtmfDetector(clock),
     _tonePhi(0),
     _ctcssEncodePhi(0) {
     // Filter initializations
@@ -155,6 +160,7 @@ void AudioCore::cycleRx(const int32_t* codec_in, float* cross_out) {
         _gz1 = z0;
     }
 
+    // Show the block to the DTMF decoder for analysis
     _dtmfDetector.processBlock(filtOutD);
 
     // Apply the delay to the final audio. 
@@ -421,6 +427,7 @@ char AudioCore::getLastDtmfDetection() {
 #ifdef PICO_BUILD
     restore_interrupts(i);
 #endif
+    return d;
 }
 
 }

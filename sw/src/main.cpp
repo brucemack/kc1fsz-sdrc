@@ -144,20 +144,6 @@ static uint dma_ch_out_data1 = 0;
 static volatile bool dac_buffer_ping_open = false;
 
 // ===========================================================================
-// HISTORY BUFFERS
-// ===========================================================================
-//
-//static float in_history_r0[128];
-//static float in_history_r1[128];
-//static WindowAverage in_rms_r0(7, in_history_r0);
-//static WindowAverage in_rms_r1(7, in_history_r1);
-
-//static float out_history_r0[128];
-//static float out_history_r1[128];
-//static WindowAverage out_rms_r0(7, out_history_r0);
-//static WindowAverage out_rms_r1(7, out_history_r1);
-
-// ===========================================================================
 // RUNTIME OBJECTS
 // ===========================================================================
 //
@@ -167,8 +153,8 @@ static Config config;
 static PicoClock clock;
 static PicoPerfTimer perfTimer0;
 
-static AudioCore core0(0, 2);
-static AudioCore core1(1, 2);
+static AudioCore core0(0, 2, clock);
+static AudioCore core1(1, 2, clock);
 
 static uint32_t longestLoop = 0;
 
@@ -897,9 +883,8 @@ static void render_status(const Rx& rx0, const Rx& rx1, const Tx& tx0, const Tx&
     printf("AGC gain: %.1f\n", AudioCore::db(core1.getAgcGain()));
     printf("\n");
 
-    printf("%u / %d / %d      \n", longestLoop, txc0.getState(), txc1.getState());
+    //printf("%u / %d / %d      \n", longestLoop, txc0.getState(), txc1.getState());
     //printf("%f %f       \n", core0.getSignalPeak2(), core1.getSignalPeak2());
-
 }
 
 static void transferConfigRx(const Config::ReceiveConfig& config, Rx& rx) {
@@ -1141,6 +1126,16 @@ int main(int argc, const char** argv) {
             }
             //if (flash)
             //    printf("Longest %u\n", longestLoop);
+
+            char dtmfSymbol0 = core0.getLastDtmfDetection();
+            if (dtmfSymbol0 != 0) {
+                log.info("0: DTMF detection %c", dtmfSymbol0);
+            }
+            char dtmfSymbol1 = core1.getLastDtmfDetection();
+            if (dtmfSymbol1 != 0) {
+                log.info("1: DTMF detection %c", dtmfSymbol1);
+            }
+
         }
         else if (uiMode == UIMode::UIMODE_SHELL) {
             if (c != 0) {

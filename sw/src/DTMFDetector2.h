@@ -24,6 +24,8 @@
 
 namespace kc1fsz {
 
+class Clock;
+
 /**
  * An instance of this class is needed because there is some state 
  * involved in capturing and de-bouncing the DTMF detection.
@@ -33,7 +35,7 @@ namespace kc1fsz {
 class DTMFDetector2 {
 public:
 
-    DTMFDetector2();
+    DTMFDetector2(Clock& clock);
 
     /**
      * @param block 256 input (8ms) samples in 32-bit signed PCM format.
@@ -98,6 +100,8 @@ private:
     enum State { INVALID, PRE_DSC, DSC, DSC_DROP } _state =
         State::INVALID;
 
+    Clock& _clock;
+
     // Set the RMS threshold in Q15 format, but squared so that it can be
     // compared to other powers.
     int16_t _signalThreshold;
@@ -115,6 +119,8 @@ private:
     bool _isDSC = false;
     // What was the detected symbol that we saw?
     char _detectedSymbol = 0;
+
+    uint32_t _lastVscTime = 0;
 };
 
 }
