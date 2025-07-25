@@ -122,7 +122,7 @@ void DTMFDetector2::processBlock(const float* block) {
         historyStart[i] = block[i] * 32767.0;
     // Run VSC detection on the last N3 (136) samples.
     const char vscSymbol = _detectVSC(_history, N3);
-    cout << "VSC Symbol " << (int)vscSymbol << " " << vscSymbol << endl;
+    //cout << "VSC Symbol " << (int)vscSymbol << " " << vscSymbol << endl;
 
     // The VSC->DSC transition requires some history.
     //
@@ -238,9 +238,9 @@ char DTMFDetector2::_detectVSC(int16_t* samples, uint32_t n) {
     int16_t powerRow[4], powerCol[4];
     for (unsigned k = 0; k < 4; k++) {
         powerRow[k] = computePower(samples, n, coeffRow[k]);
-        printf("Row %d %f\n", k, sqrt((float)powerRow[k] / 32767.0));
+        //printf("Row %d %f\n", k, sqrt((float)powerRow[k] / 32767.0));
         powerCol[k] = computePower(samples, n, coeffCol[k]);
-        printf("Col %d %f\n", k, sqrt((float)powerCol[k] / 32767.0));
+        //printf("Col %d %f\n", k, sqrt((float)powerCol[k] / 32767.0));
         if (powerRow[k] > 0 || powerCol[k] > 0)
             nonZeroFound = true;
     }
@@ -274,7 +274,7 @@ char DTMFDetector2::_detectVSC(int16_t* samples, uint32_t n) {
     int32_t combPower = maxRowPower + maxColPower;
     //printf("Combined %f\n", sqrt(combPower / 32767.0));
     if (combPower < (int32_t)_signalThreshold) {
-        cout << "Below threshold" << endl;
+        //cout << "Below threshold" << endl;
         return 0;
     }
 
@@ -292,7 +292,7 @@ char DTMFDetector2::_detectVSC(int16_t* samples, uint32_t n) {
         int16_t reverseTwistRatio = div2(maxColPower, maxRowPower);
         // INEQUALITY IS REVERSED BECAUSE WE ARE COMPARING 1/a to 1/b
         if (reverseTwistRatio < threshold8dB) {
-            cout << "Reverse twist problem" << endl;
+            //cout << "Reverse twist problem" << endl;
             return 0;
         }
     }
@@ -308,7 +308,7 @@ char DTMFDetector2::_detectVSC(int16_t* samples, uint32_t n) {
         //printf("Twist %f %f\n", maxRowPower / 32767.0, maxColPower / 32767.0);
         // INEQUALITY IS REVERSED BECAUSE WE ARE COMPARING 1/a to 1/b
         if (standardTwistRatio < threshold4dB) {
-            cout << "Standard twist problem" << endl;
+            //cout << "Standard twist problem" << endl;
             return 0;
         }
     }
@@ -321,14 +321,14 @@ char DTMFDetector2::_detectVSC(int16_t* samples, uint32_t n) {
         if (r != maxRow)
             // INEQUALITY IS REVERSED BECAUSE WE ARE COMPARING 1/a to 1/b
             if (div2(powerRow[r], maxRowPower) > threshold8dB) {
-                cout << "Row doesn't stand out" << endl;
+                //cout << "Row doesn't stand out" << endl;
                 return 0;
             }
     for (unsigned c = 0; c < 4; c++)
         if (c != maxCol)
             // INEQUALITY IS REVERSED BECAUSE WE ARE COMPARING 1/a to 1/b
             if (div2(powerCol[c], maxColPower) > threshold8dB) {
-                cout << "Col doesn't stand out" << endl;
+                //cout << "Col doesn't stand out" << endl;
                 return 0;
             }
 
@@ -342,13 +342,13 @@ char DTMFDetector2::_detectVSC(int16_t* samples, uint32_t n) {
     if (maxRowHarmonicPower != 0 && 
         ((maxRowHarmonicPower > maxRowPower) ||
          (div2(maxRowHarmonicPower, maxRowPower) > threshold20dB))) {
-        cout << "Row harmonic problem" << endl;
+        //cout << "Row harmonic problem" << endl;
         return 0;
     }
     if (maxColHarmonicPower != 0 && 
         ((maxColHarmonicPower > maxColPower) ||
         (div2(maxColHarmonicPower, maxColPower) < threshold20dB))) {
-        cout << "Col harmonic problem" << endl;
+        //cout << "Col harmonic problem" << endl;
         return 0;
     }
 
