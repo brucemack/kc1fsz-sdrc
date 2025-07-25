@@ -20,7 +20,9 @@
 #include <iostream>
 #include <cmath>
 #include <cstring>
+
 #include "DTMFDetector2.h"
+#include "AudioCore.h"
 
 using namespace std;
 
@@ -95,25 +97,32 @@ char DTMFDetector2::symbolGrid[4 * 4] = {
     '*', '0', '#', 'D'
 };
 
-DTMFDetector2::DTMFDetector2() {
+DTMFDetector2::DTMFDetector2() 
+:   _signalThreshold(std::pow(AudioCore::dbvToVrms(-30) * 32767.0, 2.0))
+{
     for (unsigned i = 0; i < N3; i++)
         _history[i] = 0;
 }
 
-void DTMFDetector2::processBlock(const int32_t* block) {  
+void DTMFDetector2::setSignalThreshold(float dbfs) { 
+    _signalThreshold = AudioCore::dbvToVrms(dbfs) * 32767.0; 
+}
+
+void DTMFDetector2::processBlock(const float* block) {  
 
     // Shift the history to the left. Areas are overlapping.
-    std::memmove((void*)_history, (const void*)(_history + N), N * 2 * sizeof(int16_t));
+    const unsigned preserve = N3 - N;
+    std::memmove((void*)_history, (const void*)(_history + N), preserve * sizeof(int16_t));
 
     // Convert to 16-bit PCM and place in the most recent section 
     // of the history buffer
-    int16_t* historyStart = &(_history[N * 2]);
+    int16_t* historyStart = &(_history[preserve]);
     for (unsigned i = 0; i < N; i++)
-        historyStart[i] = block[i] >> 16;
-
-    // Run VSC detection on the last 3x 8ms of samples.
+        // Convert to q15
+        historyStart[i] = block[i] * 32767.0;
+    // Run VSC detection on the last N3 (136) samples.
     const char vscSymbol = _detectVSC(_history, N3);
-    //cout << "VSC Symbol " << (int)vscSymbol << " " << vscSymbol << endl;
+    cout << "VSC Symbol " << (int)vscSymbol << " " << vscSymbol << endl;
 
     // The VSC->DSC transition requires some history.
     //
@@ -131,37 +140,35 @@ void DTMFDetector2::processBlock(const int32_t* block) {
         // of a gap to consider a new symbol detection.
         if (vscSymbol == 0)
             _invalidCount++;
-        // Check to see if we had enough of a gap to consider a new start.
-        // If so, register the start of a possible detection.
-        // 8ms x 3 = 24ms, close enough
-        else if (_invalidCount >= 3) {
-            _inVSC = true;
-            _potentialSymbol = vscSymbol;
-            _validCount = 1;
+        else {
+            // Look for the case where we are resuming a detection, 
+            // and get back on track.
+            if (vscSymbol == _potentialSymbol && _invalidCount <= 2) {
+                _inVSC = true;
+                _validCount += _invalidCount;
+            }
+            // Check to see if we had enough of a gap to consider a fresh start.
+            // If so, register the start of a possible detection.
+            else if (_invalidCount >= 5) {
+                _inVSC = true;
+                _potentialSymbol = vscSymbol;
+                _validCount = 1;
+                //NEED TO WORK ON MISMATCH SITUATION
+            }
         }
     }
     else {
-        // If the symbol just dropped 
-        if (vscSymbol == 0) {
-            // Check to see if it persisted long enough to be a detection.
-            // 8ms x 5 = 40ms
-            if (_validCount >= 5) {
-                _isDSC = true;
-                _detectedSymbol = _potentialSymbol;
-            }
-            // Regardless, go back to invalid state and start preparing to 
-            // detect a new symbol.
-            _inVSC = false;
-            _invalidCount = 1;
-        } 
         // If we're in a valid, persistent symbol keep incrementing
-        else if (vscSymbol == _potentialSymbol) {
+        if (vscSymbol == _potentialSymbol) {
             _validCount++;
         }
-        // Otherwise we got something bad, so drop back to invalid state.
-        else {
+        else if (vscSymbol == 0) {
             _inVSC = false;
             _invalidCount = 1;
+        }
+        // Look for the incompatible symbol
+        else {
+            _incompatibleCount++;
         }
     }
 }
@@ -231,9 +238,9 @@ char DTMFDetector2::_detectVSC(int16_t* samples, uint32_t n) {
     int16_t powerRow[4], powerCol[4];
     for (unsigned k = 0; k < 4; k++) {
         powerRow[k] = computePower(samples, n, coeffRow[k]);
-        //printf("Row %d %f\n", k, sqrt((float)powerRow[k] / 32767.0));
+        printf("Row %d %f\n", k, sqrt((float)powerRow[k] / 32767.0));
         powerCol[k] = computePower(samples, n, coeffCol[k]);
-        //printf("Col %d %f\n", k, sqrt((float)powerCol[k] / 32767.0));
+        printf("Col %d %f\n", k, sqrt((float)powerCol[k] / 32767.0));
         if (powerRow[k] > 0 || powerCol[k] > 0)
             nonZeroFound = true;
     }
@@ -267,7 +274,7 @@ char DTMFDetector2::_detectVSC(int16_t* samples, uint32_t n) {
     int32_t combPower = maxRowPower + maxColPower;
     //printf("Combined %f\n", sqrt(combPower / 32767.0));
     if (combPower < (int32_t)_signalThreshold) {
-        //cout << "Below threshold" << endl;
+        cout << "Below threshold" << endl;
         return 0;
     }
 
@@ -285,7 +292,7 @@ char DTMFDetector2::_detectVSC(int16_t* samples, uint32_t n) {
         int16_t reverseTwistRatio = div2(maxColPower, maxRowPower);
         // INEQUALITY IS REVERSED BECAUSE WE ARE COMPARING 1/a to 1/b
         if (reverseTwistRatio < threshold8dB) {
-            //cout << "Reverse twist problem" << endl;
+            cout << "Reverse twist problem" << endl;
             return 0;
         }
     }
@@ -301,7 +308,7 @@ char DTMFDetector2::_detectVSC(int16_t* samples, uint32_t n) {
         //printf("Twist %f %f\n", maxRowPower / 32767.0, maxColPower / 32767.0);
         // INEQUALITY IS REVERSED BECAUSE WE ARE COMPARING 1/a to 1/b
         if (standardTwistRatio < threshold4dB) {
-            //cout << "Standard twist problem" << endl;
+            cout << "Standard twist problem" << endl;
             return 0;
         }
     }
@@ -314,14 +321,14 @@ char DTMFDetector2::_detectVSC(int16_t* samples, uint32_t n) {
         if (r != maxRow)
             // INEQUALITY IS REVERSED BECAUSE WE ARE COMPARING 1/a to 1/b
             if (div2(powerRow[r], maxRowPower) > threshold8dB) {
-                //cout << "Row doesn't stand out" << endl;
+                cout << "Row doesn't stand out" << endl;
                 return 0;
             }
     for (unsigned c = 0; c < 4; c++)
         if (c != maxCol)
             // INEQUALITY IS REVERSED BECAUSE WE ARE COMPARING 1/a to 1/b
             if (div2(powerCol[c], maxColPower) > threshold8dB) {
-                //cout << "Col doesn't stand out" << endl;
+                cout << "Col doesn't stand out" << endl;
                 return 0;
             }
 
@@ -335,13 +342,13 @@ char DTMFDetector2::_detectVSC(int16_t* samples, uint32_t n) {
     if (maxRowHarmonicPower != 0 && 
         ((maxRowHarmonicPower > maxRowPower) ||
          (div2(maxRowHarmonicPower, maxRowPower) > threshold20dB))) {
-        //cout << "Row harmonic problem" << endl;
+        cout << "Row harmonic problem" << endl;
         return 0;
     }
     if (maxColHarmonicPower != 0 && 
         ((maxColHarmonicPower > maxColPower) ||
         (div2(maxColHarmonicPower, maxColPower) < threshold20dB))) {
-        //cout << "Col harmonic problem" << endl;
+        cout << "Col harmonic problem" << endl;
         return 0;
     }
 

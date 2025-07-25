@@ -25,6 +25,8 @@
 
 #include <arm_math.h>
 
+#include "DTMFDetector2.h"
+
 namespace kc1fsz {
 
 /**
@@ -318,6 +320,8 @@ private:
     // Injection runs at CODEC speed
     float _injectOmega = 2.0 * PI * _injectHz / (float)FS_ADC;
     float _injectPhi = 0;
+
+    DTMFDetector2 _dtmfDetector;
 };
 
 }

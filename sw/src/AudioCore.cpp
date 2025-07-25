@@ -153,9 +153,9 @@ void AudioCore::cycleRx(const int32_t* codec_in, float* cross_out) {
         float z0 = s + _gc * _gz1 - _gz2;
         _gz2 = _gz1;
         _gz1 = z0;
-
-        // TODO: DTMF decode   
     }
+
+    _dtmfDetector.processBlock(filtOutD);
 
     // Apply the delay to the final audio. 
     for (unsigned int i = 0; i < BLOCK_SIZE; i++) {

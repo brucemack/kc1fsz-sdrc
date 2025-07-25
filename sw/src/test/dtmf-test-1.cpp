@@ -20,7 +20,7 @@ int main(int,const char**) {
     DTMFDetector2 detector;
     float threshold = pow(10.0, (-30.0/20.0));
     printf("Vrms threshold %f\n", threshold);
-    detector.setSignalThreshold(-45);
+    detector.setSignalThreshold(-55);
 
     int32_t silence[N];
     for (unsigned int i = 0; i < N; i++) 
@@ -123,6 +123,63 @@ int main(int,const char**) {
 
         assert(detector.isDetectionPending());
         assert(detector.popDetection() == '4');
+        assert(!detector.isDetectionPending());
+    }
+
+    cout << "----- Test 1c (Two Symbols) ------" << endl;
+    {
+        // Make a test signal (48ms)
+        int32_t test1[N * 6];
+        for (unsigned int i = 0; i < N * 6; i++) {
+            // Two valid tones
+            float a = vp_target * cos((float)i * 2.0 * PI * 1209.0 / (float)FS);
+            float b = vp_target * cos((float)i * 2.0 * PI * 770.0 / (float)FS);
+            float t = a + b;
+            // Scale up to a int32 fixed 
+            test1[i] = 2147483648.0f * t;
+        }
+
+        detector.processBlock(silence);
+        detector.processBlock(silence);
+        detector.processBlock(silence);
+        detector.processBlock(test1);
+        detector.processBlock(test1 + N);
+        detector.processBlock(test1 + N * 2);
+        detector.processBlock(test1 + N * 3);
+        detector.processBlock(test1 + N * 4);
+        detector.processBlock(test1 + N * 5);
+
+        detector.processBlock(silence);
+        detector.processBlock(silence);
+        detector.processBlock(silence);
+
+        assert(detector.isDetectionPending());
+        assert(detector.popDetection() == '4');
+        assert(!detector.isDetectionPending());
+
+        for (unsigned int i = 0; i < N * 6; i++) {
+            // Two valid tones
+            float a = vp_target * cos((float)i * 2.0 * PI * 1209.0 / (float)FS);
+            float b = vp_target * cos((float)i * 2.0 * PI * 941.0 / (float)FS);
+            float t = a + b;
+            // Scale up to a int32 fixed 
+            test1[i] = 2147483648.0f * t;
+        }
+
+        // NOTE: Quite a bit of silence required here
+        detector.processBlock(silence);
+        detector.processBlock(test1);
+        detector.processBlock(test1 + N);
+        detector.processBlock(test1 + N * 2);
+        detector.processBlock(test1 + N * 3);
+        detector.processBlock(test1 + N * 4);
+        detector.processBlock(test1 + N * 5);
+        detector.processBlock(silence);
+        detector.processBlock(silence);
+        detector.processBlock(silence);
+
+        assert(detector.isDetectionPending());
+        assert(detector.popDetection() == '*');
         assert(!detector.isDetectionPending());
     }
 
