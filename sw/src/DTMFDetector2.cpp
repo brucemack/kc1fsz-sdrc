@@ -75,10 +75,6 @@ const int32_t DTMFDetector2::coeffCol[4] = {
 // This is 2 * cos(2 * PI * (2 * fk) / fs) for each of the frequencies.
 // Used for checking second-order harmonics.
 const int32_t DTMFDetector2::harmonicCoeffRow[4] = {
-    //15014 * 2,
-    //11583 * 2,
-    // 7549 * 2,
-    // 3032 * 2
     (int32_t)(2.0 * std::cos(2.0 * PI * freqRow[0] * 2.0 / FS) * 32767.0),
     (int32_t)(2.0 * std::cos(2.0 * PI * freqRow[1] * 2.0 / FS) * 32767.0),
     (int32_t)(2.0 * std::cos(2.0 * PI * freqRow[2] * 2.0 / FS) * 32767.0),
@@ -88,10 +84,6 @@ const int32_t DTMFDetector2::harmonicCoeffRow[4] = {
 // This is 2 * cos(2 * PI * (2 * fk) / fs) for each of the frequencies.
 // Used for checking second-order harmonics.
 const int32_t DTMFDetector2::harmonicCoeffCol[4] = {
-   //-10565 * 2,
-   //-16503 * 2,
-   //-22318 * 2,
-   //-27472 * 2
     (int32_t)(2.0 * std::cos(2.0 * PI * freqCol[0] * 2.0 / FS) * 32767.0),
     (int32_t)(2.0 * std::cos(2.0 * PI * freqCol[1] * 2.0 / FS) * 32767.0),
     (int32_t)(2.0 * std::cos(2.0 * PI * freqCol[2] * 2.0 / FS) * 32767.0),
@@ -264,9 +256,9 @@ static int16_t computePower(int16_t* samples, uint32_t n, int32_t coeff) {
     // Remove the extra 32767 (squared, because this is power)
     // Re-introduce the factor (squared, because this is power)
     // ORGINAL
-    r >>= (15 + 15 - (sampleShift + sampleShift));
+    //r >>= (15 + 15 - (sampleShift + sampleShift));
     // TODO: FIGURE OUT THIS EXTRA FACTOR OF TWO
-    //r >>= (14 + 15 - (sampleShift + sampleShift));
+    r >>= (14 + 15 - (sampleShift + sampleShift));
     return (int16_t)r;
 }
 
@@ -389,9 +381,10 @@ char DTMFDetector2::_detectVSC(int16_t* samples, uint32_t n) {
         //cout << "Row harmonic problem" << endl;
         return 0;
     }
+
     if (maxColHarmonicPower != 0 && 
         ((maxColHarmonicPower > maxColPower) ||
-        (div2(maxColHarmonicPower, maxColPower) < threshold20dB))) {
+        (div2(maxColHarmonicPower, maxColPower) > threshold20dB))) {
         //cout << "Col harmonic problem" << endl;
         return 0;
     }

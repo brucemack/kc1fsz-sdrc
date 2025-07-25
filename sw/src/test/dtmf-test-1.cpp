@@ -75,8 +75,8 @@ int main(int,const char**) {
     float vp_target = vrms_target * (1.0/0.707);
     printf("Vp target %f\n", vp_target);
 
-    cout << "----- Test 1 ------" << endl;
     {
+        cout << "----- Test 1 ------" << endl;
         // Make a test signal (48ms)
         float test1[N * 6];
         for (unsigned int i = 0; i < N * 6; i++) {
@@ -205,11 +205,11 @@ int main(int,const char**) {
             float a = vp_target * cos((float)i * 2.0 * PI * 1209.0 / (float)FS);
             float b = vp_target * cos((float)i * 2.0 * PI * 941.0 / (float)FS);
             float t = a + b;
-            // Scale up to a int32 fixed 
             test1[i] = t;
         }
         addWhiteNoise(test1, N * 6, noise);
 
+        detector.processBlock(silence);
         detector.processBlock(silence);
         detector.processBlock(silence);
         detector.processBlock(silence);
@@ -366,6 +366,68 @@ int main(int,const char**) {
         // No new detection
         assert(!detector.isDetectionPending());
     }
+
+    {
+        cout << "----- Test 6a (Excessive harmonic) ------" << endl;
+        // Make a test signal (48ms)
+        float test1[N * 6];
+        for (unsigned int i = 0; i < N * 6; i++) {
+            // Two valid tones
+            float a = vp_target * cos((float)i * 2.0 * PI * 1209.0 / (float)FS);
+            float a2 = vp_target * cos((float)i * 2.0 * PI * 1209.0 * 2.0 / (float)FS);
+            float b = vp_target * cos((float)i * 2.0 * PI * 770.0 / (float)FS);
+            float t = a + a2 + b;
+            test1[i] = t;
+        }
+        addWhiteNoise(test1, N * 6, noise);
+
+        // 40ms silence then 40ms tone (valid DSC)
+        detector.processBlock(silence);
+        detector.processBlock(silence);
+        detector.processBlock(silence);
+        detector.processBlock(silence);
+        detector.processBlock(silence);
+        detector.processBlock(test1);
+        detector.processBlock(test1 + N);
+        detector.processBlock(test1 + N * 2);
+        detector.processBlock(test1 + N * 3);
+        detector.processBlock(test1 + N * 4);
+        detector.processBlock(test1 + N * 5);
+
+        assert(!detector.isDetectionPending());
+    }
+    
+    {
+        cout << "----- Test 6b (Acceptable harmonic) ------" << endl;
+        // Make a test signal (48ms)
+        float test1[N * 6];
+        for (unsigned int i = 0; i < N * 6; i++) {
+            float a = vp_target * cos((float)i * 2.0 * PI * 1209.0 / (float)FS);
+            float a2 = vp_target * 0.08 * cos((float)i * 2.0 * PI * 1209.0 * 2.0 / (float)FS);
+            float b = vp_target * cos((float)i * 2.0 * PI * 770.0 / (float)FS);
+            float t = a + a2 + b;
+            test1[i] = t;
+        }
+        addWhiteNoise(test1, N * 6, noise);
+
+        // 40ms silence then 40ms tone (valid DSC)
+        detector.processBlock(silence);
+        detector.processBlock(silence);
+        detector.processBlock(silence);
+        detector.processBlock(silence);
+        detector.processBlock(silence);
+        detector.processBlock(test1);
+        detector.processBlock(test1 + N);
+        detector.processBlock(test1 + N * 2);
+        detector.processBlock(test1 + N * 3);
+        detector.processBlock(test1 + N * 4);
+        detector.processBlock(test1 + N * 5);
+
+        assert(detector.isDetectionPending());
+        assert(detector.popDetection() == '4');
+        assert(!detector.isDetectionPending());
+    }
+
 
     return 0;
 }
