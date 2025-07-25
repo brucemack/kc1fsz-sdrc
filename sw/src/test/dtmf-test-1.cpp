@@ -1,42 +1,44 @@
-/*
-A unit test of the DTMF detector
-*/
+/**
+ * Software Defined Repeater Controller
+ * Copyright (C) 2025, Bruce MacKinnon KC1FSZ
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ *
+ * NOT FOR COMMERCIAL USE WITHOUT PERMISSION.
+ */
+
+ /*
+ Extensive unit testing for the soft DTMF decoder.
+ */
 #include <iostream>
 #include <cmath>
 #include <cassert>
 #include <random>
 
 #include <arm_math.h>
+
+#include "TestClock.h"
 #include "DTMFDetector2.h"
 
 using namespace std;
 using namespace kc1fsz;
 
-/*
-// Function to generate a block of white noise samples
-// NOTE: If the mean of the noise is zero, RMS noise and standard deviation 
-// are equivalent! 
-//
-static void generateWhiteNoise(unsigned int numSamples, double amplitude, float* out) {
-    float std = sqrt(pow(2, 2 * amplitude) / 12);
-    cout << "STD " << std << endl;
-    // Obtain a random number from hardware
-    std::random_device rd;
-    // Seed the generator
-    std::mt19937 gen(rd()); 
-    std::uniform_real_distribution<> distrib(-amplitude, amplitude);
-    for (unsigned int i = 0; i < numSamples; ++i)
-        out[i] = distrib(gen);
-}
-        */
-
 static void addWhiteNoise(float* out, unsigned n, float std) {
     // Obtain a random number from hardware
     std::random_device rd;
-    std::default_random_engine gen(rd()); 
     // Seed the generator
-    //std::mt19937 gen(rd()); 
-    //std::uniform_real_distribution<> distrib(-amp, amp);
+    std::default_random_engine gen(rd()); 
     // Create a normal distribution object with a mean of 0 and the desired standard deviation
     std::normal_distribution<double> distrib(0.0, std);
 
@@ -55,7 +57,8 @@ int main(int,const char**) {
     printf("Noise STD %f\n", noise);
     printf("Vrms detection threshold %f\n", thresholdLinear);
 
-    DTMFDetector2 detector;
+    TestClock clock;
+    DTMFDetector2 detector(clock);
     detector.setSignalThreshold(threshold);
 
     float silence[N];
@@ -486,6 +489,34 @@ int main(int,const char**) {
         assert(!detector.isDetectionPending());
         //assert(detector.popDetection() == '4');
         //assert(!detector.isDetectionPending());
+    }
+
+    {
+        cout << "----- Test 7 (Signal Too Low) ------" << endl;
+        float test1[N * 6];
+        for (unsigned int i = 0; i < N * 6; i++) {
+            // Two valid tones
+            float a = vp_target * 0.05 * cos((float)i * 2.0 * PI * 1209.0 / (float)FS);
+            float b = vp_target * 0.05 * cos((float)i * 2.0 * PI * 770.0 / (float)FS);
+            float t = a + b;
+            test1[i] = t;
+        }
+        addWhiteNoise(test1, N * 6, noise);
+
+        // 40ms silence then 40ms tone (valid DSC)
+        detector.processBlock(silence);
+        detector.processBlock(silence);
+        detector.processBlock(silence);
+        detector.processBlock(silence);
+        detector.processBlock(silence);
+        detector.processBlock(test1);
+        detector.processBlock(test1 + N);
+        detector.processBlock(test1 + N * 2);
+        detector.processBlock(test1 + N * 3);
+        detector.processBlock(test1 + N * 4);
+        detector.processBlock(test1 + N * 5);
+
+        assert(!detector.isDetectionPending());
     }
 
     return 0;
