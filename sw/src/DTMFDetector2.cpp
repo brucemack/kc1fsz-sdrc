@@ -122,7 +122,7 @@ void DTMFDetector2::processBlock(const float* block) {
         historyStart[i] = block[i] * 32767.0;
     // Run VSC detection on the last N3 (136) samples.
     const char vscSymbol = _detectVSC(_history, N3);
-    cout << "VSC Symbol " << (int)vscSymbol << " " << vscSymbol << endl;
+    //cout << "VSC Symbol " << (int)vscSymbol << " " << vscSymbol << endl;
 
     // The VSC->DSC transition requires some history.
     //
