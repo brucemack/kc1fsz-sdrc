@@ -197,7 +197,7 @@ void DTMFDetector2::processBlock(const float* block) {
         // the threshold in the specification but we're using
         // 24ms here.
         else {
-            if (++_dropCount >= THR_BLOCKS_20MS) {
+            if (++_dropCount > THR_BLOCKS_20MS) {
                 _state = State::INVALID;
                 _potentialSymbol = 0;
             }

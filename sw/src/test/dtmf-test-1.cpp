@@ -56,8 +56,6 @@ int main(int,const char**) {
         detector.processBlock(test1 + N * 3);
         detector.processBlock(test1 + N * 4);
         detector.processBlock(test1 + N * 5);
-        //detector.processBlock(silence);
-        //detector.processBlock(silence);
 
         assert(detector.isDetectionPending());
         assert(detector.popDetection() == '4');
@@ -65,7 +63,7 @@ int main(int,const char**) {
     }
 
     {
-        cout << "----- Test 1a (Twist. col > row) ------" << endl;
+        cout << "----- Test 1a (Unacceptable twist col > row) ------" << endl;
         // Make a test signal (48ms)
         float test1[N * 6];
         for (unsigned int i = 0; i < N * 6; i++) {
@@ -78,7 +76,8 @@ int main(int,const char**) {
             test1[i] = t;
         }
 
-        // 40ms tone w/ 40ms silence (valid DSC)
+        detector.processBlock(silence);
+        detector.processBlock(silence);
         detector.processBlock(silence);
         detector.processBlock(silence);
         detector.processBlock(silence);
@@ -88,14 +87,12 @@ int main(int,const char**) {
         detector.processBlock(test1 + N * 3);
         detector.processBlock(test1 + N * 4);
         detector.processBlock(test1 + N * 5);
-        detector.processBlock(silence);
-        detector.processBlock(silence);
 
         assert(!detector.isDetectionPending());
     }
 
     {
-        cout << "----- Test 1b (Acceptable twist: col > row) ------" << endl;
+        cout << "----- Test 1b (Acceptable twist, col > row) ------" << endl;
         // Make a test signal (48ms)
         float test1[N * 6];
         for (unsigned int i = 0; i < N * 6; i++) {
@@ -113,14 +110,14 @@ int main(int,const char**) {
         detector.processBlock(silence);
         detector.processBlock(silence);
         detector.processBlock(silence);
+        detector.processBlock(silence);
+        detector.processBlock(silence);
         detector.processBlock(test1);
         detector.processBlock(test1 + N);
         detector.processBlock(test1 + N * 2);
         detector.processBlock(test1 + N * 3);
         detector.processBlock(test1 + N * 4);
         detector.processBlock(test1 + N * 5);
-        detector.processBlock(silence);
-        detector.processBlock(silence);
 
         assert(detector.isDetectionPending());
         assert(detector.popDetection() == '4');
@@ -143,16 +140,14 @@ int main(int,const char**) {
         detector.processBlock(silence);
         detector.processBlock(silence);
         detector.processBlock(silence);
+        detector.processBlock(silence);
+        detector.processBlock(silence);
         detector.processBlock(test1);
         detector.processBlock(test1 + N);
         detector.processBlock(test1 + N * 2);
         detector.processBlock(test1 + N * 3);
         detector.processBlock(test1 + N * 4);
         detector.processBlock(test1 + N * 5);
-
-        detector.processBlock(silence);
-        detector.processBlock(silence);
-        detector.processBlock(silence);
 
         assert(detector.isDetectionPending());
         assert(detector.popDetection() == '4');
@@ -167,17 +162,18 @@ int main(int,const char**) {
             test1[i] = t;
         }
 
-        // NOTE: Quite a bit of silence required here
         detector.processBlock(silence);
+        detector.processBlock(silence);
+        detector.processBlock(silence);
+        detector.processBlock(silence);
+        detector.processBlock(silence);
+
         detector.processBlock(test1);
         detector.processBlock(test1 + N);
         detector.processBlock(test1 + N * 2);
         detector.processBlock(test1 + N * 3);
         detector.processBlock(test1 + N * 4);
         detector.processBlock(test1 + N * 5);
-        detector.processBlock(silence);
-        detector.processBlock(silence);
-        detector.processBlock(silence);
 
         assert(detector.isDetectionPending());
         assert(detector.popDetection() == '*');
@@ -185,7 +181,7 @@ int main(int,const char**) {
     }
 
     {
-        cout << "----- Test 2 ------" << endl;
+        cout << "----- Test 2 (Bad freq) ------" << endl;
         // Make a bogus signal (48ms)
         float testBad[N * 6];
         for (unsigned int i = 0; i < N * 6; i++) {
@@ -201,21 +197,22 @@ int main(int,const char**) {
         // 40ms bad tone w/ 40ms silence (not valid DSC)
         detector.processBlock(silence);
         detector.processBlock(silence);
+        detector.processBlock(silence);
+        detector.processBlock(silence);
+        detector.processBlock(silence);
+
         detector.processBlock(testBad);
         detector.processBlock(testBad + N);
         detector.processBlock(testBad + N * 2);
         detector.processBlock(testBad + N * 3);
         detector.processBlock(testBad + N * 4);
         detector.processBlock(testBad + N * 5);
-        detector.processBlock(silence);
-        detector.processBlock(silence);
 
         assert(!detector.isDetectionPending());
     }
 
     {
-        cout << "----- Test 3 ------" << endl;
-        // Make a test signal (48ms)
+        cout << "----- Test 3 (Too short) ------" << endl;
         float test1[N * 6];
         for (unsigned int i = 0; i < N * 6; i++) {
             // Two valid tones
@@ -230,9 +227,12 @@ int main(int,const char**) {
         detector.processBlock(silence);
         detector.processBlock(silence);
         detector.processBlock(silence);
+        detector.processBlock(silence);
+        detector.processBlock(silence);
         detector.processBlock(test1);
         detector.processBlock(test1 + N);
         detector.processBlock(test1 + 2 * N);
+        detector.processBlock(silence);
         detector.processBlock(silence);
         detector.processBlock(silence);
 
@@ -240,15 +240,13 @@ int main(int,const char**) {
     }
 
     {
-        cout << "----- Test 4 ------" << endl;
-        // Make a test signal (48ms)
+        cout << "----- Test 4 (Tone with break) ------" << endl;
         float test1[N * 6];
         for (unsigned int i = 0; i < N * 6; i++) {
             // Two valid tones
             float a = vp_target * cos((float)i * 2.0 * PI * 1209.0 / (float)FS);
             float b = vp_target * cos((float)i * 2.0 * PI * 770.0 / (float)FS);
             float t = a + b;
-            // Scale up to a int32 fixed 
             test1[i] = t;
         }
 
@@ -256,6 +254,9 @@ int main(int,const char**) {
         detector.processBlock(silence);
         detector.processBlock(silence);
         detector.processBlock(silence);
+        detector.processBlock(silence);
+        detector.processBlock(silence);
+
         detector.processBlock(test1);
         detector.processBlock(test1 + N);
         detector.processBlock(test1 + 2 * N);
@@ -266,6 +267,51 @@ int main(int,const char**) {
         detector.processBlock(silence);
         detector.processBlock(silence);
 
+        assert(!detector.isDetectionPending());
+    }
+
+    {
+        cout << "----- Test 5 (Valid tone with break) ------" << endl;
+        float test1[N * 6];
+        for (unsigned int i = 0; i < N * 6; i++) {
+            // Two valid tones
+            float a = vp_target * cos((float)i * 2.0 * PI * 1209.0 / (float)FS);
+            float b = vp_target * cos((float)i * 2.0 * PI * 770.0 / (float)FS);
+            float t = a + b;
+            test1[i] = t;
+        }
+
+        // Long tone with a break in the middle
+        detector.processBlock(silence);
+        detector.processBlock(silence);
+        detector.processBlock(silence);
+        detector.processBlock(silence);
+        detector.processBlock(silence);
+
+        detector.processBlock(test1);
+        detector.processBlock(test1 + N);
+        detector.processBlock(test1 + 2 * N);
+        detector.processBlock(test1 + 3 * N);
+        detector.processBlock(test1 + 4 * N);
+        detector.processBlock(test1 + 5 * N);
+        // Pick up the detection
+        assert(detector.isDetectionPending());
+        assert(detector.popDetection() == '4');
+
+        // Short gap
+        detector.processBlock(silence);
+
+        // Keep going
+        detector.processBlock(test1);
+        detector.processBlock(test1 + N);
+        detector.processBlock(test1 + 2 * N);
+        detector.processBlock(test1 + 3 * N);
+        detector.processBlock(test1 + 4 * N);
+        detector.processBlock(test1 + 5 * N);
+        detector.processBlock(test1);
+        detector.processBlock(test1 + N);
+
+        // No new detection
         assert(!detector.isDetectionPending());
     }
 
