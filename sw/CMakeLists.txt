@@ -97,6 +97,7 @@ add_executable(main
   src/i2s.pio
   src/main.cpp
   src/AudioCore.cpp
+  src/DTMFDetector2.cpp
   src/Config.cpp
   src/ShellCommand.cpp
   src/Tx.cpp
