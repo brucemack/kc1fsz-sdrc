@@ -153,7 +153,7 @@ public:
     
     float getAgcGain () const { return _agcGain; }
 
-    static float db(float l) {
+    static constexpr float db(float l) {
         if (l < 0.001)
             return -99.0;
         return 20.0 * log10(l);
@@ -162,7 +162,7 @@ public:
     /**
      * Example for sanity: 0 dBv is 1 Vpp, which is 0.5 Vp, which is 0.3535 Vrms.
      */
-    static float dbvToVrms(float dbv) {
+    static constexpr float dbvToVrms(float dbv) {
         float vpp = pow(10, (dbv / 20));
         float vp = vpp / 2.0;
         return vp * 0.707;
@@ -172,7 +172,7 @@ public:
      * Example for sanity: (0.3535 Vrms / 0.707) is 0.5 Vp. 
      * 0.5 Vp * 2.0 is 1.0 Vpp. 20 * log10(1.0) is 0 dBv.
      */
-    static float vrmsToDbv(float vrms) {
+    static constexpr float vrmsToDbv(float vrms) {
         float vpp = (vrms / 0.707) * 2.0;
         // Standard conversion from Vrms to Vpp
         return db(vpp);

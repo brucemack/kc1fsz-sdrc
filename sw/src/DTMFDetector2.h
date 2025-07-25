@@ -68,17 +68,20 @@ private:
     */
     char _detectVSC(int16_t* samples, uint32_t N);
 
+    static constexpr int16_t freqRow[4] = { 697, 770, 852, 941 };
     // This is 2 * cos(2 * PI * fk / fs) for each of the 8 frequencies
-    static int32_t coeffRow[4];
+    static const int32_t coeffRow[4];
+    static constexpr int16_t freqCol[4] = { 1209, 1336, 1477, 1633 };
     // This is 2 * cos(2 * PI * fk / fs) for each of the 8 frequencies
-    static int32_t coeffCol[4];
+    static const int32_t coeffCol[4];
     // This is 2 * cos(2 * PI * (2 * fk) / fs) for each of the 8 frequencies.
     // Used for checking second-order harmonics.
-    static int32_t harmonicCoeffRow[4];
+    static const int32_t harmonicCoeffRow[4];
     // This is 2 * cos(2 * PI * (2 * fk) / fs) for each of the 8 frequencies.
     // Used for checking second-order harmonics.
-    static int32_t harmonicCoeffCol[4];
-    static char symbolGrid[4 * 4];
+    static const int32_t harmonicCoeffCol[4];
+    
+    static const char symbolGrid[4 * 4];
 
     static const unsigned FS = 8000;
     static const unsigned N = 64;

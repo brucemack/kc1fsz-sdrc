@@ -56,41 +56,49 @@ static int16_t div2(int16_t var1, int16_t var2) {
     }
 }
 
-// This is 2 * cos(2 * PI * fk / fs) for each of the 8 frequencies
-int32_t DTMFDetector2::coeffRow[4] = {
-    27980 * 2,
-    26956 * 2,
-    25701 * 2,
-    24219 * 2
+// This is 2 * cos(2 * PI * fk / fs) for each of the frequencies
+const int32_t DTMFDetector2::coeffRow[4] = {
+    (int32_t)(2.0 * std::cos(2.0 * PI * freqRow[0] / FS) * 32767.0),
+    (int32_t)(2.0 * std::cos(2.0 * PI * freqRow[1] / FS) * 32767.0),
+    (int32_t)(2.0 * std::cos(2.0 * PI * freqRow[2] / FS) * 32767.0),
+    (int32_t)(2.0 * std::cos(2.0 * PI * freqRow[3] / FS) * 32767.0),
  };
 
- // This is 2 * cos(2 * PI * fk / fs) for each of the 8 frequencies
-int32_t DTMFDetector2::coeffCol[4] = {
-    19261 * 2,
-    16525 * 2,
-    13297 * 2,
-     9537 * 2
+ // This is 2 * cos(2 * PI * fk / fs) for each of the frequencies
+const int32_t DTMFDetector2::coeffCol[4] = {
+    (int32_t)(2.0 * std::cos(2.0 * PI * freqCol[0] / FS) * 32767.0),
+    (int32_t)(2.0 * std::cos(2.0 * PI * freqCol[1] / FS) * 32767.0),
+    (int32_t)(2.0 * std::cos(2.0 * PI * freqCol[2] / FS) * 32767.0),
+    (int32_t)(2.0 * std::cos(2.0 * PI * freqCol[3] / FS) * 32767.0),
  };
 
-// This is 2 * cos(2 * PI * (2 * fk) / fs) for each of the 8 frequencies.
+// This is 2 * cos(2 * PI * (2 * fk) / fs) for each of the frequencies.
 // Used for checking second-order harmonics.
-int32_t DTMFDetector2::harmonicCoeffRow[4] = {
-    15014 * 2,
-    11583 * 2,
-     7549 * 2,
-     3032 * 2
+const int32_t DTMFDetector2::harmonicCoeffRow[4] = {
+    //15014 * 2,
+    //11583 * 2,
+    // 7549 * 2,
+    // 3032 * 2
+    (int32_t)(2.0 * std::cos(2.0 * PI * freqRow[0] * 2.0 / FS) * 32767.0),
+    (int32_t)(2.0 * std::cos(2.0 * PI * freqRow[1] * 2.0 / FS) * 32767.0),
+    (int32_t)(2.0 * std::cos(2.0 * PI * freqRow[2] * 2.0 / FS) * 32767.0),
+    (int32_t)(2.0 * std::cos(2.0 * PI * freqRow[3] * 2.0 / FS) * 32767.0),
  };
 
- // This is 2 * cos(2 * PI * (2 * fk) / fs) for each of the 8 frequencies.
+// This is 2 * cos(2 * PI * (2 * fk) / fs) for each of the frequencies.
 // Used for checking second-order harmonics.
-int32_t DTMFDetector2::harmonicCoeffCol[4] = {
-   -10565 * 2,
-   -16503 * 2,
-   -22318 * 2,
-   -27472 * 2
+const int32_t DTMFDetector2::harmonicCoeffCol[4] = {
+   //-10565 * 2,
+   //-16503 * 2,
+   //-22318 * 2,
+   //-27472 * 2
+    (int32_t)(2.0 * std::cos(2.0 * PI * freqCol[0] * 2.0 / FS) * 32767.0),
+    (int32_t)(2.0 * std::cos(2.0 * PI * freqCol[1] * 2.0 / FS) * 32767.0),
+    (int32_t)(2.0 * std::cos(2.0 * PI * freqCol[2] * 2.0 / FS) * 32767.0),
+    (int32_t)(2.0 * std::cos(2.0 * PI * freqCol[3] * 2.0 / FS) * 32767.0),
  };
 
-char DTMFDetector2::symbolGrid[4 * 4] = {
+const char DTMFDetector2::symbolGrid[4 * 4] = {
     '1', '2', '3', 'A',
     '4', '5', '6', 'B',
     '7', '8', '9', 'C',
@@ -98,14 +106,14 @@ char DTMFDetector2::symbolGrid[4 * 4] = {
 };
 
 DTMFDetector2::DTMFDetector2() 
-:   _signalThreshold(std::pow(AudioCore::dbvToVrms(-30) * 32767.0, 2.0))
+:   _signalThreshold(std::pow(AudioCore::dbvToVrms(-30), 2.0) * 32767.0)
 {
     for (unsigned i = 0; i < N3; i++)
         _history[i] = 0;
 }
 
 void DTMFDetector2::setSignalThreshold(float dbfs) { 
-    _signalThreshold = AudioCore::dbvToVrms(dbfs) * 32767.0; 
+    _signalThreshold = pow(AudioCore::dbvToVrms(dbfs), 2.0) * 32767.0; 
 }
 
 void DTMFDetector2::processBlock(const float* block) {  
@@ -256,9 +264,9 @@ static int16_t computePower(int16_t* samples, uint32_t n, int32_t coeff) {
     // Remove the extra 32767 (squared, because this is power)
     // Re-introduce the factor (squared, because this is power)
     // ORGINAL
-    //r >>= (15 + 15 - (sampleShift + sampleShift));
+    r >>= (15 + 15 - (sampleShift + sampleShift));
     // TODO: FIGURE OUT THIS EXTRA FACTOR OF TWO
-    r >>= (14 + 15 - (sampleShift + sampleShift));
+    //r >>= (14 + 15 - (sampleShift + sampleShift));
     return (int16_t)r;
 }
 
@@ -298,6 +306,14 @@ char DTMFDetector2::_detectVSC(int16_t* samples, uint32_t n) {
             maxCol = c;
         }
     }
+
+    // Compute the power for the harmonic frequency of the potential
+    // for each band. Note that this is "early" given that the data
+    // isn't used until later, but we want to make the run-time for 
+    // each processing cycle reasonably consistent/worse-case, so this
+    // step gets moved early.
+    int16_t maxRowHarmonicPower = computePower(samples, n, harmonicCoeffRow[maxRow]);
+    int16_t maxColHarmonicPower = computePower(samples, n, harmonicCoeffCol[maxCol]);
 
     // Per TI app note: "the sum of row and column peak provides a better
     // parameter for signal strength than separate row and column checks."
@@ -363,10 +379,6 @@ char DTMFDetector2::_detectVSC(int16_t* samples, uint32_t n) {
                 //cout << "Col doesn't stand out" << endl;
                 return 0;
             }
-
-    // If we're still alive here then compute the harmonic for the row and column
-    int16_t maxRowHarmonicPower = computePower(samples, n, harmonicCoeffRow[maxRow]);
-    int16_t maxColHarmonicPower = computePower(samples, n, harmonicCoeffCol[maxCol]);
 
     // Make sure the harmonics are -20dB down from the fundamentals
     // NOTE: Threshold is shifted down to avoid overflow
