@@ -56,6 +56,22 @@ target_include_directories(dtmf-test-1 PRIVATE
 target_compile_options(dtmf-test-1 PRIVATE -fstack-protector-all -Wall -Wpedantic -g)
 target_include_directories(dtmf-test-1 PRIVATE kc1fsz-tools-cpp/include)
 
+add_executable(cmd-test-1
+  src/test/cmd-test-1.cpp
+  src/CommandProcessor.cpp
+  src/DTMFDetector2.cpp
+  kc1fsz-tools-cpp/src/Common.cpp
+  gsm-0610-codec/src/fixed_math.cpp
+) 
+target_include_directories(cmd-test-1 PRIVATE
+  src
+  cmsis-dsp-mock/include
+  radlib
+  kc1fsz-tools-cpp/include
+)
+target_compile_options(cmd-test-1 PRIVATE -fstack-protector-all -Wall -Wpedantic -g)
+target_include_directories(cmd-test-1 PRIVATE kc1fsz-tools-cpp/include)
+
 # ===== PICO EXECUTABLES =====================================================
 else()
 

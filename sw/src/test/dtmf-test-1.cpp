@@ -487,23 +487,18 @@ int main(int,const char**) {
         detector.processBlock(test1 + N * 5);
 
         assert(!detector.isDetectionPending());
-        //assert(detector.popDetection() == '4');
-        //assert(!detector.isDetectionPending());
     }
 
     {
         cout << "----- Test 7 (Signal Too Low) ------" << endl;
         float test1[N * 6];
         for (unsigned int i = 0; i < N * 6; i++) {
-            // Two valid tones
             float a = vp_target * 0.05 * cos((float)i * 2.0 * PI * 1209.0 / (float)FS);
             float b = vp_target * 0.05 * cos((float)i * 2.0 * PI * 770.0 / (float)FS);
-            float t = a + b;
-            test1[i] = t;
+            test1[i] = a + b;
         }
         addWhiteNoise(test1, N * 6, noise);
 
-        // 40ms silence then 40ms tone (valid DSC)
         detector.processBlock(silence);
         detector.processBlock(silence);
         detector.processBlock(silence);
