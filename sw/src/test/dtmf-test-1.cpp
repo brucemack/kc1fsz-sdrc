@@ -4,6 +4,7 @@ A unit test of the DTMF detector
 #include <iostream>
 #include <cmath>
 #include <cassert>
+#include <random>
 
 #include <arm_math.h>
 #include "DTMFDetector2.h"
@@ -11,21 +12,63 @@ A unit test of the DTMF detector
 using namespace std;
 using namespace kc1fsz;
 
-//static const float PI = 3.1415926;
+/*
+// Function to generate a block of white noise samples
+// NOTE: If the mean of the noise is zero, RMS noise and standard deviation 
+// are equivalent! 
+//
+static void generateWhiteNoise(unsigned int numSamples, double amplitude, float* out) {
+    float std = sqrt(pow(2, 2 * amplitude) / 12);
+    cout << "STD " << std << endl;
+    // Obtain a random number from hardware
+    std::random_device rd;
+    // Seed the generator
+    std::mt19937 gen(rd()); 
+    std::uniform_real_distribution<> distrib(-amplitude, amplitude);
+    for (unsigned int i = 0; i < numSamples; ++i)
+        out[i] = distrib(gen);
+}
+        */
+
+static void addWhiteNoise(float* out, unsigned n, float std) {
+    // Obtain a random number from hardware
+    std::random_device rd;
+    std::default_random_engine gen(rd()); 
+    // Seed the generator
+    //std::mt19937 gen(rd()); 
+    //std::uniform_real_distribution<> distrib(-amp, amp);
+    // Create a normal distribution object with a mean of 0 and the desired standard deviation
+    std::normal_distribution<double> distrib(0.0, std);
+
+    for (unsigned int i = 0; i < n; i++)
+        out[i] += distrib(gen);
+}
 
 int main(int,const char**) {
 
     const unsigned FS = 8000;
     const unsigned N = 64;
+    const float noise = 0.01;
+    const float threshold = -55;
+    const float thresholdLinear = pow(10.0, (threshold/20.0));
+
+    printf("Noise STD %f\n", noise);
+    printf("Vrms detection threshold %f\n", thresholdLinear);
 
     DTMFDetector2 detector;
-    float threshold = pow(10.0, (-30.0/20.0));
-    printf("Vrms threshold %f\n", threshold);
-    detector.setSignalThreshold(-55);
+    detector.setSignalThreshold(threshold);
 
     float silence[N];
     for (unsigned int i = 0; i < N; i++) 
         silence[i] = 0;
+    addWhiteNoise(silence, N, noise);
+    // Compute the RMS of the silence
+    float rt = 0;
+    for (unsigned int i = 0; i < N; i++) 
+        rt += silence[i] * silence[i];
+    rt = sqrt(rt);
+    printf("Silence Vrms %f\n", rt);
+    printf("Silence Vrms**s %f\n", rt * rt);
 
     float vrms_target = pow(10.0, (-20.0/20.0));
     printf("Vrms target %f\n", vrms_target);
@@ -43,6 +86,7 @@ int main(int,const char**) {
             float t = a + b;
             test1[i] = t;
         }
+        addWhiteNoise(test1, N * 6, noise);
 
         // 40ms silence then 40ms tone (valid DSC)
         detector.processBlock(silence);
@@ -75,6 +119,7 @@ int main(int,const char**) {
             float t = a + b;
             test1[i] = t;
         }
+        addWhiteNoise(test1, N * 6, noise);
 
         detector.processBlock(silence);
         detector.processBlock(silence);
@@ -105,6 +150,7 @@ int main(int,const char**) {
             // Scale up to a int32 fixed 
             test1[i] = t;
         }
+        addWhiteNoise(test1, N * 6, noise);
 
         // 40ms tone w/ 40ms silence (valid DSC)
         detector.processBlock(silence);
@@ -136,6 +182,7 @@ int main(int,const char**) {
             // Scale up to a int32 fixed 
             test1[i] = t;
         }
+        addWhiteNoise(test1, N * 6, noise);
 
         detector.processBlock(silence);
         detector.processBlock(silence);
@@ -161,6 +208,7 @@ int main(int,const char**) {
             // Scale up to a int32 fixed 
             test1[i] = t;
         }
+        addWhiteNoise(test1, N * 6, noise);
 
         detector.processBlock(silence);
         detector.processBlock(silence);
@@ -193,6 +241,7 @@ int main(int,const char**) {
             float t = a + b;
             testBad[i] = t;
         }
+        addWhiteNoise(testBad, N * 6, noise);
 
         // 40ms bad tone w/ 40ms silence (not valid DSC)
         detector.processBlock(silence);
@@ -222,6 +271,7 @@ int main(int,const char**) {
             // Scale up to a int32 fixed 
             test1[i] = t;
         }
+        addWhiteNoise(test1, N * 6, noise);
 
         // 20ms tone w/ 40ms silence (not valid DSC)
         detector.processBlock(silence);
@@ -249,6 +299,7 @@ int main(int,const char**) {
             float t = a + b;
             test1[i] = t;
         }
+        addWhiteNoise(test1, N * 6, noise);
 
         // Long tone with a break in the middle
         detector.processBlock(silence);
@@ -280,6 +331,7 @@ int main(int,const char**) {
             float t = a + b;
             test1[i] = t;
         }
+        addWhiteNoise(test1, N * 6, noise);
 
         // Long tone with a break in the middle
         detector.processBlock(silence);
