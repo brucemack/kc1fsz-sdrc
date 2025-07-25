@@ -153,6 +153,12 @@ public:
     
     float getAgcGain () const { return _agcGain; }
 
+    /**
+      * @returns The last detected DTMF symbol, or zero if none since
+      * the last call.
+      */
+    char getLastDtmfDetection();
+    
     static constexpr float db(float l) {
         if (l < 0.001)
             return -99.0;

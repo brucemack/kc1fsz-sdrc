@@ -49,9 +49,17 @@ public:
     bool isDetectionPending() const { return _isDSC; }
 
     /**
-     * @return Pops the queue with the oldest detected symbol.
+     * @return Pops the queue with the oldest detected symbol, or returns
+     * zero if there has not been a detection.
      */
-    char popDetection() { _isDSC = false; return _detectedSymbol; }
+    char popDetection() { 
+        if (_isDSC) {
+            _isDSC = false; 
+            return _detectedSymbol; 
+        } else {
+            return 0;
+        }
+    }
 
     /**
      *

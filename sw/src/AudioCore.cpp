@@ -413,4 +413,14 @@ void AudioCore::setCrossGainLinear(unsigned i, float gain) {
     _crossGains[i] = gain;
 }
 
+char AudioCore::getLastDtmfDetection() {
+#ifdef PICO_BUILD
+    uint32_t i = save_and_disable_interrupts();
+#endif
+    char d = _dtmfDetector.popDetection();
+#ifdef PICO_BUILD
+    restore_interrupts(i);
+#endif
+}
+
 }
