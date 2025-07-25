@@ -108,7 +108,10 @@ public:
     virtual void setDelayTime(unsigned ms) = 0;
 
     virtual void setAgcMode(uint32_t mode) = 0;
+
     virtual void setAgcLevel(float dbfs) = 0;
+
+    virtual void setDtmfDetectLevel(float dbfs) = 0;
 };
 
 }

@@ -896,6 +896,7 @@ static void transferConfigRx(const Config::ReceiveConfig& config, Rx& rx) {
     rx.setGainLinear(AudioCore::dbToLinear(config.gain));
     rx.setCtMode((CourtesyToneGenerator::Type)config.ctMode);
     rx.setDelayTime(config.delayTime);
+    rx.setDtmfDetectLevel(config.dtmfDetectLevel);
 }
 
 static void transferConfigTx(const Config::TransmitConfig& config, Tx& tx) {

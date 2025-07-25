@@ -155,6 +155,8 @@ public:
     
     float getAgcGain () const { return _agcGain; }
 
+    void setDtmfDetectLevel(float dbfs) { _dtmfDetector.setSignalThreshold(dbfs); }
+    
     /**
       * @returns The last detected DTMF symbol, or zero if none since
       * the last call.

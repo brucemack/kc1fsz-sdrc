@@ -30,7 +30,7 @@ namespace kc1fsz {
  */
 struct Config {
 
-    const static int CONFIG_VERSION = 0xbabe + 14;
+    const static int CONFIG_VERSION = 0xbabe + 15;
     const static int CONFIG_SIZE = 512;
 
     const static int callSignMaxLen = 16;
@@ -63,6 +63,7 @@ struct Config {
         uint32_t delayTime;
         uint32_t agcMode;
         float agcLevel;
+        float dtmfDetectLevel;
     } rx0, rx1;
 
     struct TransmitConfig {

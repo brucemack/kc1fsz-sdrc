@@ -165,7 +165,10 @@ public:
     void setDelayTime(unsigned ms) { _core.setRxDelayMs(ms); }
 
     virtual void setAgcMode(uint32_t mode) { _core.setAgcEnabled(mode == 1); }
+
     virtual void setAgcLevel(float dbfs) { _core.setAgcTargetDbv(dbfs); }
+
+    virtual void setDtmfDetectLevel(float dbfs) { _core.setDtmfDetectLevel(dbfs); }
 
 private:
 
