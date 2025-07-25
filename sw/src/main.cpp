@@ -104,6 +104,8 @@ const uint dac_dout_pin = 9;
 //
 static uint32_t dma_in_count = 0;
 static uint32_t dma_out_count = 0;
+static uint32_t longestIsr = 0;
+static uint32_t longestLoop = 0;
 
 // ===========================================================================
 // DMA REALTED 
@@ -151,12 +153,11 @@ static volatile bool dac_buffer_ping_open = false;
 static Config config;
 
 static PicoClock clock;
-static PicoPerfTimer perfTimer0;
+static PicoPerfTimer perfTimerIsr;
+static PicoPerfTimer perfTimerLoop;
 
 static AudioCore core0(0, 2, clock);
 static AudioCore core1(1, 2, clock);
-
-static uint32_t longestLoop = 0;
 
 static void process_in_frame();
 
@@ -210,6 +211,9 @@ static void dma_dac1_handler() {
 }
 
 static void dma_irq_handler() {   
+    
+    perfTimerIsr.reset();
+
     // Figure out which interrupt fired
     if (dma_hw->ints0 & (1u << dma_ch_in_data)) {
         dma_adc_handler();
@@ -220,6 +224,10 @@ static void dma_irq_handler() {
     if (dma_hw->ints0 & (1u << dma_ch_out_data1)) {
         dma_dac1_handler();
     }
+
+    uint32_t t = perfTimerIsr.elapsedUs();
+    if (t > longestIsr)
+        longestIsr = t;
 }
 
 // -----------------------------------------------------------------------------
@@ -230,8 +238,6 @@ static void dma_irq_handler() {
 // in this function.
 //
 static void process_in_frame() {
-
-    perfTimer0.reset();
 
     dma_in_count++;
 
@@ -280,21 +286,12 @@ static void process_in_frame() {
     core1.cycleTx(cross_ins, r1_out);
 
     // Re-pack data for DAC
+    // TODO: CAN THIS BE MOVED INTO cycleTx()?
     j = 0;
     for (unsigned int i = 0; i < ADC_SAMPLE_COUNT; i++) {
         dac_buffer[j++] = r1_out[i];
         dac_buffer[j++] = r0_out[i];
     }
-
-    // Capture RMS history
-    //in_rms_r0.captureSample(core0.getSignalRms());
-    //in_rms_r1.captureSample(core1.getSignalRms());
-    //out_rms_r0.captureSample(core0.getOutRms());
-    //out_rms_r1.captureSample(core1.getOutRms());
-
-    uint32_t t = perfTimer0.elapsedUs();
-    if (t > longestLoop)
-        longestLoop = t;
 }
 
 static void generate_silence() {
@@ -883,8 +880,7 @@ static void render_status(const Rx& rx0, const Rx& rx1, const Tx& tx0, const Tx&
     printf("AGC gain: %.1f\n", AudioCore::db(core1.getAgcGain()));
     printf("\n");
 
-    //printf("%u / %d / %d      \n", longestLoop, txc0.getState(), txc1.getState());
-    //printf("%f %f       \n", core0.getSignalPeak2(), core1.getSignalPeak2());
+    printf("%u / %u / %d / %d      \n", longestIsr, longestLoop, txc0.getState(), txc1.getState());
 }
 
 static void transferConfigRx(const Config::ReceiveConfig& config, Rx& rx) {
@@ -1105,6 +1101,8 @@ int main(int argc, const char** argv) {
 
         watchdog_update();
 
+        perfTimerLoop.reset();
+
         int c = getchar_timeout_us(0);
         bool flash = flashTimer.poll();
 
@@ -1177,5 +1175,9 @@ int main(int argc, const char** argv) {
         rx1.run();
         txCtl0.run();
         txCtl1.run();
+
+        uint32_t t = perfTimerLoop.elapsedUs();
+        if (t > longestLoop)
+            longestLoop = t;
     }
 }
