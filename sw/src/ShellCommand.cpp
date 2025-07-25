@@ -212,6 +212,13 @@ void ShellCommand::process(const char* cmd) {
                     _config.rx1.agcLevel = atof(tokens[3]);
                 else 
                     printf(INVALID_COMMAND);                
+            else if (eq(tokens[1], "dtmflevel"))
+                if (eq(tokens[2], "0"))
+                    _config.rx0.dtmfDetectLevel = atof(tokens[3]);
+                else if (eq(tokens[2], "1"))
+                    _config.rx1.dtmfDetectLevel = atof(tokens[3]);
+                else 
+                    printf(INVALID_COMMAND);                
             else if (eq(tokens[1], "txenable"))
                 if (eq(tokens[2], "0"))
                     _config.tx0.enabled = atoi(tokens[3]) == 1;
