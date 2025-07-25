@@ -84,13 +84,14 @@ private:
     static const unsigned N = 64;
     static const unsigned N3 = 136;
 
+    enum State { INVALID, PRE_DSC, DSC, DSC_DROP } _state =
+        State::INVALID;
+
     // Set the RMS threshold in Q15 format, but squared so that it can be
     // compared to other powers.
     int16_t _signalThreshold;
     // This is where the last three blocks of N samples is stored for processing
     int16_t _history[N3];
-    // Are currently in the middle of a valid detection?
-    bool _inVSC = false;
     // If we are not in a valid symbol, how long has the invalid period lasted?
     unsigned _invalidCount = 0;
     // If we are in a valid symbol, how long has valid symbol lasted?
@@ -98,7 +99,7 @@ private:
     // What is the valid symbol that we are attempting to detect?
     char _potentialSymbol = 0;
     // Used to track the period with a valid, but incompatible symbol
-    unsigned _incompatibleCount = 0;
+    unsigned _dropCount = 0;
     // Was a symbol detected?
     bool _isDSC = false;
     // What was the detected symbol that we saw?

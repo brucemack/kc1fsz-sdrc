@@ -122,7 +122,7 @@ void DTMFDetector2::processBlock(const float* block) {
         historyStart[i] = block[i] * 32767.0;
     // Run VSC detection on the last N3 (136) samples.
     const char vscSymbol = _detectVSC(_history, N3);
-    //cout << "VSC Symbol " << (int)vscSymbol << " " << vscSymbol << endl;
+    cout << "VSC Symbol " << (int)vscSymbol << " " << vscSymbol << endl;
 
     // The VSC->DSC transition requires some history.
     //
@@ -133,42 +133,74 @@ void DTMFDetector2::processBlock(const float* block) {
     //   - A symbol must be transmitted for at least 40ms. Symbols shorter 
     //     than 23ms must be rejected.
     //   - The gap between symbols must be at least 40ms.
-    //
-    if (!_inVSC) {
-        // If we're still not in a valid symbol then accumulate the period of 
-        // invalidity. This will be used later to see if we've had enough
-        // of a gap to consider a new symbol detection.
-        if (vscSymbol == 0)
-            _invalidCount++;
-        else {
-            // Look for the case where we are resuming a detection, 
-            // and get back on track.
-            if (vscSymbol == _potentialSymbol && _invalidCount <= 2) {
-                _inVSC = true;
-                _validCount += _invalidCount;
-            }
-            // Check to see if we had enough of a gap to consider a fresh start.
-            // If so, register the start of a possible detection.
-            else if (_invalidCount >= 5) {
-                _inVSC = true;
+
+    const unsigned THR_BLOCKS_20MS = 2;
+    const unsigned THR_BLOCKS_40MS = 4;
+
+    unsigned priorInvalidCount = _invalidCount;
+
+    // Always track the duration of invalid periods
+    if (vscSymbol == 0) 
+        _invalidCount++;
+    else 
+        _invalidCount = 0;
+
+    if (_state == State::INVALID) {
+        // Look for for the start of a potential DSC
+        if (vscSymbol != 0) {
+            if (priorInvalidCount >= THR_BLOCKS_40MS) {
+                _state = State::PRE_DSC;
                 _potentialSymbol = vscSymbol;
                 _validCount = 1;
-                //NEED TO WORK ON MISMATCH SITUATION
             }
         }
     }
-    else {
-        // If we're in a valid, persistent symbol keep incrementing
+    else if (_state == State::PRE_DSC) {
+        // Still hearing the same symbol?
         if (vscSymbol == _potentialSymbol) {
             _validCount++;
+            // Has the potential symbol persisted long enough 
+            // to be detected?
+            if (_validCount >= THR_BLOCKS_40MS) {
+                _state = State::DSC;
+                // Queue the detected symbol
+                _isDSC = true;
+                _detectedSymbol = vscSymbol;
+            }
         }
-        else if (vscSymbol == 0) {
-            _inVSC = false;
-            _invalidCount = 1;
-        }
-        // Look for the incompatible symbol
         else {
-            _incompatibleCount++;
+            // If anything goes wrong during the pre-phase
+            // then we go back to invalid and start trying again.
+            _state = State::INVALID;
+            _potentialSymbol = 0;
+        }
+    }   
+    else if (_state == State::DSC) {
+        // Look for a drop, which could be an invalid period
+        // or another (different) valid symbol.
+        if (vscSymbol != _potentialSymbol) {
+            _state = State::DSC_DROP;
+            _dropCount = 1;
+        }
+        // Otherwise just hang out here listening to the
+        // detected symbol.
+    }
+    else if (_state == State::DSC_DROP) {
+        // Check for recovery from drop
+        if (vscSymbol == _potentialSymbol) {
+            // Here we return to DSC **without** reporting
+            // a detection (we already reported it).
+            _state = State::DSC;
+        }
+        // If the drop didn't recover then check to see 
+        // if we're past the point of recovery.  20ms is
+        // the threshold in the specification but we're using
+        // 24ms here.
+        else {
+            if (++_dropCount >= THR_BLOCKS_20MS) {
+                _state = State::INVALID;
+                _potentialSymbol = 0;
+            }
         }
     }
 }
