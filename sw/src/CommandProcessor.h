@@ -44,6 +44,8 @@ public:
      */
     void processSymbol(char symbol);
 
+    bool isAccess() const { return _access; }
+
     /**
      * @brief A utility function, mostly for testing.
     */
@@ -52,26 +54,44 @@ public:
             processSymbol(s[i]);
     }
 
+    // ----- Configuration ------------------------------------------------
+
+
     // ----- Command Triggers ---------------------------------------------
     // To make things easier to integrate, valid commands will pull
     // various "triggers" that are installed here. These triggers would
     // typically be lambda functions to mimimze boiler-plate code.
 
     void setAccessTrigger(std::function<void()> t) { _accessTrigger = t; }
-    void setShutdownTrigger(std::function<void()> t) { _shutdownTrigger = t; }
+    void setDisableTrigger(std::function<void()> t) { _disableTrigger = t; }
+    void setReenableTrigger(std::function<void()> t) { _reenableTrigger = t; }
 
 private:
+
+    void _processQueue();
+    bool _queueEq(const char*) const;
+    void _popQueue(unsigned count);
+    void _notifyOk();
 
     Clock& _clock;
 
     static const unsigned MAX_QUEUE_LEN = 32;
-    unsigned _queuePtr = 0;
+    unsigned _queueLen = 0;
     char _queue[MAX_QUEUE_LEN];
 
     bool _access = false;
+    bool _unlock = false;
+    uint32_t _unlockWindowMs = 5 * 60 * 1000;
+    uint32_t _unlockUntil = 0;
+    uint32_t _lastSymbolTime = 0;
+    uint32_t _accessTimeout = 10 * 1000;
 
     std::function<void()> _accessTrigger = 0;
-    std::function<void()> _shutdownTrigger = 0;
+    std::function<void()> _disableTrigger = 0;
+    std::function<void()> _reenableTrigger = 0;
+
+    static const unsigned UNLOCK_CODE_MAX = 8;
+    char _unlockCode[UNLOCK_CODE_MAX];
 };
 
 }

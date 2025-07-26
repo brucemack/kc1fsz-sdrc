@@ -25,7 +25,14 @@ namespace kc1fsz {
 
 class TestClock : public Clock {
 public:
-    virtual uint32_t time() const { return 0; };
+    
+    virtual uint32_t time() const { return _time; };
+
+    void setTime(uint32_t t) { _time = t; }
+
+private:
+
+    uint32_t _time = 0;
 };
 
 }
