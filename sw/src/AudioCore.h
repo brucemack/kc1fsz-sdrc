@@ -159,6 +159,8 @@ public:
 
     void setDtmfDetectLevel(float dbfs) { _dtmfDetector.setSignalThreshold(dbfs); }
     
+    float getDtmfDetectDiagValue() { return _dtmfDetector.getDiagValue(); }
+
     /**
       * @returns The last detected DTMF symbol, or zero if none since
       * the last call.

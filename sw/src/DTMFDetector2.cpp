@@ -335,6 +335,7 @@ char DTMFDetector2::_detectVSC(int16_t* samples, uint32_t n) {
     static const int16_t threshold8dB = (1.0 / pow(2.5, 2.0)) * 32767.0;
     if (maxRowPower > maxColPower) {
         int16_t reverseTwistRatio = div2(maxColPower, maxRowPower);
+        //_diagValue = reverseTwistRatio / 32767.0;
         // INEQUALITY IS REVERSED BECAUSE WE ARE COMPARING 1/a to 1/b
         if (reverseTwistRatio < threshold8dB) {
             //cout << "Reverse twist problem" << endl;
@@ -350,7 +351,6 @@ char DTMFDetector2::_detectVSC(int16_t* samples, uint32_t n) {
     static const int16_t threshold4dB = (1.0 / pow(1.58, 2.0)) * 32767.0;
     if (maxColPower > maxRowPower) {
         int16_t standardTwistRatio = div2(maxRowPower, maxColPower);
-        //printf("Twist %f %f\n", maxRowPower / 32767.0, maxColPower / 32767.0);
         // INEQUALITY IS REVERSED BECAUSE WE ARE COMPARING 1/a to 1/b
         if (standardTwistRatio < threshold4dB) {
             //cout << "Standard twist problem" << endl;
@@ -363,12 +363,14 @@ char DTMFDetector2::_detectVSC(int16_t* samples, uint32_t n) {
     // (in terms of squared amplitude) from its proximity tones within its group 
     // by more than a certain threshold ratio (THR_ROWREL, THR_COLREL).
     for (unsigned r = 0; r < 4; r++)
-        if (r != maxRow)
+        if (r != maxRow) {
             // INEQUALITY IS REVERSED BECAUSE WE ARE COMPARING 1/a to 1/b
-            if (div2(powerRow[r], maxRowPower) > threshold8dB) {
+            int16_t r0 = div2(powerRow[r], maxRowPower);
+            if (r0 > threshold8dB) {
                 //cout << "Row doesn't stand out" << endl;
                 return 0;
             }
+        }
     for (unsigned c = 0; c < 4; c++)
         if (c != maxCol)
             // INEQUALITY IS REVERSED BECAUSE WE ARE COMPARING 1/a to 1/b
@@ -380,11 +382,20 @@ char DTMFDetector2::_detectVSC(int16_t* samples, uint32_t n) {
     // Make sure the harmonics are -20dB down from the fundamentals
     // NOTE: Threshold is shifted down to avoid overflow
     static const int16_t threshold20dB = pow(1.0 / 10, 2.0) * 32767.0;
-    if (maxRowHarmonicPower != 0 && 
-        ((maxRowHarmonicPower > maxRowPower) ||
-         (div2(maxRowHarmonicPower, maxRowPower) > threshold20dB))) {
-        //cout << "Row harmonic problem" << endl;
-        return 0;
+    // NOTE: When testing with the FT-65 (TX) and IC-2000H (RX) on 26-July-25
+    // we noted a problem with this threshold check. A row harmonic that 
+    // was only -16dB down (0.158 linear) was noted.
+    static const int16_t thresholdMinus16dB = pow(0.158, 2.0) * 32767.0;
+    if (maxRowHarmonicPower != 0) {
+        if (maxRowHarmonicPower > maxRowPower) {
+            return 0;
+        }
+        int16_t r0 = div2(maxRowHarmonicPower, maxRowPower);
+        if (r0 > thresholdMinus16dB) {
+            //cout << "Row harmonic problem" << endl;
+            //_diagValue = r0 / 32767.0;
+            return 0;
+        }
     }
 
     if (maxColHarmonicPower != 0 && 

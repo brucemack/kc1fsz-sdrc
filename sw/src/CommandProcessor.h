@@ -29,11 +29,12 @@
 namespace kc1fsz {
 
 class Clock;
+class Log;
 
 class CommandProcessor : public Runnable {
 public:
 
-    CommandProcessor(Clock& clock);
+    CommandProcessor(Log& log, Clock& clock);
 
     virtual void run();
 
@@ -74,6 +75,7 @@ private:
     void _popQueue(unsigned count);
     void _notifyOk();
 
+    Log& _log;
     Clock& _clock;
 
     static const unsigned MAX_QUEUE_LEN = 32;
@@ -85,7 +87,7 @@ private:
     uint32_t _unlockWindowMs = 5 * 60 * 1000;
     uint32_t _unlockUntil = 0;
     uint32_t _lastSymbolTime = 0;
-    uint32_t _accessTimeout = 10 * 1000;
+    uint32_t _accessTimeout = 30 * 1000;
 
     std::function<void()> _accessTrigger = 0;
     std::function<void()> _disableTrigger = 0;

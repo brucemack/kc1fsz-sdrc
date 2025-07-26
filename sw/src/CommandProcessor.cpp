@@ -18,15 +18,19 @@
  * NOT FOR COMMERCIAL USE WITHOUT PERMISSION.
  */
 #include <iostream>
+
+#include <kc1fsz-tools/Log.h>
 #include <kc1fsz-tools/Clock.h>
+
 #include "CommandProcessor.h"
 
 using namespace std;
 
 namespace kc1fsz {
 
-CommandProcessor::CommandProcessor(Clock& clock)
-:   _clock(clock) { 
+CommandProcessor::CommandProcessor(Log& log, Clock& clock)
+:   _log(log), 
+    _clock(clock) { 
     _unlockCode[0] = '7';
     _unlockCode[1] = '8';
     _unlockCode[2] = '1';
@@ -56,15 +60,12 @@ void CommandProcessor::processSymbol(char symbol) {
         if (_accessTrigger) _accessTrigger();
         _access = true;
     }
-    else 
-    {
-        //cout << "Ignore [" << symbol<< "]" << endl;
-    }
 }
 
 void CommandProcessor::run() {
     // After some amount of inactivity
-    if (_clock.isPast(_lastSymbolTime + _accessTimeout)) {
+    if (_access && _clock.isPast(_lastSymbolTime + _accessTimeout)) {
+        _log.info("Access timed out");
         _queueLen = 0;
         _access = false;
     }
@@ -77,6 +78,7 @@ void CommandProcessor::_processQueue() {
         _popQueue(strlen(_unlockCode));
         _unlock = true;
         _unlockUntil = _clock.time() + _unlockWindowMs;
+        _log.info("Unlocked");
     }
     // Repeater system off
     else if (_queueEq("C002")) {

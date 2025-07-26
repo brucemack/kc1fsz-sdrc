@@ -1030,7 +1030,7 @@ int main(int argc, const char** argv) {
 
     // Display/diagnostic should happen once per second
     PicoPollTimer flashTimer;
-    flashTimer.setIntervalUs(250 * 1000);
+    flashTimer.setIntervalUs(500 * 1000);
 
     StdTx tx0(clock, log, 0, R0_PTT_PIN, core0);
     StdTx tx1(clock, log, 1, R1_PTT_PIN, core1);
@@ -1093,7 +1093,7 @@ int main(int argc, const char** argv) {
     shell.setSink(&shellCommand);
 
     // Command processing
-    CommandProcessor cmdProc(clock);
+    CommandProcessor cmdProc(log, clock);
     cmdProc.setAccessTrigger([&log]() {
         log.info("Access");
     });
@@ -1141,7 +1141,7 @@ int main(int argc, const char** argv) {
                 txCtl1.forceId();
             }
             //if (flash)
-            //    printf("Longest %u\n", longestLoop);
+            //    printf("DTMF diag %f\n", core1.getDtmfDetectDiagValue());
         }
         else if (uiMode == UIMode::UIMODE_SHELL) {
             if (c != 0) {
@@ -1180,9 +1180,11 @@ int main(int argc, const char** argv) {
         char d0 = core0.getLastDtmfDetection();
         if (d0 != 0)
             cmdProc.processSymbol(d0);
-        char d1 = core0.getLastDtmfDetection();
-        if (d1 != 0)
+        char d1 = core1.getLastDtmfDetection();
+        if (d1 != 0) {
+            log.info("DTMF [%c]", d1);
             cmdProc.processSymbol(d1);
+        }
         // Mute receivers when command processing is going on
         core0.setRxMute(cmdProc.isAccess());
         core1.setRxMute(cmdProc.isAccess());

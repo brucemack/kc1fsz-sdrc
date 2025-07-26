@@ -70,6 +70,8 @@ public:
      */
     void setSignalThreshold(float dbfs);
 
+    float getDiagValue() const { return _diagValue; }
+
 private:
 
     /*
@@ -121,6 +123,7 @@ private:
     char _detectedSymbol = 0;
 
     uint32_t _lastVscTime = 0;
+    float _diagValue;
 };
 
 }
