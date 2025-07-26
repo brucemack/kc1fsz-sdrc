@@ -17,8 +17,11 @@
  *
  * NOT FOR COMMERCIAL USE WITHOUT PERMISSION.
  */
+#include <iostream>
 #include <kc1fsz-tools/Clock.h>
 #include "CommandProcessor.h"
+
+using namespace std;
 
 namespace kc1fsz {
 
@@ -55,7 +58,7 @@ void CommandProcessor::processSymbol(char symbol) {
     }
     else 
     {
-        cout << "Ignore [" << symbol "]" << endl;
+        //cout << "Ignore [" << symbol<< "]" << endl;
     }
 }
 
@@ -91,8 +94,14 @@ void CommandProcessor::_processQueue() {
             if (_reenableTrigger) _reenableTrigger();
         }
     }
+    else if (_queueEq("C310")) {
+        _popQueue(4);
+        if (_unlock) {
+            _notifyOk();
+            if (_forceIdTrigger) _forceIdTrigger();
+        }
+    }
 }
-
 
 bool CommandProcessor::_queueEq(const char* a) const {
     if (_queueLen < strlen(a))

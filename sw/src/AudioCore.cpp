@@ -176,7 +176,8 @@ void AudioCore::cycleRx(const int32_t* codec_in, float* cross_out) {
             cross_out[i] = 0;
             _delayCountdown--;
         } else { 
-            cross_out[i] = _delayArea[_delayAreaReadPtr] * _rxGain * _agcGain;
+            cross_out[i] = _rxMute ? 0 : 
+                _delayArea[_delayAreaReadPtr] * _rxGain * _agcGain;
         }
         _delayAreaReadPtr = incAndWrap(_delayAreaReadPtr, _delayAreaLen);
     }
@@ -239,8 +240,6 @@ void AudioCore::cycleRx(const int32_t* codec_in, float* cross_out) {
         _agcGain += (agcGainNeeded - _agcGain) * _agcAttackCoeff;
     else 
         _agcGain += (agcGainNeeded - _agcGain) * _agcDecayCoeff;
-
-    //printf("agcGain %.03f\n", _agcGain);
 }
 
 /**

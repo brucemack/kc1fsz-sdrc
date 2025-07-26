@@ -6,6 +6,7 @@
 // Radlib
 #include "util/dsp_util.h"
 
+#include "TestClock.h"
 #include "AudioCore.h"
 
 using namespace std;
@@ -51,7 +52,8 @@ unsigned loadFromFile(const char* fn, int32_t* target, unsigned target_max) {
 
 int main(int argc, const char** argv) {
 
-    AudioCore core0(0, 2), core1(1, 2);
+    TestClock clock;
+    AudioCore core0(0, 2, clock), core1(1, 2, clock);
 
     core0.setCtcssDecodeFreq(123);
     core0.setCtcssEncodeFreq(123);

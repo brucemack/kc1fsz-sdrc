@@ -31,6 +31,9 @@ int main(int, const char**) {
     proc.setReenableTrigger([&data]() {
         cout << "Reendable" << endl;
     });
+    proc.setForceIdTrigger([&data]() {
+        cout << "Id" << endl;
+    });
     
     {
         cout << "----- Test 1 -----" << endl;
@@ -61,11 +64,17 @@ int main(int, const char**) {
         proc.run();
         proc.processSymbols("*781");
         assert(proc.isAccess());
+        // After 10 seconds the access times out
         clock.setTime(11 * 1000);
         proc.run();
         assert(!proc.isAccess());
+        // These will be ignored
         proc.processSymbols("C002");
         assert(!data.b);
+        proc.run();
+        proc.processSymbols("*781");
+        proc.processSymbols("C310");
+        assert(proc.isAccess());
     }
 
     return 0;

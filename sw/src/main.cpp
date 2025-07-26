@@ -52,6 +52,7 @@ When targeting RP2350 (Pico 2), command used to load code onto the board:
 #include "TxControl.h"
 #include "ShellCommand.h"
 #include "AudioCore.h"
+#include "CommandProcessor.h"
 
 using namespace kc1fsz;
 
@@ -1091,6 +1092,21 @@ int main(int argc, const char** argv) {
     shell.setOutput(&shellOutput);
     shell.setSink(&shellCommand);
 
+    // Command processing
+    CommandProcessor cmdProc(clock);
+    cmdProc.setAccessTrigger([]() {
+        cout << "Access!" << endl;
+    });
+    cmdProc.setDisableTrigger([]() {
+        cout << "Disable" << endl;
+    });
+    cmdProc.setReenableTrigger([]() {
+        cout << "Reendable" << endl;
+    });
+    cmdProc.setForceIdTrigger([]() {
+        cout << "Id" << endl;
+    });
+
     // Force initial config transfer
     transferConfig(config, rx0, rx1, tx0, tx1, txCtl0, txCtl1, core0, core1);
 
@@ -1125,16 +1141,6 @@ int main(int argc, const char** argv) {
             }
             //if (flash)
             //    printf("Longest %u\n", longestLoop);
-
-            char dtmfSymbol0 = core0.getLastDtmfDetection();
-            if (dtmfSymbol0 != 0) {
-                log.info("0: DTMF detection %c", dtmfSymbol0);
-            }
-            char dtmfSymbol1 = core1.getLastDtmfDetection();
-            if (dtmfSymbol1 != 0) {
-                log.info("1: DTMF detection %c", dtmfSymbol1);
-            }
-
         }
         else if (uiMode == UIMode::UIMODE_SHELL) {
             if (c != 0) {
@@ -1169,6 +1175,17 @@ int main(int argc, const char** argv) {
             }
         }
 
+        // Check for commands
+        char d0 = core0.getLastDtmfDetection();
+        if (d0 != 0)
+            cmdProc.processSymbol(d0);
+        char d1 = core0.getLastDtmfDetection();
+        if (d1 != 0)
+            cmdProc.processSymbol(d1);
+        // Mute receivers when command processing is going on
+        core0.setMute(cmdProc.isAccess());
+        core1.setMute(cmdProc.isAccess());
+
         // Run all components
         tx0.run();
         tx1.run();
@@ -1176,6 +1193,7 @@ int main(int argc, const char** argv) {
         rx1.run();
         txCtl0.run();
         txCtl1.run();
+        cmdProc.run();
 
         uint32_t t = perfTimerLoop.elapsedUs();
         if (t > longestLoop)

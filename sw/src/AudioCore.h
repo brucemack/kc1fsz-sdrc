@@ -106,6 +106,8 @@ public:
     float getOutRms2() const { return _outRmsAvg; }
     float getOutPeak2() const { return _outPeakAvg; }
 
+    void setRxMute(bool mute) { _rxMute = mute; }
+
     /**
      * @brief The received audio is multiplied by this value.
      */
@@ -266,6 +268,8 @@ private:
     unsigned _signalRmsHistoryPtr = 0;
     float _signalRmsHistory[SIGNAL_RMS_HISTORY_SIZE];
     float _signalRmsAvgMoving = 0;
+
+    bool _rxMute = false;
 
     // A soft gain that is applied to received audio just before it
     // it passed into the crossing network.

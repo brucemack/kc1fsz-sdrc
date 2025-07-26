@@ -65,6 +65,7 @@ public:
     void setAccessTrigger(std::function<void()> t) { _accessTrigger = t; }
     void setDisableTrigger(std::function<void()> t) { _disableTrigger = t; }
     void setReenableTrigger(std::function<void()> t) { _reenableTrigger = t; }
+    void setForceIdTrigger(std::function<void()> t) { _forceIdTrigger = t; }
 
 private:
 
@@ -89,6 +90,7 @@ private:
     std::function<void()> _accessTrigger = 0;
     std::function<void()> _disableTrigger = 0;
     std::function<void()> _reenableTrigger = 0;
+    std::function<void()> _forceIdTrigger = 0;
 
     static const unsigned UNLOCK_CODE_MAX = 8;
     char _unlockCode[UNLOCK_CODE_MAX];
