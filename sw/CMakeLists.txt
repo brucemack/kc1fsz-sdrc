@@ -124,7 +124,7 @@ add_executable(main
   src/CourtesyToneGenerator.cpp
   src/IDToneGenerator.cpp
   src/TestToneGenerator.cpp
-  #src/VoiceGenerator.cpp
+  src/CommandProcessor.cpp
   radlib/util/dsp_util.cpp  
   kc1fsz-tools-cpp/src/Common.cpp
   kc1fsz-tools-cpp/src/CommandShell.cpp

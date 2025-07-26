@@ -1094,17 +1094,18 @@ int main(int argc, const char** argv) {
 
     // Command processing
     CommandProcessor cmdProc(clock);
-    cmdProc.setAccessTrigger([]() {
-        cout << "Access!" << endl;
+    cmdProc.setAccessTrigger([&log]() {
+        log.info("Access");
     });
-    cmdProc.setDisableTrigger([]() {
-        cout << "Disable" << endl;
+    cmdProc.setDisableTrigger([&log]() {
+        log.info("Disable");
     });
-    cmdProc.setReenableTrigger([]() {
-        cout << "Reendable" << endl;
+    cmdProc.setReenableTrigger([&log]() {
+        log.info("Reenable");
     });
-    cmdProc.setForceIdTrigger([]() {
-        cout << "Id" << endl;
+    cmdProc.setForceIdTrigger([&txCtl0, &txCtl1]() {
+        txCtl0.forceId();
+        txCtl1.forceId();
     });
 
     // Force initial config transfer
@@ -1183,8 +1184,8 @@ int main(int argc, const char** argv) {
         if (d1 != 0)
             cmdProc.processSymbol(d1);
         // Mute receivers when command processing is going on
-        core0.setMute(cmdProc.isAccess());
-        core1.setMute(cmdProc.isAccess());
+        core0.setRxMute(cmdProc.isAccess());
+        core1.setRxMute(cmdProc.isAccess());
 
         // Run all components
         tx0.run();
