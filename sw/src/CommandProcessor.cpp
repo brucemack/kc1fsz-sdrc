@@ -53,6 +53,10 @@ void CommandProcessor::processSymbol(char symbol) {
         if (_accessTrigger) _accessTrigger();
         _access = true;
     }
+    else 
+    {
+        cout << "Ignore [" << symbol "]" << endl;
+    }
 }
 
 void CommandProcessor::run() {
