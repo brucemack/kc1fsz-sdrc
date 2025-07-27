@@ -367,7 +367,6 @@ char DTMFDetector2::_detectVSC(int16_t* samples, uint32_t n) {
             // INEQUALITY IS REVERSED BECAUSE WE ARE COMPARING 1/a to 1/b
             int16_t r0 = div2(powerRow[r], maxRowPower);
             if (r0 > threshold8dB) {
-                //cout << "Row doesn't stand out" << endl;
                 return 0;
             }
         }
@@ -386,23 +385,21 @@ char DTMFDetector2::_detectVSC(int16_t* samples, uint32_t n) {
     // we noted a problem with this threshold check. A row harmonic that 
     // was only -16dB down (0.158 linear) was noted.
     static const int16_t thresholdMinus16dB = pow(0.158, 2.0) * 32767.0;
+
+    if (maxColHarmonicPower != 0 && 
+        ((maxColHarmonicPower > maxColPower) ||
+        (div2(maxColHarmonicPower, maxColPower) > threshold20dB))) {
+        return 0;
+    }
+
     if (maxRowHarmonicPower != 0) {
         if (maxRowHarmonicPower > maxRowPower) {
             return 0;
         }
         int16_t r0 = div2(maxRowHarmonicPower, maxRowPower);
         if (r0 > thresholdMinus16dB) {
-            //cout << "Row harmonic problem" << endl;
-            //_diagValue = r0 / 32767.0;
             return 0;
         }
-    }
-
-    if (maxColHarmonicPower != 0 && 
-        ((maxColHarmonicPower > maxColPower) ||
-        (div2(maxColHarmonicPower, maxColPower) > threshold20dB))) {
-        //cout << "Col harmonic problem" << endl;
-        return 0;
     }
 
     // Made it to a valid symbol!

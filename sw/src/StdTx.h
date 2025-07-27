@@ -20,6 +20,8 @@
 #ifndef _StdTx_h
 #define _StdTx_h
 
+#include <functional>
+
 #include "kc1fsz-tools/Log.h"
 #include "kc1fsz-tools/Clock.h"
 
@@ -33,7 +35,8 @@ class AudioCore;
 class StdTx : public Tx {
 public:
 
-    StdTx(Clock& clock, Log& log, int id, int pttPin, AudioCore& core);
+    StdTx(Clock& clock, Log& log, int id, int pttPin, AudioCore& core,
+        std::function<bool()> positiveEnableCheck);
 
     virtual void run();
     virtual int getId() const { return _id; };
@@ -62,6 +65,7 @@ private:
     const int _id;
     const int _pttPin;
     AudioCore& _core;
+    std::function<bool()> _positiveEnableCheck;
 
     bool _enabled = false;
     bool _keyed = false;

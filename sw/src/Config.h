@@ -72,6 +72,9 @@ struct Config {
         float toneLevel;
         float toneFreq;
         float gain;
+        // This is a separate enabled/disable flag that will be 
+        // controlled via remote interface
+        bool enabled2;
     } tx0, tx1;
 
     struct ControlConfig {

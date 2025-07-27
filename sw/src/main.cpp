@@ -1032,8 +1032,16 @@ int main(int argc, const char** argv) {
     PicoPollTimer flashTimer;
     flashTimer.setIntervalUs(500 * 1000);
 
-    StdTx tx0(clock, log, 0, R0_PTT_PIN, core0);
-    StdTx tx1(clock, log, 1, R1_PTT_PIN, core1);
+    StdTx tx0(clock, log, 0, R0_PTT_PIN, core0,
+        []() {
+            return config.tx0.enabled2;
+        }
+    );
+    StdTx tx1(clock, log, 1, R1_PTT_PIN, core1,
+        []() {
+            return config.tx1.enabled2;
+        }
+    );
 
     StdRx rx0(clock, log, 0, R0_COS_PIN, R0_CTCSS_PIN, core0);
     StdRx rx1(clock, log, 1, R1_COS_PIN, R1_CTCSS_PIN, core1);
@@ -1092,18 +1100,26 @@ int main(int argc, const char** argv) {
     shell.setOutput(&shellOutput);
     shell.setSink(&shellCommand);
 
-    // Command processing
-    CommandProcessor cmdProc(log, clock);
-    cmdProc.setAccessTrigger([&log]() {
+    // DTMF Command processing
+    CommandProcessor dtmfCmdProc(log, clock);
+    dtmfCmdProc.setAccessTrigger([&log]() {
         log.info("Access");
     });
-    cmdProc.setDisableTrigger([&log]() {
+    dtmfCmdProc.setDisableTrigger([&log]() {
         log.info("Disable");
+        config.tx0.enabled2 = false;
+        config.tx1.enabled2 = false;
+        // Make sure these settings are non-volatile
+        Config::saveConfig(&config);
     });
-    cmdProc.setReenableTrigger([&log]() {
+    dtmfCmdProc.setReenableTrigger([&log]() {
         log.info("Reenable");
+        config.tx0.enabled2 = true;
+        config.tx1.enabled2 = true;
+        // Make sure these settings are non-volatile
+        Config::saveConfig(&config);
     });
-    cmdProc.setForceIdTrigger([&txCtl0, &txCtl1]() {
+    dtmfCmdProc.setForceIdTrigger([&txCtl0, &txCtl1]() {
         txCtl0.forceId();
         txCtl1.forceId();
     });
@@ -1178,16 +1194,19 @@ int main(int argc, const char** argv) {
 
         // Check for commands
         char d0 = core0.getLastDtmfDetection();
-        if (d0 != 0)
-            cmdProc.processSymbol(d0);
+        if (d0 != 0) {
+            log.info("DTMF [%c]", d0);
+            dtmfCmdProc.processSymbol(d0);
+        }
         char d1 = core1.getLastDtmfDetection();
         if (d1 != 0) {
             log.info("DTMF [%c]", d1);
-            cmdProc.processSymbol(d1);
+            dtmfCmdProc.processSymbol(d1);
         }
+
         // Mute receivers when command processing is going on
-        core0.setRxMute(cmdProc.isAccess());
-        core1.setRxMute(cmdProc.isAccess());
+        core0.setRxMute(dtmfCmdProc.isAccess());
+        core1.setRxMute(dtmfCmdProc.isAccess());
 
         // Run all components
         tx0.run();
@@ -1196,7 +1215,7 @@ int main(int argc, const char** argv) {
         rx1.run();
         txCtl0.run();
         txCtl1.run();
-        cmdProc.run();
+        dtmfCmdProc.run();
 
         uint32_t t = perfTimerLoop.elapsedUs();
         if (t > longestLoop)

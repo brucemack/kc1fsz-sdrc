@@ -23,12 +23,14 @@
 
 namespace kc1fsz {
 
-StdTx::StdTx(Clock& clock, Log& log, int id, int pttPin, AudioCore& core)
+StdTx::StdTx(Clock& clock, Log& log, int id, int pttPin, AudioCore& core,
+    std::function<bool()> positiveEnableCheck)
 :   _clock(clock),
     _log(log),
     _id(id),
     _pttPin(pttPin),
-    _core(core) {
+    _core(core),
+    _positiveEnableCheck(positiveEnableCheck) {
 }
 
 void StdTx::setEnabled(bool en) {
@@ -45,7 +47,12 @@ void StdTx::setEnabled(bool en) {
 }
 
 void StdTx::setPtt(bool ptt) {
-    if (_enabled) {
+
+    bool enabled = _enabled;
+    if (_positiveEnableCheck)
+        enabled = enabled && _positiveEnableCheck();
+
+    if (enabled) {
         if (ptt != _keyed)
             if (ptt) {
                 gpio_put(_pttPin, 1);
@@ -62,7 +69,15 @@ bool StdTx::getPtt() const {
     return _keyed;
 }
 
-void StdTx::run() {   
+void StdTx::run() {
+    // Extra precaution, constantly check to make sure there isn't
+    // anything that should be shutting down the PTT
+    if (_positiveEnableCheck) {
+        if (_positiveEnableCheck() == false) {
+            _keyed = false;
+            gpio_put(_pttPin, 0);
+        }
+    }
 }
 
 }

@@ -74,6 +74,7 @@ void Config::setFactoryDefaults(Config* cfg) {
     cfg->tx0.toneFreq = 123;
     // This is in dB!
     cfg->tx0.gain = 0;
+    cfg->tx0.enabled2 = true;
 
     cfg->tx1.enabled = false;
     cfg->tx1.toneMode = 0;
@@ -82,6 +83,7 @@ void Config::setFactoryDefaults(Config* cfg) {
     cfg->tx1.toneFreq = 88.5;
     // This is in dB!
     cfg->tx1.gain = 0;
+    cfg->tx1.enabled2 = true;
 
     // Controller
     cfg->txc0.timeoutTime = 120 * 1000;
@@ -124,6 +126,7 @@ void Config::_showRx(const Config::ReceiveConfig* cfg,
 void Config::_showTx(const Config::TransmitConfig* cfg,
     const char* pre) {
     printf("%s txenable: %d\n", pre, cfg->enabled);
+    printf("%s txenable2: %d\n", pre, cfg->enabled2);
     printf("%s txtonemode  : %d\n", pre, cfg->toneMode);
     printf("%s txtonelevel  : %.1f\n", pre, cfg->toneLevel);
     printf("%s txtonefreq  : %.1f\n", pre, cfg->toneFreq);
