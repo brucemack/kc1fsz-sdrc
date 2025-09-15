@@ -5,31 +5,22 @@ import matplotlib.pyplot as plt
 
 #fs = 1280
 #cutoff_freq = 150
-fs = 150
-cutoff_freq = 30
-#fs = 32000
-#cutoff_freq = 2100
-
+#fs = 150
+utoff_freq = 30
+fs = 32000
+cutoff_freq = 2100
 Ts = 1 / fs
+
+# Using 'sos' network configuration for stability
+
 nyquist_freq = 0.5 * fs
 normalized_cutoff = cutoff_freq / nyquist_freq
-
-# Using 'sos' output for stability
-#sos = signal.butter(2, normalized_cutoff, btype='low', output='sos')
+# This is the SciPy generation of the HPF
 #sos = signal.butter(1, normalized_cutoff, btype='high', output='sos')
-
-# Return format (b, a) where the b coefficients are multiplied by the X(z) samples
-# and the a coefficients are multiplied by the Y(z) samples.
-# 
-# For example: 
-#
-# a0 Y(z) = b0 X(z) + b1 X(z) Z-1 + a1 Y(z) Z-1
-
-#sos = signal.butter(1, normalized_cutoff, btype='high', output='sos')
-sos = signal.butter(1, normalized_cutoff, btype='low', output='sos')
-print(sos)
+# This is the SciPy generation of the LPF
+#sos = signal.butter(1, normalized_cutoff, btype='low', output='sos')
 """
-# Do this specific first-order HPF case manually
+# This is the manual generation of the HPF
 wc = 2 * np.pi * cutoff_freq
 wc_warped = math.tan(wc * Ts / 2.0)
 b0_2 = 1 / (1 + wc_warped)
@@ -39,6 +30,18 @@ a1_2 = -b0_2 * (1 - wc_warped)
 sos = []
 sos.append([b0_2, b1_2, 0.0, a0_2, a1_2, 0.0 ])
 """
+
+# This is the manual generation of the LPF
+wc = 2 * np.pi * cutoff_freq
+wc_warped = math.tan(wc * Ts / 2.0)
+b0_2 = wc_warped / (1 + wc_warped)
+b1_2 = b0_2 
+a0_2 = 1
+a1_2 = (wc_warped - 1) / (wc_warped + 1)
+sos = []
+sos.append([b0_2, b1_2, 0.0, a0_2, a1_2, 0.0 ])
+
+print(sos)
 print("b0", sos[0][0])
 print("b1", sos[0][1])
 print("a0", sos[0][3])
@@ -66,10 +69,13 @@ plt.show()
 # Sanity check: generate a sample signal of one second
 t = np.linspace(0, fs, fs, endpoint=False)
 ft = cutoff_freq
-omega = 2 * 3.1415926 * ft / fs
+omega = 2 * 3.1415926 * (ft * 2) / fs
 s = np.sin(omega * t)
 
 # Apply the IIR filter
+
+# The SCIPY way
+#filtered_s = signal.sosfilt(sos, s)
 
 # The manual way
 result = []
@@ -82,9 +88,6 @@ for i in range(0, s.shape[0]):
     prev_y = y 
     result.append(y)
 filtered_s = np.array(result)    
-
-# The SCIPY way
-#filtered_s = signal.sosfilt(sos, s)
 
 # Plot resulting signal
 fig, ax = plt.subplots()
