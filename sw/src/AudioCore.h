@@ -304,6 +304,19 @@ private:
     unsigned _ctcssBlock = 0;
     unsigned _ctcssBlocks = 0;
 
+    // Used for IIR filter on input
+    float _inIIRb0 = 1.0;
+    float _inIIRb1 = 0.0;
+    float _inIIRa0 = 1.0;
+    float _inIIRa1 = 0.0;
+    //float _inIIRb0 = 0.5235794014387403;
+    //float _inIIRb1 = 0.5235794014387403;
+    //float _inIIRa0 = 1.0;
+    //float _inIIRa1 = 0.047158802877480484;
+    float _inIIRPrevX = 0;
+    float _inIIRPrevY = 0;
+
+
     // Audio delay (250ms)
     static const unsigned _delayAreaLen = 2000;
     unsigned _delayAreaReadPtr = 0;

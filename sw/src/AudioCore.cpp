@@ -166,8 +166,14 @@ void AudioCore::cycleRx(const int32_t* codec_in, float* cross_out) {
     // Apply the delay to the final audio. 
     for (unsigned int i = 0; i < BLOCK_SIZE; i++) {
 
+        // Apply the IIR filter
+        float iir_x = filtOutF[i];
+        float iir_y = (1.0 / _inIIRa0) * (_inIIRb0 * iir_x + _inIIRb1 * _inIIRPrevX - _inIIRa1 * _inIIRPrevY);
+        _inIIRPrevX = iir_x;
+        _inIIRPrevY = iir_y;
+
         // Put the sample into the delay area
-        _delayArea[_delayAreaWritePtr] = filtOutF[i];
+        _delayArea[_delayAreaWritePtr] = iir_y;
         _delayAreaWritePtr = incAndWrap(_delayAreaWritePtr, _delayAreaLen);
 
         // Move a sample from the delay area into the output and apply 
@@ -177,7 +183,7 @@ void AudioCore::cycleRx(const int32_t* codec_in, float* cross_out) {
             _delayCountdown--;
         } else { 
             cross_out[i] = _rxMute ? 0 : 
-                _delayArea[_delayAreaReadPtr] * _rxGain * _agcGain;
+                _delayArea[_delayAreaReadPtr] * _rxGain;
         }
         _delayAreaReadPtr = incAndWrap(_delayAreaReadPtr, _delayAreaLen);
     }
