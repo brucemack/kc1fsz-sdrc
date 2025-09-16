@@ -316,7 +316,6 @@ private:
     float _inIIRPrevX = 0;
     float _inIIRPrevY = 0;
 
-
     // Audio delay (250ms)
     static const unsigned _delayAreaLen = 2000;
     unsigned _delayAreaReadPtr = 0;
