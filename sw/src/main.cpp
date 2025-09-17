@@ -1088,12 +1088,19 @@ int main(int argc, const char** argv) {
             txCtl0.forceId();
             txCtl1.forceId();        
         },
-        // Test trigger
+        // Test start trigger
         [&txCtl0, &txCtl1](int r) {
             if (r == 0)
                 txCtl0.startTest();
             else if (r == 1)
                 txCtl1.startTest();
+        },
+        // Test stop trigger
+        [&txCtl0, &txCtl1](int r) {
+            if (r == 0)
+                txCtl0.stopTest();
+            else if (r == 1)
+                txCtl1.stopTest();
         }
         );
 

@@ -53,6 +53,7 @@ public:
 
     void forceId() { _enterPreId(); }
     void startTest() { _enterTest(); }
+    void stopTest() { _enterIdle(); }
     int getState() const { return (int)_state; }
    
     void setCall(const char* callSign) { _idToneGenerator.setCall(callSign); }

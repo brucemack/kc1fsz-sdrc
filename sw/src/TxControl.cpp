@@ -254,6 +254,7 @@ void TxControl::_enterIdle() {
     _lastIdleStartTime = _clock.time();
     _clearSelected();
     _tx.setPtt(false);
+    _testToneGenerator.stop();
 }
 
 void TxControl::_enterVoting() {

@@ -43,13 +43,16 @@ void TestToneGenerator::run() {
 
 void TestToneGenerator::start() {
     _running = true;
-    // This is set in the past so that we immediately start working on the first
-    // symbol of the ID.
     _endTime = _clock.time() + TEST_TONE_DUR_MS;
     _core.setToneFreq(_freq);
     _core.setToneLevel(_level);
     _core.setToneEnabled(true);
     _log.info("Test tone start");
+}
+
+void TestToneGenerator::stop() {
+    _running = false;
+    _core.setToneEnabled(false);
 }
 
 bool TestToneGenerator::isFinished() {

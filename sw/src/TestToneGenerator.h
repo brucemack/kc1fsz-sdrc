@@ -24,10 +24,9 @@
 #include "kc1fsz-tools/Clock.h"
 
 #include "ToneGenerator.h"
+#include "AudioCore.h"
 
 namespace kc1fsz {
-
-class AudioCore;
 
 class TestToneGenerator : public ToneGenerator {
 public:
@@ -37,9 +36,10 @@ public:
     virtual void run();
 
     virtual void start();
+    virtual void stop();
     virtual bool isFinished();
-    void setFreq(float hz) { _freq = hz; }
-    void setLevel(float db) { _level = db; }
+    void setFreq(float hz) { _freq = hz; _core.setToneFreq(_freq); }
+    void setLevel(float db) { _level = db; _core.setToneLevel(_level); }
 
 private:
 
