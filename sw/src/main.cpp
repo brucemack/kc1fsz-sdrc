@@ -898,6 +898,7 @@ static void transferConfigRx(const Config::ReceiveConfig& config, Rx& rx) {
     rx.setCtMode((CourtesyToneGenerator::Type)config.ctMode);
     rx.setDelayTime(config.delayTime);
     rx.setDtmfDetectLevel(config.dtmfDetectLevel);
+    rx.setDeemphMode(config.deemphMode);
 }
 
 static void transferConfigTx(const Config::TransmitConfig& config, Tx& tx) {

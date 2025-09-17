@@ -61,6 +61,7 @@ void Config::setFactoryDefaults(Config* cfg) {
     cfg->rx0.agcMode = 1;
     cfg->rx0.agcLevel = -10;
     cfg->rx0.dtmfDetectLevel = -50;
+    cfg->rx0.deemphMode = 0;
     cfg->rx1 = cfg->rx0;
 
     cfg->rx0.cosMode = 0;
@@ -121,6 +122,7 @@ void Config::_showRx(const Config::ReceiveConfig* cfg,
     printf("%s agcmode: %d\n", pre, cfg->agcMode);
     printf("%s agclevel: %.1f\n", pre, cfg->agcLevel);
     printf("%s dtmfdetectlevel: %.1f\n", pre, cfg->dtmfDetectLevel);
+    printf("%s deemphmode: %d\n", pre, cfg->deemphMode);
 }
 
 void Config::_showTx(const Config::TransmitConfig* cfg,

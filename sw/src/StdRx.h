@@ -170,6 +170,8 @@ public:
 
     virtual void setDtmfDetectLevel(float dbfs) { _core.setDtmfDetectLevel(dbfs); }
 
+    virtual void setDeemphMode(uint32_t mode) { _core.setDeemphMode(mode); }
+
 private:
 
     Clock& _clock;

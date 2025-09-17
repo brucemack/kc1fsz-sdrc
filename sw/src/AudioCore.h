@@ -161,6 +161,8 @@ public:
     
     float getDtmfDetectDiagValue() { return _dtmfDetector.getDiagValue(); }
 
+    void setDeemphMode(uint32_t m) { _deemphMode = m; }
+
     /**
       * @returns The last detected DTMF symbol, or zero if none since
       * the last call.
@@ -242,6 +244,29 @@ private:
     arm_fir_interpolate_instance_f32 _filtN;
     float32_t _filtNState[(FILTER_N_LEN / 4) + BLOCK_SIZE_ADC - 1];
 
+    // The low-pass IIR filter used for de-emphasis. This is using one 
+    // biquad stage. Runs at 32kHz.
+    // 
+    // Per CMSIS documentation:
+    //
+    // Each Biquad stage implements a second order filter using the difference equation:
+    // y[n] = b0 * x[n] + b1 * x[n-1] + b2 * x[n-2] + a1 * y[n-1] + a2 * y[n-2]
+    // A Direct Form I algorithm is used with 5 coefficients and 4 state variables per stage.
+    // 
+    // NOTE: A plus sign is used before a1 and a2 in this formulation, so if those
+    // coefficients were computed using the usual convention (subtract) we will 
+    // need a sign flip.
+    //
+    // The coefficients are stored in the array pCoeffs in the following order:
+    // { b10, b11, b12, a11, a12, b20, b21, b22, a21, a22, ...}
+    // where b1x and a1x are the coefficients for the first stage, b2x and a2x are 
+    // the coefficients for the second stage, and so on. The pCoeffs array contains a 
+    // total of 5*numStages values.
+
+    static const float32_t FILTER_J[5];
+    arm_biquad_casd_df1_inst_f32 _filtJ;
+    float32_t _filtJState[4];
+
     // For capturing various measures of energy on each block
     float _noiseRms;
     float _signalRms;
@@ -304,18 +329,6 @@ private:
     unsigned _ctcssBlock = 0;
     unsigned _ctcssBlocks = 0;
 
-    // Used for IIR filter on input
-    float _inIIRb0 = 1.0;
-    float _inIIRb1 = 0.0;
-    float _inIIRa0 = 1.0;
-    float _inIIRa1 = 0.0;
-    //float _inIIRb0 = 0.5235794014387403;
-    //float _inIIRb1 = 0.5235794014387403;
-    //float _inIIRa0 = 1.0;
-    //float _inIIRa1 = 0.047158802877480484;
-    float _inIIRPrevX = 0;
-    float _inIIRPrevY = 0;
-
     // Audio delay (250ms)
     static const unsigned _delayAreaLen = 2000;
     unsigned _delayAreaReadPtr = 0;
@@ -340,6 +353,9 @@ private:
     float _toneTransitionLimit = 0;
     // Controls how long the transition should last.
     unsigned _toneTransitionMs = 20;
+
+    // Deemphasis/Preemphasis related
+    uint32_t _deemphMode = 0;
 
     // Input injection feature for testing
     bool _injectEnabled = false;

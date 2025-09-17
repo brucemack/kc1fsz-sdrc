@@ -112,6 +112,8 @@ public:
     virtual void setAgcLevel(float dbfs) = 0;
 
     virtual void setDtmfDetectLevel(float dbfs) = 0;
+
+    virtual void setDeemphMode(uint32_t mode) = 0;
 };
 
 }
