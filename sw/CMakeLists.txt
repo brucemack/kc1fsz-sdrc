@@ -111,6 +111,7 @@ pico_add_extra_outputs(test1)
 
 add_executable(main
   src/i2s.pio
+  src/i2s_setup.cpp
   src/main.cpp
   src/AudioCore.cpp
   src/DTMFDetector2.cpp

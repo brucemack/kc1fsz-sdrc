@@ -61,7 +61,7 @@ public:
     void setTimeoutTime(uint32_t ms) { _timeoutWindowMs = ms; }
     void setLockoutTime(uint32_t ms) { _lockoutWindowMs = ms; }
     void setHangTime(uint32_t ms) { _hangWindowMs = ms; }
-    void setCtMode(CourtesyToneGenerator::Type mode) { _courtesyToneGenerator.setType(mode); }
+    //void setCtMode(CourtesyToneGenerator::Type mode) { _courtesyToneGenerator.setType(mode); }
     void setCtLevel(float db) { _courtesyToneGenerator.setLevel(db); }
     void setIdMode(int mode) { _idMode = mode; }
     void setIdLevel(float db) { _idToneGenerator.setLevel(db); } 
