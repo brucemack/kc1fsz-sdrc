@@ -277,11 +277,14 @@ void audio_setup(audio_block_processor cb) {
     // 7.03125 * 48,000 * 384 = 129,600,000
 
     // CHANGED AUDIO RATE ON 22-JUNE-2025
-    unsigned int sck_sm_clock_d = 5;
-    unsigned int sck_sm_clock_f = 70;
+    //unsigned int sck_sm_clock_d = 5;
+    //unsigned int sck_sm_clock_f = 70;
     // Sanity check:
     // 2 * (5 + (70/256)) = 10.546875
     // 10.546875 * 32,000 * 384 = 129,600,000
+    // CHANGED AUDIO RATE ON 25-SEP-2025
+    unsigned int sck_sm_clock_d = 6;
+    unsigned int sck_sm_clock_f = 64;
     pio_sm_set_clkdiv_int_frac(pio0, sck_sm, sck_sm_clock_d, sck_sm_clock_f);
 
     // Final enable of the SCK state machine
@@ -369,7 +372,9 @@ void audio_setup(audio_block_processor cb) {
     // 
     // CHANGED AUDIO RATE ON 22-JUNE-2025
     //pio_sm_set_clkdiv_int_frac(pio0, din_sm, 21, 24);
-    pio_sm_set_clkdiv_int_frac(pio0, din_sm, 31, 164);
+    //pio_sm_set_clkdiv_int_frac(pio0, din_sm, 31, 164);
+    // CHANGED AUDIO RATE ON 25-SEP-2025
+    pio_sm_set_clkdiv_int_frac(pio0, din_sm, 37, 128);
     
     // ----- ADC DMA setup ---------------------------------------
 
@@ -516,7 +521,9 @@ void audio_setup(audio_block_processor cb) {
     // TODO: USE VARIABLES SHARED WITH DIN
     // CHANGED AUDIO RATE ON 22-JUNE-2025
     //pio_sm_set_clkdiv_int_frac(pio0, dout_sm, 21, 24);
-    pio_sm_set_clkdiv_int_frac(pio0, dout_sm, 31, 164);
+    //pio_sm_set_clkdiv_int_frac(pio0, dout_sm, 31, 164);
+    // CHANGED AUDIO RATE ON 25-SEP-2025
+    pio_sm_set_clkdiv_int_frac(pio0, dout_sm, 37, 128);
     
     dma_ch_out_data0 = dma_claim_unused_channel(true);
     dma_ch_out_data1 = dma_claim_unused_channel(true);

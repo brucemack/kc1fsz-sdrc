@@ -65,8 +65,8 @@ using namespace kc1fsz;
 #define R1_PTT_PIN (15)
 
 // System clock rate
-//#define SYS_KHZ (149952)
-#define SYS_KHZ (129600)
+#define SYS_KHZ (153600)
+//#define SYS_KHZ (129600)
 #define WATCHDOG_INTERVAL_MS (2000)
 
 // ===========================================================================
