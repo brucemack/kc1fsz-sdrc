@@ -6,19 +6,19 @@ import matplotlib.pyplot as plt
 #fs = 1280
 #cutoff_freq = 150
 #fs = 150
-utoff_freq = 30
+#cutoff_freq = 30
 fs = 32000
-cutoff_freq = 2100
-Ts = 1 / fs
+cutoff_freq = 2120
 
 # Using 'sos' network configuration for stability
 
+Ts = 1 / fs
 nyquist_freq = 0.5 * fs
 normalized_cutoff = cutoff_freq / nyquist_freq
 # This is the SciPy generation of the HPF
 #sos = signal.butter(1, normalized_cutoff, btype='high', output='sos')
 # This is the SciPy generation of the LPF
-#sos = signal.butter(1, normalized_cutoff, btype='low', output='sos')
+sos = signal.butter(1, normalized_cutoff, btype='low', output='sos')
 """
 # This is the manual generation of the HPF
 wc = 2 * np.pi * cutoff_freq
@@ -30,7 +30,7 @@ a1_2 = -b0_2 * (1 - wc_warped)
 sos = []
 sos.append([b0_2, b1_2, 0.0, a0_2, a1_2, 0.0 ])
 """
-
+"""
 # This is the manual generation of the LPF
 wc = 2 * np.pi * cutoff_freq
 wc_warped = math.tan(wc * Ts / 2.0)
@@ -40,6 +40,7 @@ a0_2 = 1
 a1_2 = (wc_warped - 1) / (wc_warped + 1)
 sos = []
 sos.append([b0_2, b1_2, 0.0, a0_2, a1_2, 0.0 ])
+"""
 
 print(sos)
 print("b0", sos[0][0])
@@ -52,31 +53,35 @@ a0 = sos[0][3]
 a1 = sos[0][4]
 
 # Compute frequency response for SOS filter
-w, h = signal.freqz_sos(sos, worN=1000, fs=fs) 
+w, h = signal.freqz_sos(sos, worN=500, fs=fs) 
 # worN is number of points, fs for Hz output
 
  # Plotting the magnitude response in dB
 plt.figure()
-plt.semilogx(w, 20 * np.log10(np.maximum(abs(h), 1e-6))) # np.maximum for avoiding log(0)
+#plt.semilogx(w, 20 * np.log10(np.maximum(abs(h), 1e-6))) # np.maximum for avoiding log(0)
+plt.plot(w, 20 * np.log10(np.maximum(abs(h), 1e-6))) # np.maximum for avoiding log(0)
 plt.title('IIR Filter Frequency Response')
 plt.xlabel('Frequency [Hz]')
 plt.ylabel('Amplitude [dB]')
 plt.grid(which='both', axis='both')
-plt.axvline(cutoff_freq, color='green', linestyle='--', label='Cutoff Frequency')
+plt.axvline(cutoff_freq, color='green', linestyle='--', label='Cutoff Frequency ' + str(cutoff_freq))
+plt.axvline(cutoff_freq * 2, color='blue', linestyle='--', label='x2 ' + str(cutoff_freq * 2))
+plt.axvline(cutoff_freq * 4, color='purple', linestyle='--', label='x2 ' + str(cutoff_freq * 4))
+plt.axvline(cutoff_freq * 8, color='red', linestyle='--', label='x2 ' + str(cutoff_freq * 8))
 plt.legend()
 plt.show()
 
 # Sanity check: generate a sample signal of one second
 t = np.linspace(0, fs, fs, endpoint=False)
 ft = cutoff_freq
-omega = 2 * 3.1415926 * (ft * 2) / fs
+omega = 2 * 3.1415926 * (ft) / fs
 s = np.sin(omega * t)
 
-# Apply the IIR filter
+# Apply the IIR filter to the test signal
 
 # The SCIPY way
-#filtered_s = signal.sosfilt(sos, s)
-
+filtered_s = signal.sosfilt(sos, s)
+"""
 # The manual way
 result = []
 prev_x = 0
@@ -88,6 +93,7 @@ for i in range(0, s.shape[0]):
     prev_y = y 
     result.append(y)
 filtered_s = np.array(result)    
+"""
 
 # Plot resulting signal
 fig, ax = plt.subplots()
