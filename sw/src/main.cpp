@@ -379,12 +379,6 @@ int main(int argc, const char** argv) {
     gpio_set_dir(R1_PTT_PIN, GPIO_OUT);
     gpio_put(R1_PTT_PIN, 0);
 
-    /*
-    gpio_init(adc_rst_pin);
-    gpio_set_dir(adc_rst_pin, GPIO_OUT);
-    gpio_put(adc_rst_pin, 1);
-    */
-
     // Startup ID
     sleep_ms(500);
     gpio_put(LED_PIN, 1);

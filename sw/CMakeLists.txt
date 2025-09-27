@@ -157,5 +157,39 @@ target_compile_options(main PRIVATE -g)
 # Set target properties for UF2 build
 pico_add_extra_outputs(main)
 
+# ------ Audio Analyzer Project -----------------------------------------------
+# This is the main controller project
+
+add_executable(analyzer
+  src/i2s.pio
+  src/i2s_setup.cpp
+  src/analyzer.cpp
+  radlib/util/dsp_util.cpp  
+  kc1fsz-tools-cpp/src/Common.cpp
+  kc1fsz-tools-cpp/src/CommandShell.cpp
+  kc1fsz-tools-cpp/src/WindowAverage.cpp
+  kc1fsz-tools-cpp/src/rp2040/PicoPollTimer.cpp
+  kc1fsz-tools-cpp/src/rp2040/PicoPerfTimer.cpp
+)
+target_compile_definitions(analyzer PRIVATE -DPICO_BUILD=1)
+pico_enable_stdio_usb(analyzer 0)
+pico_enable_stdio_uart(analyzer 1)
+pico_generate_pio_header(analyzer ${CMAKE_CURRENT_LIST_DIR}/src/i2s.pio)
+
+target_include_directories(analyzer PRIVATE 
+  src
+  kc1fsz-tools-cpp/include
+  radlib
+  ${HOME}/pico/CMSISDSP/CMSIS-DSP/Include
+  ${HOME}/pico/CMSISDSP/CMSIS_6/CMSIS/Core/Include
+)
+
+target_link_libraries(analyzer 
+  pico_stdlib hardware_i2c hardware_clocks hardware_pwm hardware_dma hardware_pio 
+  hardware_flash
+  ${HOME}/pico/CMSISDSP/build/bin_dsp/libCMSISDSP.a
+)
+
+target_compile_options(analyzer PRIVATE -g)
 
 endif()
