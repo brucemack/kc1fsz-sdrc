@@ -6,6 +6,7 @@ from scipy.signal import lfilter, firwin
 fs = 8000
 pi = 3.1415926
 
+# Implementation of the Goertzel Algoirthm
 def filt1(signal0, ft1):
 
     g_w = 2.0 * pi * ft1 / fs
