@@ -17,7 +17,7 @@ ax.set_autoscale_on(True)
 ax.set_xlabel("Frequency [Hz]")
 ax.set_ylabel("Amplitude")
 ax.set_ylim(-25,3)
-ax.set_xlim(0,8000)
+ax.set_xlim(0,4000)
 #ax.title("FFT of a Signal")
 plt.ioff()
 

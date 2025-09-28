@@ -48,7 +48,8 @@ using namespace kc1fsz;
 // CONFIGURATION PARAMETERS
 // ===========================================================================
 //
-#define LED_PIN (PICO_DEFAULT_LED_PIN)
+#define LED0_PIN (PICO_DEFAULT_LED_PIN)
+#define LED1_PIN (18)
 
 // System clock rate
 #define SYS_KHZ (153600)
@@ -126,14 +127,22 @@ int main(int argc, const char** argv) {
 
     stdio_init_all();
 
-    gpio_init(LED_PIN);
-    gpio_set_dir(LED_PIN, GPIO_OUT);
+    gpio_init(LED0_PIN);
+    gpio_set_dir(LED0_PIN, GPIO_OUT);
+    gpio_put(LED0_PIN, 0);
+    gpio_init(LED1_PIN);
+    gpio_set_dir(LED1_PIN, GPIO_OUT);
+    gpio_put(LED1_PIN, 0);
     
-   // Startup ID
-    sleep_ms(500);
-    gpio_put(LED_PIN, 1);
-    sleep_ms(500);
-    gpio_put(LED_PIN, 0);
+    // Startup indicator
+    for (unsigned i = 0; i < 4; i++) {
+        sleep_ms(200);
+        gpio_put(LED0_PIN, 1);
+        gpio_put(LED1_PIN, 1);
+        sleep_ms(200);
+        gpio_put(LED0_PIN, 0);
+        gpio_put(LED1_PIN, 0);
+    }
 
     Log log(&clock);
     log.setEnabled(true);
@@ -159,7 +168,7 @@ int main(int argc, const char** argv) {
 
     // Display/diagnostic should happen once per second
     PicoPollTimer flashTimer;
-    flashTimer.setIntervalUs(75 * 1000);
+    flashTimer.setIntervalUs(50 * 1000);
 
     arm_cfft_init_f32(&dftInstance, 1024);
 
@@ -171,10 +180,11 @@ int main(int argc, const char** argv) {
 
     unsigned step = 1;
     const unsigned steps = 128;
-    float sweepStepHz = 8000 / (float)steps;
+    float sweepStepHz = 4000 / (float)steps;
     float sweepHz = sweepStepHz;
     float sweepStartHz = sweepStepHz;
     float sweepMags[steps] = { 0 };
+
     float sweepCal[steps] = { 0 };
     for (unsigned i = 0; i < steps; i++)
         sweepCal[i] = 1.0;
