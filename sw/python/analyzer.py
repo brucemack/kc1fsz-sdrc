@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import math
 
 try:
-    ser = serial.Serial('/dev/ttyUSB0', 115200, timeout=None) 
+    ser = serial.Serial('/dev/ttyUSB1', 115200, timeout=None) 
     print(f"Serial port {ser.name} opened successfully.")
 except:
     print("Failed")
@@ -15,8 +15,9 @@ hl, = plt.plot([], [], '-')
 ax.grid()
 ax.set_autoscale_on(True)
 ax.set_xlabel("Frequency [Hz]")
-ax.set_ylabel("Amplitude")
-ax.set_ylim(-25,3)
+ax.set_ylabel("Amplitude [dB]")
+ax.axvline(240, color='red', linestyle='--', label='240 Hz')
+ax.set_ylim(-40,3)
 ax.set_xlim(0,4000)
 #ax.title("FFT of a Signal")
 plt.ioff()
@@ -35,7 +36,11 @@ while True:
         data = []
         for token in tokens[3:]:
             freqs.append(freq)
-            data.append(20.0 * math.log(float(token)))
+            a = float(token)
+            if a > 0:
+                data.append(20.0 * math.log(float(token)))
+            else:
+                data.append(-99)
             freq = freq + step_hz
         #print("Freq", freqs)
         #print("Data", data)

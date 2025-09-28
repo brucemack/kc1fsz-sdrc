@@ -50,6 +50,12 @@ using namespace kc1fsz;
 //
 #define LED0_PIN (PICO_DEFAULT_LED_PIN)
 #define LED1_PIN (18)
+#define R0_COS_PIN (14)
+#define R0_CTCSS_PIN (13)
+#define R0_PTT_PIN (12)
+#define R1_COS_PIN (17)
+#define R1_CTCSS_PIN (16)
+#define R1_PTT_PIN (15)
 
 // System clock rate
 #define SYS_KHZ (153600)
@@ -134,6 +140,23 @@ int main(int argc, const char** argv) {
     gpio_set_dir(LED1_PIN, GPIO_OUT);
     gpio_put(LED1_PIN, 0);
     
+    gpio_init(R0_COS_PIN);
+    gpio_set_dir(R0_COS_PIN, GPIO_IN);
+    gpio_init(R0_CTCSS_PIN);
+    gpio_set_dir(R0_CTCSS_PIN, GPIO_IN);
+    gpio_init(R0_PTT_PIN);
+    gpio_set_dir(R0_PTT_PIN, GPIO_OUT);
+    // Logic is inverted, so 0 is off (not pulled to ground)
+    gpio_put(R0_PTT_PIN, 0);
+    gpio_init(R1_COS_PIN);
+    gpio_set_dir(R1_COS_PIN, GPIO_IN);
+    gpio_init(R1_CTCSS_PIN);
+    gpio_set_dir(R1_CTCSS_PIN, GPIO_IN);
+    gpio_init(R1_PTT_PIN);
+    gpio_set_dir(R1_PTT_PIN, GPIO_OUT);
+    // Logic is inverted, so 0 is off (not pulled to ground)
+    gpio_put(R1_PTT_PIN, 0);
+
     // Startup indicator
     for (unsigned i = 0; i < 4; i++) {
         sleep_ms(200);
@@ -178,19 +201,19 @@ int main(int argc, const char** argv) {
         hwS += hw[n];
     }
 
+    enum State { PRE, SWEEP, POST } state = State::PRE;
+
     unsigned step = 1;
     const unsigned steps = 128;
     float sweepStepHz = 4000 / (float)steps;
     float sweepHz = sweepStepHz;
     float sweepStartHz = sweepStepHz;
     float sweepMags[steps] = { 0 };
+    float sweepThds[steps] = { 0 };
 
     float sweepCal[steps] = { 0 };
     for (unsigned i = 0; i < steps; i++)
         sweepCal[i] = 1.0;
-
-    // Convert frequency to radians/sample.  
-    toneOmega = 2.0 * PI * sweepHz / (float)FS_ADC;
 
     // ===== Main Event Loop =================================================
 
@@ -213,73 +236,86 @@ int main(int argc, const char** argv) {
 
         if (flash) {
 
-            // DFT
-            float32_t dftIn[1024 * 2];
-            // Build complex array w/ window
-            for (unsigned i = 0; i < 1024; i++) {
-                dftIn[i * 2] = dftBuffer[i] * hw[i];
-                dftIn[i * 2 + 1] = 0;
-            }
-            arm_cfft_f32(&dftInstance, dftIn, 0, 1);
-
-            float32_t dftMax = 0;
-            unsigned dftMaxBin = 0;
-
-            // Find the fundmamental frequency
-            for (unsigned i = 1; i < 1024 / 2; i++) {
-                float32_t mag2 = mag_sq(dftIn[i * 2], dftIn[i * 2 + 1]);
-                if (mag2 > dftMax) {
-                    dftMaxBin = i;
-                    dftMax = mag2;
-                }
-            }
-
-            // Total up the harmonics
-            float32_t harmonicSum = 0;
-            for (unsigned h = 2; h < 32; h++) {
-                unsigned hBin = dftMaxBin * h;
-                // Are we off the end?
-                if (hBin >= 1024 / 2)
-                    break;
-                float32_t r = dftIn[hBin * 2];
-                r = r * r;
-                float32_t c = dftIn[hBin * 2 + 1];
-                c = c * c;
-                float32_t mag = sqrt(r + c);
-                float32_t rms = mag * 0.7071;
-                harmonicSum += rms * rms;
-            }
-            float32_t thd = sqrt(harmonicSum) / (dftMax * 0.7071);
-
-            float dbPeak = signalPeak > 0.001 ? 20.0 * log10(signalPeak * 2.0) : -99;            
-            float maxM = (2.0) * sqrt(dftMax) / hwS;
-            float maxF = 32000.0 * (float)dftMaxBin / 1024.0;
-
-            sweepMags[step] = maxM;
-            //sweepMags[step] = signalRms;
-
-            //printf("RMS %f PK %f PKdB %f DFTM %f DFTF %f THD %.2f %\n", 
-            //            signalRms, signalPeak, dbPeak,
-            //            maxM, maxF, thd * 100.0);
-            //printf("%.0f\t%.3f\n", sweepHz, signalPeak);
-
-            // Advance
-            if (step < steps) {
-                step++;
-                sweepHz += sweepStepHz;
-                // Convert frequency to radians/sample.  
-                toneOmega = 2.0 * PI * sweepHz / (float)FS_ADC;
-            }
-            else if (step == steps) {
-                printf("SWEEP %f %f ", sweepStartHz, sweepStepHz);
-                for (unsigned n = 1; n < steps; n++)
-                    printf("%.3f ", sweepMags[n] / sweepCal[n]);
-                printf("\n");
-                printf("THD %.2f\n", thd * 100);
+            if (state == State::PRE) {
                 step = 1;
                 sweepHz = sweepStartHz;
                 // Convert frequency to radians/sample.  
                 toneOmega = 2.0 * PI * sweepHz / (float)FS_ADC;
+                state = State::SWEEP;
+                // Logic is inverted, so 1 is pulled to ground
+                gpio_put(R0_PTT_PIN, 1);
+            }
+            else if (state == State::POST) {
+                gpio_put(R0_PTT_PIN, 0);
+                state = State::PRE;
+            }
+            else if (state == State::SWEEP) {
+
+                // DFT
+                float32_t dftIn[1024 * 2];
+                // Build complex array w/ window
+                for (unsigned i = 0; i < 1024; i++) {
+                    dftIn[i * 2] = dftBuffer[i] * hw[i];
+                    dftIn[i * 2 + 1] = 0;
+                }
+                arm_cfft_f32(&dftInstance, dftIn, 0, 1);
+
+                float32_t dftMax = 0;
+                unsigned dftMaxBin = 0;
+
+                // Find the fundmamental frequency
+                for (unsigned i = 1; i < 1024 / 2; i++) {
+                    float32_t mag2 = mag_sq(dftIn[i * 2], dftIn[i * 2 + 1]);
+                    if (mag2 > dftMax) {
+                        dftMaxBin = i;
+                        dftMax = mag2;
+                    }
+                }
+
+                // Total up the harmonics
+                float32_t harmonicSum = 0;
+                for (unsigned h = 2; h < 32; h++) {
+                    unsigned hBin = dftMaxBin * h;
+                    // Are we off the end?
+                    if (hBin >= 1024 / 2)
+                        break;
+                    float32_t r = dftIn[hBin * 2];
+                    r = r * r;
+                    float32_t c = dftIn[hBin * 2 + 1];
+                    c = c * c;
+                    float32_t mag = sqrt(r + c);
+                    float32_t rms = mag * 0.7071;
+                    harmonicSum += rms * rms;
+                }
+                float32_t thd = sqrt(harmonicSum) / (dftMax * 0.7071);
+
+                float dbPeak = signalPeak > 0.001 ? 20.0 * log10(signalPeak * 2.0) : -99;            
+                float maxM = (2.0) * sqrt(dftMax) / hwS;
+                float maxF = 32000.0 * (float)dftMaxBin / 1024.0;
+
+                sweepMags[step] = maxM;
+                sweepThds[step] = thd;
+                //sweepMags[step] = signalRms;
+
+                // Check for end of sweep
+                if (step == steps) {
+                    printf("SWEEP %f %f ", sweepStartHz, sweepStepHz);
+                    for (unsigned n = 1; n < steps; n++)
+                        printf("%.3f ", sweepMags[n] / sweepCal[n]);
+                    printf("\n");
+                    //printf("THD %f %f ", sweepStartHz, sweepStepHz);
+                    //for (unsigned n = 1; n < steps; n++)
+                    //    printf("%.2f ", sweepThds[n] * 100.0);
+                    printf("\n");
+                    state = State::POST;
+                }
+                else {
+                    // Advance
+                    step++;
+                    sweepHz += sweepStepHz;
+                    // Convert frequency to radians/sample.  
+                    toneOmega = 2.0 * PI * sweepHz / (float)FS_ADC;
+                }
             }
         }
 
