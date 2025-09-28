@@ -3,9 +3,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # Filter parameters
-fs = 100
-fc = 20
-order = 2
+fs = 8000
+fc = 2100
+order = 1
 cutoff_freq_norm = fc / fs  # Normalized cutoff frequency (Nyquist = 1)
 filter_type = 'highpass'
 filter_design = 'cheby1'
