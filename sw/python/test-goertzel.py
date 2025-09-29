@@ -25,7 +25,7 @@ def goertzel_polar(s, ft, fs):
     return np.abs(complex(g_r, g_i)), np.angle(complex(g_r, g_i))
 
 N = 512
-ft = 100
+ft = 125
 fs = 8000
 a = 1.0
 t = np.linspace(0, N, N, endpoint=False)

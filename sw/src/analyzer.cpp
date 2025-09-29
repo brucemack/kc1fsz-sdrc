@@ -201,7 +201,8 @@ int main(int argc, const char** argv) {
         hwS += hw[n];
     }
 
-    enum State { PRE, SWEEP, POST } state = State::PRE;
+    enum State { PRE, SWEEP, POST, 
+        FIXED_START, FIXED_RUN } state = State::PRE;
 
     unsigned step = 1;
     const unsigned steps = 128;
@@ -232,11 +233,31 @@ int main(int argc, const char** argv) {
             printf("Calibration\n");
             for (unsigned i = 0; i < steps; i++)
                 sweepCal[i] = sweepMags[i];
+        } else if (c == ' ') {
+            if (state == State::FIXED_RUN) {
+                step++;
+                sweepHz = 500 * step;
+                // Convert frequency to radians/sample.  
+                toneOmega = 2.0 * PI * sweepHz / (float)FS_ADC;
+                printf("Fixed Freq %f\n", sweepHz);
+            }
+            else {
+                state = State::FIXED_START;
+            }
         }
 
         if (flash) {
-
-            if (state == State::PRE) {
+            if (state == State::FIXED_START) {
+                step = 1;
+                sweepHz = 500;
+                // Convert frequency to radians/sample.  
+                toneOmega = 2.0 * PI * sweepHz / (float)FS_ADC;
+                printf("Fixed Freq %f\n", sweepHz);
+                state = State::FIXED_RUN;
+                // Logic is inverted, so 1 is pulled to ground
+                gpio_put(R0_PTT_PIN, 1);
+            }
+            else if (state == State::PRE) {
                 step = 1;
                 sweepHz = sweepStartHz;
                 // Convert frequency to radians/sample.  
