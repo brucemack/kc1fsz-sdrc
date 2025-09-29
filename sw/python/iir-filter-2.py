@@ -78,13 +78,13 @@ plt.title('IIR Filter Frequency Response')
 plt.xlabel('Frequency [Hz]')
 plt.ylabel('Amplitude [dB]')
 plt.grid(which='both', axis='both')
-plt.axvline(cutoff_freq_l, color='green', linestyle='--', label='Cutoff Frequency')
+plt.axvline(cutoff_freq, color='green', linestyle='--', label='Cutoff Frequency')
 plt.legend()
 plt.show()
 
 # Sanity check: generate a sample signal of one second
 t = np.linspace(0, fs, fs, endpoint=False)
-ft = cutoff_freq_l
+ft = cutoff_freq
 omega = 2 * 3.1415926 * (ft) / fs
 s = np.sin(omega * t)
 
