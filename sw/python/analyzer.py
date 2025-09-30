@@ -39,7 +39,7 @@ while True:
             freqs.append(freq)
             a = float(token)
             if a > 0:
-                data.append(20.0 * math.log10(float(token)))
+                data.append(20.0 * math.log10(a / 0.65))
             else:
                 data.append(-60)
             freq = freq + step_hz

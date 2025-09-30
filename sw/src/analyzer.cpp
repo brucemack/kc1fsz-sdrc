@@ -82,7 +82,12 @@ static float32_t signalPeak = 0;
 static float32_t toneHz = 2000;
 static float32_t toneOmega = 0;
 static float32_t tonePhi = 0;
-static float32_t toneLevel = 0.25;
+// Try to get full-scale on the output
+// This is the value that gives the largest clean output
+// on radio 0 for the analyzer test board (2025-05 B).
+// With the output trim pot set on full scale (all the way CCW on 
+// this board) we get 2.44Vpp into 620 ohms.
+static float32_t toneLevel = 0.83;
 
 static float32_t dftBuffer[1024];
 static arm_cfft_instance_f32 dftInstance;
@@ -249,13 +254,19 @@ int main(int argc, const char** argv) {
         if (flash) {
             if (state == State::FIXED_START) {
                 step = 1;
-                sweepHz = 500;
+                sweepHz = 500;   
                 // Convert frequency to radians/sample.  
                 toneOmega = 2.0 * PI * sweepHz / (float)FS_ADC;
                 printf("Fixed Freq %f\n", sweepHz);
                 state = State::FIXED_RUN;
                 // Logic is inverted, so 1 is pulled to ground
                 gpio_put(R0_PTT_PIN, 1);
+            }
+            else if (state == State::FIXED_RUN) {
+                float signalDbfs = -99;
+                if (signalPeak > 0.01) 
+                    signalDbfs = 20.0 * log10(signalPeak);
+                printf("RMS %f PEAK %f dBFS %f\n", signalRms, signalPeak, signalDbfs);
             }
             else if (state == State::PRE) {
                 step = 1;
@@ -314,9 +325,9 @@ int main(int argc, const char** argv) {
                 float maxM = (2.0) * sqrt(dftMax) / hwS;
                 float maxF = 32000.0 * (float)dftMaxBin / 1024.0;
 
-                sweepMags[step] = maxM;
+                //sweepMags[step] = maxM;
                 sweepThds[step] = thd;
-                //sweepMags[step] = signalRms;
+                sweepMags[step] = signalRms;
 
                 // Check for end of sweep
                 if (step == steps) {
