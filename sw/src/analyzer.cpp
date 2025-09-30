@@ -82,6 +82,7 @@ static float32_t signalPeak = 0;
 static float32_t toneHz = 2000;
 static float32_t toneOmega = 0;
 static float32_t tonePhi = 0;
+
 // Try to get full-scale on the output
 // This is the value that gives the largest clean output
 // on radio 0 for the analyzer test board (2025-05 B).
@@ -89,7 +90,8 @@ static float32_t tonePhi = 0;
 // this board) we get 2.44Vpp into 620 ohms.
 static float32_t toneLevel = 0.83;
 
-static float32_t dftBuffer[1024];
+static const unsigned DFT_N = 1024;
+static float32_t dftBuffer[DFT_N];
 static arm_cfft_instance_f32 dftInstance;
 
 /**
@@ -109,15 +111,14 @@ static void audio_proc(const int32_t* r0_samples, const int32_t* r1_samples,
     uint32_t signalPeakIndex;
     arm_absmax_f32(adc_in, ADC_SAMPLE_COUNT, &signalPeak, &signalPeakIndex);
 
-    // Accumulate DFT buffer
-    memmove(dftBuffer, dftBuffer + ADC_SAMPLE_COUNT, (1024 - ADC_SAMPLE_COUNT) * 4);
+    // Accumulate DFT buffer. This is a sliding window.
+    memmove(dftBuffer, dftBuffer + ADC_SAMPLE_COUNT, (DFT_N - ADC_SAMPLE_COUNT) * 4);
     memmove(dftBuffer + 3 * ADC_SAMPLE_COUNT, adc_in, ADC_SAMPLE_COUNT * 4);
 
     // Make tone
     for (unsigned i = 0; i < ADC_SAMPLE_COUNT; 
         i++, tonePhi += toneOmega) 
         dac_out[i] = toneLevel * arm_cos_f32(tonePhi);
-
     // We do this to avoid phi growing very large and 
     // creating overflow/precision problems.
     tonePhi = fmod(tonePhi, 2.0 * PI);
@@ -126,7 +127,7 @@ static void audio_proc(const int32_t* r0_samples, const int32_t* r1_samples,
     arm_float_to_q31(dac_out, r0_out, ADC_SAMPLE_COUNT);
 }
 
-float mag_sq(float a, float b) {
+static float mag_sq(float a, float b) {
     return a * a + b * b;
 }
 
@@ -209,8 +210,8 @@ int main(int argc, const char** argv) {
     enum State { PRE, SWEEP, POST, 
         FIXED_START, FIXED_RUN } state = State::PRE;
 
-    unsigned step = 1;
     const unsigned steps = 128;
+    unsigned step = 1;
     float sweepStepHz = 4000 / (float)steps;
     float sweepHz = sweepStepHz;
     float sweepStartHz = sweepStepHz;
@@ -223,7 +224,12 @@ int main(int argc, const char** argv) {
 
     // ===== Main Event Loop =================================================
 
+    // 
     printf("\033[?25h");
+    printf("\033[2J");
+    printf("\033[?25l");
+    printf("KC1FSZ Audio Analyzer 2025-09-30");
+    printf("\n");
 
     while (true) { 
 
@@ -235,16 +241,28 @@ int main(int argc, const char** argv) {
         bool flash = flashTimer.poll();
 
         if (c == 'c') {
-            printf("Calibration\n");
             for (unsigned i = 0; i < steps; i++)
                 sweepCal[i] = sweepMags[i];
         } else if (c == ' ') {
+            // Return to the sweep mode
+            state = State::PRE;
+        } else if (c == '=') {
             if (state == State::FIXED_RUN) {
                 step++;
-                sweepHz = 500 * step;
+                sweepHz = sweepStepHz * step;
                 // Convert frequency to radians/sample.  
                 toneOmega = 2.0 * PI * sweepHz / (float)FS_ADC;
-                printf("Fixed Freq %f\n", sweepHz);
+            }
+            else {
+                state = State::FIXED_START;
+            }
+        } else if (c == '-') {
+            if (state == State::FIXED_RUN) {
+                if (step > 1)
+                    step--;
+                sweepHz = sweepStepHz * step;
+                // Convert frequency to radians/sample.  
+                toneOmega = 2.0 * PI * sweepHz / (float)FS_ADC;
             }
             else {
                 state = State::FIXED_START;
@@ -252,21 +270,83 @@ int main(int argc, const char** argv) {
         }
 
         if (flash) {
+
+            // Home, then skip down 2
+            printf("\033[H\n\n");
+            printf("Freq       ");
+            printf("%.1f Hz     \n", sweepHz);
+
+            // Do the FFT analysis
+            float32_t dftIn[DFT_N * 2];
+            // Build complex array w/ Hamming window. Imaginary components
+            // are all zero.
+            // TODO: USE VERSION THAT IS OPTIMIZED FOR REAL SIGNALS
+            for (unsigned i = 0; i < DFT_N; i++) {
+                dftIn[i * 2] = dftBuffer[i] * hw[i];
+                dftIn[i * 2 + 1] = 0;
+            }
+            // NOTE: The final "1" means to adjust order.
+            arm_cfft_f32(&dftInstance, dftIn, 0, 1);
+
+            // Find the fundmamental (loudest) frequency
+            float32_t dftMaxMag2 = 0;
+            unsigned dftMaxBin = 0;
+            // Skip DC, everything is done in mag^2
+            for (unsigned i = 1; i < DFT_N / 2; i++) {
+                float32_t mag2 = mag_sq(dftIn[i * 2], dftIn[i * 2 + 1]);
+                if (mag2 > dftMaxMag2) {
+                    dftMaxBin = i;
+                    dftMaxMag2 = mag2;
+                }
+            }
+
+            // Compute the THD.  We do this by summing the 
+            // Vrms of the first 8 harmonics of the "fundamental,"
+            // which is assumed to be the loudest frequency.
+
+            float32_t harmonicSum = 0;
+            for (unsigned h = 2; h < 8; h++) {
+                unsigned harmonicBin = dftMaxBin * h;
+                // Are we off the end?
+                if (harmonicBin < DFT_N / 2) {
+                    // Calculate the Vp^2.
+                    float32_t r = pow(dftIn[harmonicBin * 2], 2);
+                    float32_t i = pow(dftIn[harmonicBin * 2 + 1], 2);
+                    // Note that we are skipping the sqrt() in this mag 
+                    // calculation for efficiency.
+                    float32_t vp_squared = r + i;
+                    // Calculate the Vrms^2. 
+                    float32_t vrms_squared = vp_squared * (0.707 * 0.707);
+                    harmonicSum += vrms_squared;
+                }
+            }
+
+            float32_t thd = 100.0 * (sqrt(harmonicSum) / (sqrt(dftMaxMag2) * 0.707));
+            float peakDbfs = signalPeak > 0.001 ? 20.0 * log10(signalPeak) : -99;            
+            // Adjust the DFT Vp for the window 
+            float maxM = (2.0) * sqrt(dftMaxMag2) / hwS;
+            // Convert the bin number to Hz
+            float maxF = 32000.0 * (float)dftMaxBin / (float)DFT_N;
+
+            // Display live analysis stats
+            printf("RMS        %.3f Vrms    \n", signalRms);
+            printf("Peak       %.3f Vp      \n", signalPeak);
+            printf("Peak       %.1f dBFS    \n", peakDbfs);
+            printf("FFT Peak   %.3f Vp      \n", maxM);
+            printf("FFT Freq   %.1f Hz      \n", maxF);
+            printf("THD        %.2f %%       \n", thd);
+
+            sweepThds[step] = thd;
+            sweepMags[step] = signalRms;
+
             if (state == State::FIXED_START) {
                 step = 1;
-                sweepHz = 500;   
+                sweepHz = sweepStartHz;   
                 // Convert frequency to radians/sample.  
                 toneOmega = 2.0 * PI * sweepHz / (float)FS_ADC;
-                printf("Fixed Freq %f\n", sweepHz);
                 state = State::FIXED_RUN;
                 // Logic is inverted, so 1 is pulled to ground
                 gpio_put(R0_PTT_PIN, 1);
-            }
-            else if (state == State::FIXED_RUN) {
-                float signalDbfs = -99;
-                if (signalPeak > 0.01) 
-                    signalDbfs = 20.0 * log10(signalPeak);
-                printf("RMS %f PEAK %f dBFS %f\n", signalRms, signalPeak, signalDbfs);
             }
             else if (state == State::PRE) {
                 step = 1;
@@ -283,54 +363,9 @@ int main(int argc, const char** argv) {
             }
             else if (state == State::SWEEP) {
 
-                // DFT
-                float32_t dftIn[1024 * 2];
-                // Build complex array w/ window
-                for (unsigned i = 0; i < 1024; i++) {
-                    dftIn[i * 2] = dftBuffer[i] * hw[i];
-                    dftIn[i * 2 + 1] = 0;
-                }
-                arm_cfft_f32(&dftInstance, dftIn, 0, 1);
-
-                float32_t dftMax = 0;
-                unsigned dftMaxBin = 0;
-
-                // Find the fundmamental frequency
-                for (unsigned i = 1; i < 1024 / 2; i++) {
-                    float32_t mag2 = mag_sq(dftIn[i * 2], dftIn[i * 2 + 1]);
-                    if (mag2 > dftMax) {
-                        dftMaxBin = i;
-                        dftMax = mag2;
-                    }
-                }
-
-                // Total up the harmonics
-                float32_t harmonicSum = 0;
-                for (unsigned h = 2; h < 32; h++) {
-                    unsigned hBin = dftMaxBin * h;
-                    // Are we off the end?
-                    if (hBin >= 1024 / 2)
-                        break;
-                    float32_t r = dftIn[hBin * 2];
-                    r = r * r;
-                    float32_t c = dftIn[hBin * 2 + 1];
-                    c = c * c;
-                    float32_t mag = sqrt(r + c);
-                    float32_t rms = mag * 0.7071;
-                    harmonicSum += rms * rms;
-                }
-                float32_t thd = sqrt(harmonicSum) / (dftMax * 0.7071);
-
-                float dbPeak = signalPeak > 0.001 ? 20.0 * log10(signalPeak * 2.0) : -99;            
-                float maxM = (2.0) * sqrt(dftMax) / hwS;
-                float maxF = 32000.0 * (float)dftMaxBin / 1024.0;
-
-                //sweepMags[step] = maxM;
-                sweepThds[step] = thd;
-                sweepMags[step] = signalRms;
-
                 // Check for end of sweep
                 if (step == steps) {
+                    printf("\n");
                     printf("SWEEP %f %f ", sweepStartHz, sweepStepHz);
                     for (unsigned n = 1; n < steps; n++)
                         printf("%.3f ", sweepMags[n] / sweepCal[n]);
@@ -338,7 +373,6 @@ int main(int argc, const char** argv) {
                     //printf("THD %f %f ", sweepStartHz, sweepStepHz);
                     //for (unsigned n = 1; n < steps; n++)
                     //    printf("%.2f ", sweepThds[n] * 100.0);
-                    printf("\n");
                     state = State::POST;
                 }
                 else {

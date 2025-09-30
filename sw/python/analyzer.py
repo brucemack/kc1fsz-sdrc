@@ -27,7 +27,7 @@ c = 0
 
 while True:
     received_data = ser.readline().decode('utf-8').strip()
-    print(f"Received: {received_data}")
+    #print(f"Received: {received_data}")
     if received_data.startswith("SWEEP "):
         tokens = received_data.split(" ")
         start_hz = float(tokens[1])
