@@ -370,9 +370,10 @@ int main(int argc, const char** argv) {
                     for (unsigned n = 1; n < steps; n++)
                         printf("%.3f ", sweepMags[n] / sweepCal[n]);
                     printf("\n");
-                    //printf("THD %f %f ", sweepStartHz, sweepStepHz);
-                    //for (unsigned n = 1; n < steps; n++)
-                    //    printf("%.2f ", sweepThds[n] * 100.0);
+                    printf("THDSWEEP %f %f ", sweepStartHz, sweepStepHz);
+                    for (unsigned n = 1; n < steps; n++)
+                        printf("%.3f ", sweepThds[n]);
+                    printf("\n");
                     state = State::POST;
                 }
                 else {

@@ -15,11 +15,10 @@ hl, = plt.plot([], [], '-')
 ax.grid()
 ax.set_autoscale_on(True)
 ax.set_xlabel("Frequency [Hz]")
-#ax.set_xscale("log")
-ax.set_ylabel("Amplitude [dB]")
+#ax.set_ylabel("Amplitude [dB]")
+ax.set_ylabel("THD [%]")
 ax.axvline(240, color='red', linestyle='--', label='240 Hz')
-ax.set_ylim(-10,3)
-#ax.set_xlim(0,4000)
+#ax.set_ylim(-10,3)
 #ax.title("FFT of a Signal")
 plt.ioff()
 
@@ -27,9 +26,10 @@ c = 0
 
 while True:
     received_data = ser.readline().decode('utf-8').strip()
-    #print(f"Received: {received_data}")
-    if received_data.startswith("SWEEP "):
+    #if received_data.startswith("SWEEP "):
+    if received_data.startswith("THDSWEEP "):
         tokens = received_data.split(" ")
+        print(tokens)
         start_hz = float(tokens[1])
         step_hz = float(tokens[2])
         freq = start_hz
@@ -38,10 +38,13 @@ while True:
         for token in tokens[3:]:
             freqs.append(freq)
             a = float(token)
-            if a > 0:
-                data.append(20.0 * math.log10(a / 0.65))
-            else:
-                data.append(-60)
+            if a > 1:
+                a = 1
+            data.append(a)
+            #if a > 0:
+            #    data.append(20.0 * math.log10(a / 0.65))
+            #else:
+            #    data.append(-60)
             freq = freq + step_hz
         #print("Freq", freqs)
         #print("Data", data)
