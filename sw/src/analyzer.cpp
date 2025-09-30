@@ -329,10 +329,10 @@ int main(int argc, const char** argv) {
             float maxF = 32000.0 * (float)dftMaxBin / (float)DFT_N;
 
             // Display live analysis stats
-            printf("RMS        %.3f Vrms    \n", signalRms);
-            printf("Peak       %.3f Vp      \n", signalPeak);
+            printf("RMS        %.2f Vrms    \n", signalRms);
+            printf("Peak       %.2f Vp      \n", signalPeak);
             printf("Peak       %.1f dBFS    \n", peakDbfs);
-            printf("FFT Peak   %.3f Vp      \n", maxM);
+            printf("FFT Peak   %.2f Vp      \n", maxM);
             printf("FFT Freq   %.1f Hz      \n", maxF);
             printf("THD        %.2f %%       \n", thd);
 
