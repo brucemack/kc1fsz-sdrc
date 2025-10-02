@@ -126,11 +126,36 @@ void arm_fir_interpolate_f32(const arm_fir_interpolate_instance_f32* s,
     const float32_t* pSrc,
     float32_t* pDst,
     uint32_t blockSize);
-
+/**
+ * The coefficients are stored in the array pCoeffs in 
+ * the following order:
+ * {b10, b11, b12, a11, a12, b20, b21, b22, a21, a22, ...}
+ * where b1x and a1x are the coefficients for the first 
+ * stage, b2x and a2x are the coefficients for the
+ * second stage, and so on. The pCoeffs array contains a 
+ * total of 5*numStages values.
+ * 
+ * The pState points to state variables array. Each 
+ * Biquad stage has 4 state variables x[n-1], x[n-2],
+ * y[n-1], and y[n-2]. The state variables are arranged 
+ * in the pState array as:
+ * {x[n-1], x[n-2], y[n-1], y[n-2]}
+ * The 4 state variables for stage 1 are first, then the 
+ * 4 state variables for stage 2, and so on. The state array
+ * has a total length of 4*numStages values. The state variables 
+ * are updated after each block of data is
+ * processed, the coefficients are untouched.
+ */
 void arm_biquad_cascade_df1_init_f32(arm_biquad_casd_df1_inst_f32* s, 
     uint8_t numStages, const float32_t* pCoeffs, 
     float32_t *pState);
 
+/**
+ * Each Biquad stage implements a second order filter using 
+ * the difference equation:
+ * 
+ * y[n] = b0 * x[n] + b1 * x[n-1] + b2 * x[n-2] + a1 * y[n-1] + a2 * y[n-2] 
+ */
 void arm_biquad_cascade_df1_f32(const arm_biquad_casd_df1_inst_f32* s, 
     const float32_t* pSrc, float32_t* pDst, uint32_t blockSize);
 
