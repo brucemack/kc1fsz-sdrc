@@ -48,6 +48,12 @@ struct arm_fir_interpolate_instance_f32 {
     uint32_t blockSize;
 };
 
+struct arm_biquad_casd_df1_inst_f32 {
+    uint32_t numStages;
+    float32_t* pState;
+    const float32_t* pCoeffs;
+};
+
 /**
  * @param pCoeffs Filter coefficients in reverse order!
  * @param pState Must be numTaps + blockSize - 1 in length 
@@ -120,6 +126,13 @@ void arm_fir_interpolate_f32(const arm_fir_interpolate_instance_f32* s,
     const float32_t* pSrc,
     float32_t* pDst,
     uint32_t blockSize);
+
+void arm_biquad_cascade_df1_init_f32(arm_biquad_casd_df1_inst_f32* s, 
+    uint8_t numStages, const float32_t* pCoeffs, 
+    float32_t *pState);
+
+void arm_biquad_cascade_df1_f32(const arm_biquad_casd_df1_inst_f32* s, 
+    const float32_t* pSrc, float32_t* pDst, uint32_t blockSize);
 
 void arm_rms_f32(const float32_t* pSrc,
     uint32_t blockSize,
