@@ -380,7 +380,6 @@ char DTMFDetector2::_detectVSC(int16_t* samples, uint32_t n) {
         if (c != maxCol)
             // INEQUALITY IS REVERSED BECAUSE WE ARE COMPARING 1/a to 1/b
             if (div2(powerCol[c], maxColPower) > threshold8dB) {
-                //cout << "Col doesn't stand out" << endl;
                 return 0;
             }
 
