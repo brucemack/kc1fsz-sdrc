@@ -21,7 +21,7 @@ Ts = 1 / fs
 #sos = signal.butter(1, normalized_cutoff, btype='high', output='sos')
 # This is the SciPy generation of the LPF
 #sos = signal.butter(1, normalized_cutoff, btype='low', output='sos')
-"""
+
 # This is the manual generation of the HPF
 wc = 2 * np.pi * cutoff_freq
 wc_warped = math.tan(wc * Ts / 2.0)
@@ -31,7 +31,7 @@ a0_2 = 1
 a1_2 = -b0_2 * (1 - wc_warped)
 sos = []
 sos.append([b0_2, b1_2, 0.0, a0_2, a1_2, 0.0 ])
-"""
+
 """
 # This is the manual generation of the HPF
 wc_l = 2 * np.pi * cutoff_freq_l
@@ -47,6 +47,7 @@ sos = []
 sos.append([b0_2, b1_2, 0.0, a0_2, a1_2, 0.0 ])
 """
 
+"""
 # This is the manual generation of the LPF
 wc = 2 * np.pi * cutoff_freq
 wc_warped = math.tan(wc * Ts / 2.0)
@@ -56,6 +57,7 @@ a0_2 = 1
 a1_2 = (wc_warped - 1) / (wc_warped + 1)
 sos = []
 sos.append([b0_2, b1_2, 0.0, a0_2, a1_2, 0.0 ])
+"""
 
 print(sos)
 print("b0", sos[0][0])

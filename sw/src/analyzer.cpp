@@ -368,7 +368,8 @@ int main(int argc, const char** argv) {
                     printf("\n");
                     printf("SWEEP %f %f ", sweepStartHz, sweepStepHz);
                     for (unsigned n = 1; n < steps; n++)
-                        printf("%.3f ", sweepMags[n] / sweepCal[n]);
+                        //printf("%.3f ", sweepMags[n] / sweepCal[n]);
+                        printf("%.3f ", sweepMags[n]);
                     printf("\n");
                     printf("THDSWEEP %f %f ", sweepStartHz, sweepStepHz);
                     for (unsigned n = 1; n < steps; n++)
