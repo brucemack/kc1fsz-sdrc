@@ -101,14 +101,16 @@ const char DTMFDetector2::symbolGrid[4 * 4] = {
 
 DTMFDetector2::DTMFDetector2(Clock& clock) 
 :   _clock(clock),
-    _signalThreshold(std::pow(AudioCore::dbvToVrms(-50), 2.0) * 32767.0)
+    // Convert the dBv to power
+    _signalThresholdPower(std::pow(AudioCore::dbvToVrms(-50), 2.0) * 32767.0)
 {
     for (unsigned i = 0; i < N3; i++)
         _history[i] = 0;
 }
 
 void DTMFDetector2::setSignalThreshold(float dbfs) { 
-    _signalThreshold = pow(AudioCore::dbvToVrms(dbfs), 2.0) * 32767.0; 
+    // Convert the dBv to power
+    _signalThresholdPower = pow(AudioCore::dbvToVrms(dbfs), 2.0) * 32767.0; 
 }
 
 void DTMFDetector2::processBlock(const float* block) {  
@@ -219,6 +221,7 @@ void DTMFDetector2::processBlock(const float* block) {
  *
  * @returns An "MS" magnitude of the signal at the designed frequency.
  * The final root in RMS is not performed for efficiency sake.
+ * The value returned has the units of power rather than voltage.
  */
 static int16_t computePower(int16_t* samples, uint32_t n, int32_t coeff) {
 
@@ -318,7 +321,7 @@ char DTMFDetector2::_detectVSC(int16_t* samples, uint32_t n) {
     // It is safe to sum these because they are all (Vrms)^2
     int32_t combPower = maxRowPower + maxColPower;
     //printf("Combined %f\n", sqrt(combPower / 32767.0));
-    if (combPower < (int32_t)_signalThreshold) {
+    if (combPower < (int32_t)_signalThresholdPower) {
         //cout << "Below threshold" << endl;
         return 0;
     }
@@ -330,12 +333,13 @@ char DTMFDetector2::_detectVSC(int16_t* samples, uint32_t n) {
     // band), assuming a low-pass filter type telephone line. The decoder computes 
     // therefore a reverse twist ratio and sets a threshold (THR_TWIREV) of 8dB 
     // acceptable reverse twist.
-
-    // 8dB -> 2.5 linear
-    static const int16_t threshold8dB = (1.0 / pow(2.5, 2.0)) * 32767.0;
+    //
+    // In other words, we want to make sure that the row energy is not more
+    // than +8dB above the column energy.
+    //
+    static const int16_t threshold8dB = std::pow(10, -8.0 / 10.0) * 32767.0;
     if (maxRowPower > maxColPower) {
         int16_t reverseTwistRatio = div2(maxColPower, maxRowPower);
-        //_diagValue = reverseTwistRatio / 32767.0;
         // INEQUALITY IS REVERSED BECAUSE WE ARE COMPARING 1/a to 1/b
         if (reverseTwistRatio < threshold8dB) {
             //cout << "Reverse twist problem" << endl;
@@ -346,9 +350,11 @@ char DTMFDetector2::_detectVSC(int16_t* samples, uint32_t n) {
     // The other twist, called “standard twist”, occurs when the row peak is 
     // smaller than the column peak. Similarly, a “standard twist ratio” is 
     // computed and its threshold (THR_TWISTD) is set to 4dB acceptable standard twist.
-
-    // 4dB -> 1.58 linear
-    static const int16_t threshold4dB = (1.0 / pow(1.58, 2.0)) * 32767.0;
+    //
+    // In other words, we want to make sure that the column energy is not more
+    // than +4dB above the row energy.
+    //
+    static const int16_t threshold4dB = std::pow(10, -4.0 / 10.0) * 32767.0;
     if (maxColPower > maxRowPower) {
         int16_t standardTwistRatio = div2(maxRowPower, maxColPower);
         // INEQUALITY IS REVERSED BECAUSE WE ARE COMPARING 1/a to 1/b
@@ -380,11 +386,11 @@ char DTMFDetector2::_detectVSC(int16_t* samples, uint32_t n) {
 
     // Make sure the harmonics are -20dB down from the fundamentals
     // NOTE: Threshold is shifted down to avoid overflow
-    static const int16_t threshold20dB = pow(1.0 / 10, 2.0) * 32767.0;
+    static const int16_t threshold20dB = std::pow(10, -20.0 / 10.0) * 32767.0;
     // NOTE: When testing with the FT-65 (TX) and IC-2000H (RX) on 26-July-25
     // we noted a problem with this threshold check. A row harmonic that 
-    // was only -16dB down (0.158 linear) was noted.
-    static const int16_t thresholdMinus16dB = pow(0.158, 2.0) * 32767.0;
+    // was only -16dB down.
+    static const int16_t thresholdMinus16dB = std::pow(10, -16.0 / 10.0) * 32767.0;
 
     if (maxColHarmonicPower != 0 && 
         ((maxColHarmonicPower > maxColPower) ||

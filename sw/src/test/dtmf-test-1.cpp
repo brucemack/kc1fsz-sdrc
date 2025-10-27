@@ -48,11 +48,23 @@ static void addWhiteNoise(float* out, unsigned n, float std) {
 
 int main(int,const char**) {
 
+    {
+            // Doubling voltage results in a +6dB power change
+            float vp0 = 1.5;
+            float vp1 = 1.0;
+            float vrms0 = vp0 * 0.707;
+            float vrms1 = vp1 * 0.707;
+            float vms0 = vrms0 * vrms0;
+            float vms1 = vrms1 * vrms1;
+            float db = 10.0 * std::log10(vms0 / vms1);
+            printf("vp0=%f, vp1=%f, db=%f\n", vp0, vp1, db);
+    }
+
     const unsigned FS = 8000;
     const unsigned N = 64;
     const float noise = 0.01;
     const float threshold = -55;
-    const float thresholdLinear = pow(10.0, (threshold/20.0));
+    const float thresholdLinear = pow(10.0, (threshold / 20.0));
 
     printf("Noise STD %f\n", noise);
     printf("Vrms detection threshold %f\n", thresholdLinear);
@@ -115,8 +127,8 @@ int main(int,const char**) {
         float test1[N * 6];
         for (unsigned int i = 0; i < N * 6; i++) {
             // Two valid tones
-            // COLUMN 0
-            float a = vp_target * 10 * cos((float)i * 2.0 * PI * 1209.0 / (float)FS);
+            // COLUMN 0. x2.0 linear is +6dB, which should be unacceptable.
+            float a = vp_target * 2 * cos((float)i * 2.0 * PI * 1209.0 / (float)FS);
             // ROW 1
             float b = vp_target * cos((float)i * 2.0 * PI * 770.0 / (float)FS);
             float t = a + b;
@@ -141,12 +153,13 @@ int main(int,const char**) {
 
     {
         cout << "----- Test 1b (Acceptable twist, col > row) ------" << endl;
+
         // Make a test signal (48ms)
         float test1[N * 6];
         for (unsigned int i = 0; i < N * 6; i++) {
             // Two valid tones
-            // COLUMN 0
-            float a = vp_target * 1.25 * cos((float)i * 2.0 * PI * 1209.0 / (float)FS);
+            // COLUMN 0. x1.5 linear is +3.5dB, which should be acceptable.
+            float a = vp_target * 1.5 * cos((float)i * 2.0 * PI * 1209.0 / (float)FS);
             // ROW 1
             float b = vp_target * cos((float)i * 2.0 * PI * 770.0 / (float)FS);
             float t = a + b;
@@ -228,6 +241,67 @@ int main(int,const char**) {
 
         assert(detector.isDetectionPending());
         assert(detector.popDetection() == '*');
+        assert(!detector.isDetectionPending());
+    }
+
+    {
+        cout << "----- Test 1d (Acceptable reverse twist col < row) ------" << endl;
+        // Make a test signal (48ms)
+        float test1[N * 6];
+        for (unsigned int i = 0; i < N * 6; i++) {
+            // Two valid tones
+            // COLUMN 0
+            float a = vp_target * 1 * cos((float)i * 2.0 * PI * 1209.0 / (float)FS);
+            // ROW 1. x2.0 linear is +6dB, which should be acceptable.
+            float b = vp_target * 2 * cos((float)i * 2.0 * PI * 770.0 / (float)FS);
+            float t = a + b;
+            test1[i] = t;
+        }
+        addWhiteNoise(test1, N * 6, noise);
+
+        detector.processBlock(silence);
+        detector.processBlock(silence);
+        detector.processBlock(silence);
+        detector.processBlock(silence);
+        detector.processBlock(silence);
+        detector.processBlock(test1);
+        detector.processBlock(test1 + N);
+        detector.processBlock(test1 + N * 2);
+        detector.processBlock(test1 + N * 3);
+        detector.processBlock(test1 + N * 4);
+        detector.processBlock(test1 + N * 5);
+
+        assert(detector.isDetectionPending());
+        detector.popDetection();
+    }
+
+    {
+        cout << "----- Test 1e (Unacceptable reverse twist col < row) ------" << endl;
+        // Make a test signal (48ms)
+        float test1[N * 6];
+        for (unsigned int i = 0; i < N * 6; i++) {
+            // Two valid tones
+            // COLUMN 0
+            float a = vp_target * 1 * cos((float)i * 2.0 * PI * 1209.0 / (float)FS);
+            // ROW 1. x4.0 linear is +12dB, which should be unacceptable.
+            float b = vp_target * 4 * cos((float)i * 2.0 * PI * 770.0 / (float)FS);
+            float t = a + b;
+            test1[i] = t;
+        }
+        addWhiteNoise(test1, N * 6, noise);
+
+        detector.processBlock(silence);
+        detector.processBlock(silence);
+        detector.processBlock(silence);
+        detector.processBlock(silence);
+        detector.processBlock(silence);
+        detector.processBlock(test1);
+        detector.processBlock(test1 + N);
+        detector.processBlock(test1 + N * 2);
+        detector.processBlock(test1 + N * 3);
+        detector.processBlock(test1 + N * 4);
+        detector.processBlock(test1 + N * 5);
+
         assert(!detector.isDetectionPending());
     }
 

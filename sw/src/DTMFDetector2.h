@@ -106,7 +106,7 @@ private:
 
     // Set the RMS threshold in Q15 format, but squared so that it can be
     // compared to other powers.
-    int16_t _signalThreshold;
+    int16_t _signalThresholdPower;
     // This is where the last three blocks of N samples is stored for processing
     int16_t _history[N3];
     // If we are not in a valid symbol, how long has the invalid period lasted?
