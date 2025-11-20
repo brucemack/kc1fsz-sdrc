@@ -36,6 +36,7 @@ When targeting RP2350 (Pico 2), command used to load code onto the board:
 #include "kc1fsz-tools/CommandShell.h"
 #include "kc1fsz-tools/OutStream.h"
 #include "kc1fsz-tools/WindowAverage.h"
+#include "kc1fsz-tools/DTMFDetector2.h"
 #include "kc1fsz-tools/rp2040/PicoPollTimer.h"
 #include "kc1fsz-tools/rp2040/PicoPerfTimer.h"
 #include "kc1fsz-tools/rp2040/PicoClock.h"

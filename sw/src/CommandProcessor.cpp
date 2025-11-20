@@ -81,7 +81,7 @@ void CommandProcessor::_processQueue() {
         _log.info("Unlocked");
     }
     // Repeater system off
-    else if (_queueEq("C002")) {
+    else if (_queueEq("0")) {
         _popQueue(4);
         if (_unlock) {
             _notifyOk();
@@ -89,14 +89,15 @@ void CommandProcessor::_processQueue() {
         }
     }
     // Repeater system on
-    else if (_queueEq("C003")) {
+    else if (_queueEq("1")) {
         _popQueue(4);
         if (_unlock) {
             _notifyOk();
             if (_reenableTrigger) _reenableTrigger();
         }
     }
-    else if (_queueEq("C310")) {
+    // Force ID/status
+    else if (_queueEq("2")) {
         _popQueue(4);
         if (_unlock) {
             _notifyOk();

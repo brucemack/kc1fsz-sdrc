@@ -83,7 +83,6 @@ add_executable(main
   src/i2s_setup.cpp
   src/main.cpp
   src/AudioCore.cpp
-  src/DTMFDetector2.cpp
   src/Config.cpp
   src/ShellCommand.cpp
   src/Tx.cpp
@@ -99,6 +98,7 @@ add_executable(main
   kc1fsz-tools-cpp/src/Common.cpp
   kc1fsz-tools-cpp/src/CommandShell.cpp
   kc1fsz-tools-cpp/src/WindowAverage.cpp
+  kc1fsz-tools-cpp/src/DTMFDetector2.cpp
   kc1fsz-tools-cpp/src/rp2040/PicoPollTimer.cpp
   kc1fsz-tools-cpp/src/rp2040/PicoPerfTimer.cpp
 )
