@@ -53,6 +53,8 @@ When targeting RP2350 (Pico 2), command used to load code onto the board:
 
 using namespace kc1fsz;
 
+static const char* VERSION = "V2R0 2025-11-20";
+
 // ===========================================================================
 // CONFIGURATION PARAMETERS
 // ===========================================================================
@@ -162,7 +164,7 @@ static void render_status(const Rx& rx0, const Rx& rx1, const Tx& tx0, const Tx&
     const TxControl& txc0, const TxControl& txc1) {
 
     printf("\033[H");
-    printf("W1TKZ Software Defined Repeater Controller\n");
+    printf("W1TKZ Software Defined Repeater Controller (%s)\n", VERSION);
     printf("\n");
 
     printf("\033[30;47m");
@@ -392,7 +394,7 @@ int main(int argc, const char** argv) {
 
     log.info("W1TKZ Software Defined Repeater Controller");
     log.info("Copyright (C) 2025 Bruce MacKinnon KC1FSZ");
-    log.info("Firmware R00236 2025-06-22");
+    log.info("Firmware %s", VERSION);
 
     if (watchdog_enable_caused_reboot()) {
         log.info("Rebooted by watchdog timer");

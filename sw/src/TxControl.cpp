@@ -251,12 +251,10 @@ bool TxControl::_anyRxActivityAmongstEligible() const {
 
 void TxControl::setMute(bool mute) {
     if (mute) {
-        _log.info("Muting");
         _enterIdle();
         // Go park in a state where nothing will happen
         _state = State::TEMPORARY_MUTE;
     } else {
-        _log.info("Unmuting");
         _enterIdle();
     }
 }
