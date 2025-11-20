@@ -33,8 +33,7 @@ CommandProcessor::CommandProcessor(Log& log, Clock& clock)
     _clock(clock) { 
     _unlockCode[0] = '7';
     _unlockCode[1] = '8';
-    _unlockCode[2] = '1';
-    _unlockCode[3] = 0;
+    _unlockCode[2] = 0;
 }
 
 void CommandProcessor::processSymbol(char symbol) {
@@ -48,8 +47,11 @@ void CommandProcessor::processSymbol(char symbol) {
     run();
 
     if (_access) {
-        if (symbol == '*')
+        if (symbol == '*') {
+            _queueLen = 0;
+            if (_accessTrigger) _accessTrigger();
             return;
+        }
         // Put symbol onto queue
         if (_queueLen < MAX_QUEUE_LEN) {
             _queue[_queueLen++] = symbol;
@@ -82,7 +84,7 @@ void CommandProcessor::_processQueue() {
     }
     // Repeater system off
     else if (_queueEq("0")) {
-        _popQueue(4);
+        _popQueue(3);
         if (_unlock) {
             _notifyOk();
             if (_disableTrigger) _disableTrigger();
@@ -90,7 +92,7 @@ void CommandProcessor::_processQueue() {
     }
     // Repeater system on
     else if (_queueEq("1")) {
-        _popQueue(4);
+        _popQueue(3);
         if (_unlock) {
             _notifyOk();
             if (_reenableTrigger) _reenableTrigger();
@@ -98,7 +100,7 @@ void CommandProcessor::_processQueue() {
     }
     // Force ID/status
     else if (_queueEq("2")) {
-        _popQueue(4);
+        _popQueue(3);
         if (_unlock) {
             _notifyOk();
             if (_forceIdTrigger) _forceIdTrigger();
@@ -116,6 +118,8 @@ bool CommandProcessor::_queueEq(const char* a) const {
 }
 
 void CommandProcessor::_popQueue(unsigned count) {
+    if (count > _queueLen)
+        count = _queueLen;
     for (unsigned i = 0; i < _queueLen - count; i++)
         _queue[i] = _queue[i + count];
     _queueLen -= count;

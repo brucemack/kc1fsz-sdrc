@@ -46,9 +46,19 @@ void StdTx::setEnabled(bool en) {
         _log.info("Transmitter disabled [%d]", _id);
 }
 
+bool StdTx::getEnabled() const {
+    bool enabled = _enabled;
+    // An extra level of checking using an outside callback
+    if (_positiveEnableCheck)
+        enabled = enabled && _positiveEnableCheck();
+    return enabled; 
+}
+
 void StdTx::setPtt(bool ptt) {
 
     bool enabled = _enabled;
+
+    // An extra level of checking using an outside callback
     if (_positiveEnableCheck)
         enabled = enabled && _positiveEnableCheck();
 

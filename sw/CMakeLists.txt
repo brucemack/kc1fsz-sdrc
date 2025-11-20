@@ -127,7 +127,7 @@ target_compile_options(main PRIVATE -g)
 pico_add_extra_outputs(main)
 
 # Special target for the flash programming (Pico Debug/Programming Probe)
-add_custom_target(flash-main
+add_custom_target(flash
     COMMAND "/home/bruce/git/openocd/src/openocd" -s /home/bruce/git/openocd/tcl -f interface/cmsis-dap.cfg -f target/rp2350.cfg -c "adapter speed 5000" -c "rp2350.dap.core1 cortex_m reset_config sysresetreq" -c "program ${CMAKE_BINARY_DIR}/main.elf verify reset exit"
     DEPENDS main
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
