@@ -49,7 +49,7 @@ void CommandProcessor::processSymbol(char symbol) {
     if (_access) {
         if (symbol == '*') {
             _queueLen = 0;
-            if (_accessTrigger) _accessTrigger();
+            // No change to access status
             return;
         }
         // Put symbol onto queue
@@ -57,10 +57,8 @@ void CommandProcessor::processSymbol(char symbol) {
             _queue[_queueLen++] = symbol;
         }
         _processQueue();
-    }
-    else if (symbol == '*') {
-        if (_accessTrigger) _accessTrigger();
-        _access = true;
+    } else if (symbol == '*') {
+        _enterAccess();
     }
 }
 
@@ -69,7 +67,7 @@ void CommandProcessor::run() {
     if (_access && _clock.isPast(_lastSymbolTime + _accessTimeout)) {
         _log.info("Access timed out");
         _queueLen = 0;
-        _access = false;
+        _exitAccess();
     }
 }
 
@@ -102,6 +100,8 @@ void CommandProcessor::_processQueue() {
     else if (_queueEq("2")) {
         _popQueue(3);
         if (_unlock) {
+            // This command kicks us out of access mode
+            _exitAccess();
             _notifyOk();
             if (_forceIdTrigger) _forceIdTrigger();
         }
@@ -126,6 +126,16 @@ void CommandProcessor::_popQueue(unsigned count) {
 }
 
 void CommandProcessor::_notifyOk() {
+}
+
+void CommandProcessor::_enterAccess() {
+    _access = true;
+    if (_accessTrigger) _accessTrigger(_access);
+}
+
+void CommandProcessor::_exitAccess() {
+    _access = false;
+    if (_accessTrigger) _accessTrigger(_access);
 }
 
 }

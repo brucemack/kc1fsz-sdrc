@@ -503,8 +503,17 @@ int main(int argc, const char** argv) {
 
     // DTMF Command processing
     CommandProcessor dtmfCmdProc(log, clock);
-    dtmfCmdProc.setAccessTrigger([&log]() {
-        log.info("Access");
+    dtmfCmdProc.setAccessTrigger([&log, &txCtl0, &txCtl1](bool enabled) {
+        if (enabled) {
+            log.info("Access enabled");
+            // Here we mute the transmitters so that nobody can here the codes
+            txCtl0.setMute(true);
+            txCtl1.setMute(true);
+        } else {
+            log.info("Access disabled");
+            txCtl0.setMute(false);
+            txCtl1.setMute(false);
+        }
     });
     dtmfCmdProc.setDisableTrigger([&log]() {
         log.info("Disable");

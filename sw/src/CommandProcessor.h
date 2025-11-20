@@ -63,7 +63,7 @@ public:
     // various "triggers" that are installed here. These triggers would
     // typically be lambda functions to mimimze boiler-plate code.
 
-    void setAccessTrigger(std::function<void()> t) { _accessTrigger = t; }
+    void setAccessTrigger(std::function<void(bool accessEnabled)> t) { _accessTrigger = t; }
     void setDisableTrigger(std::function<void()> t) { _disableTrigger = t; }
     void setReenableTrigger(std::function<void()> t) { _reenableTrigger = t; }
     void setForceIdTrigger(std::function<void()> t) { _forceIdTrigger = t; }
@@ -74,6 +74,8 @@ private:
     bool _queueEq(const char*) const;
     void _popQueue(unsigned count);
     void _notifyOk();
+    void _enterAccess();
+    void _exitAccess();
 
     Log& _log;
     Clock& _clock;
@@ -89,7 +91,7 @@ private:
     uint32_t _lastSymbolTime = 0;
     uint32_t _accessTimeout = 30 * 1000;
 
-    std::function<void()> _accessTrigger = 0;
+    std::function<void(bool)> _accessTrigger = 0;
     std::function<void()> _disableTrigger = 0;
     std::function<void()> _reenableTrigger = 0;
     std::function<void()> _forceIdTrigger = 0;
