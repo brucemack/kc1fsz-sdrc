@@ -75,37 +75,6 @@ target_include_directories(cmd-test-1 PRIVATE kc1fsz-tools-cpp/include)
 # ===== PICO EXECUTABLES =====================================================
 else()
 
-add_executable(test1
-  src/test/test-AudioCore-pico.cpp
-  src/AudioCore.cpp
-  radlib/util/dsp_util.cpp  
-  kc1fsz-tools-cpp/src/Common.cpp
-  kc1fsz-tools-cpp/src/rp2040/PicoPerfTimer.cpp
-)
-target_compile_definitions(test1 PRIVATE -DPICO_BUILD=1)
-pico_enable_stdio_usb(test1 0)
-pico_enable_stdio_uart(test1 1)
-pico_generate_pio_header(test1 ${CMAKE_CURRENT_LIST_DIR}/src/i2s.pio)
-
-target_include_directories(test1 PRIVATE 
-  src
-  kc1fsz-tools-cpp/include
-  radlib
-  ${HOME}/pico/CMSISDSP/CMSIS-DSP/Include
-  ${HOME}/pico/CMSISDSP/CMSIS_6/CMSIS/Core/Include
-)
-
-target_link_libraries(test1 
-  pico_stdlib hardware_i2c hardware_clocks hardware_pwm hardware_dma hardware_pio 
-  hardware_flash
-  ${HOME}/pico/CMSISDSP/build/bin_dsp/libCMSISDSP.a
-)
-
-target_compile_options(test1 PRIVATE -g)
-
-# Set target properties for UF2 build
-pico_add_extra_outputs(test1)
-
 # ------ main ----------------------------------------------------------------
 # This is the main controller project
 
@@ -157,6 +126,14 @@ target_compile_options(main PRIVATE -g)
 # Set target properties for UF2 build
 pico_add_extra_outputs(main)
 
+# Special target for the flash programming (Pico Debug/Programming Probe)
+add_custom_target(flash-main
+    COMMAND "/home/bruce/git/openocd/src/openocd" -s /home/bruce/git/openocd/tcl -f interface/cmsis-dap.cfg -f target/rp2350.cfg -c "adapter speed 5000" -c "rp2350.dap.core1 cortex_m reset_config sysresetreq" -c "program ${CMAKE_BINARY_DIR}/main.elf verify reset exit"
+    DEPENDS main
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    COMMENT "Flashing firmware using OpenOCD"
+)
+
 # ------ Audio Analyzer Project -----------------------------------------------
 # This is the main controller project
 
@@ -191,5 +168,36 @@ target_link_libraries(analyzer
 )
 
 target_compile_options(analyzer PRIVATE -g)
+
+add_executable(test1
+  src/test/test-AudioCore-pico.cpp
+  src/AudioCore.cpp
+  radlib/util/dsp_util.cpp  
+  kc1fsz-tools-cpp/src/Common.cpp
+  kc1fsz-tools-cpp/src/rp2040/PicoPerfTimer.cpp
+)
+target_compile_definitions(test1 PRIVATE -DPICO_BUILD=1)
+pico_enable_stdio_usb(test1 0)
+pico_enable_stdio_uart(test1 1)
+pico_generate_pio_header(test1 ${CMAKE_CURRENT_LIST_DIR}/src/i2s.pio)
+
+target_include_directories(test1 PRIVATE 
+  src
+  kc1fsz-tools-cpp/include
+  radlib
+  ${HOME}/pico/CMSISDSP/CMSIS-DSP/Include
+  ${HOME}/pico/CMSISDSP/CMSIS_6/CMSIS/Core/Include
+)
+
+target_link_libraries(test1 
+  pico_stdlib hardware_i2c hardware_clocks hardware_pwm hardware_dma hardware_pio 
+  hardware_flash
+  ${HOME}/pico/CMSISDSP/build/bin_dsp/libCMSISDSP.a
+)
+
+target_compile_options(test1 PRIVATE -g)
+
+# Set target properties for UF2 build
+pico_add_extra_outputs(test1)
 
 endif()
