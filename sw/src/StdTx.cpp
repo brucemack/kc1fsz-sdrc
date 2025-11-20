@@ -23,6 +23,10 @@
 
 namespace kc1fsz {
 
+/**
+ * VERY IMPORTANT: This should be the only place in the code that touches
+ * the GPIO pins used for PTT!
+ */
 StdTx::StdTx(Clock& clock, Log& log, int id, int pttPin, AudioCore& core,
     std::function<bool()> positiveEnableCheck)
 :   _clock(clock),

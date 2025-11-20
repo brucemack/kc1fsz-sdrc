@@ -53,12 +53,11 @@ When targeting RP2350 (Pico 2), command used to load code onto the board:
 
 using namespace kc1fsz;
 
-static const char* VERSION = "V2R0 2025-11-20";
-
 // ===========================================================================
 // CONFIGURATION PARAMETERS
 // ===========================================================================
 //
+static const char* VERSION = "V2R0 2025-11-20";
 #define LED_PIN (PICO_DEFAULT_LED_PIN)
 #define R0_COS_PIN (14)
 #define R0_CTCSS_PIN (13)
@@ -66,6 +65,7 @@ static const char* VERSION = "V2R0 2025-11-20";
 #define R1_COS_PIN (17)
 #define R1_CTCSS_PIN (16)
 #define R1_PTT_PIN (15)
+#define LED2_PIN (18)
 
 // System clock rate
 #define SYS_KHZ (153600)
@@ -366,6 +366,8 @@ int main(int argc, const char** argv) {
 
     gpio_init(LED_PIN);
     gpio_set_dir(LED_PIN, GPIO_OUT);
+    gpio_init(LED2_PIN);
+    gpio_set_dir(LED2_PIN, GPIO_OUT);
     
     gpio_init(R0_COS_PIN);
     gpio_set_dir(R0_COS_PIN, GPIO_IN);
@@ -420,7 +422,8 @@ int main(int argc, const char** argv) {
 
     int strobe = 0;
     bool liveDisplay = false;
-    
+    bool liveLED = false;
+
     clock.reset();
     //clock.setScale(10);
 
@@ -508,13 +511,8 @@ int main(int argc, const char** argv) {
     dtmfCmdProc.setAccessTrigger([&log, &txCtl0, &txCtl1](bool enabled) {
         if (enabled) {
             log.info("Access enabled");
-            // Here we mute the transmitters so that nobody can here the codes
-            txCtl0.setMute(true);
-            txCtl1.setMute(true);
         } else {
             log.info("Access disabled");
-            txCtl0.setMute(false);
-            txCtl1.setMute(false);
         }
     });
     dtmfCmdProc.setDisableTrigger([&log]() {
@@ -603,6 +601,21 @@ int main(int argc, const char** argv) {
                 txCtl1.forceId();
             }
         }
+
+        // Running LED
+        if (flash) {
+            if (liveLED) 
+                gpio_put(LED_PIN, 1);
+            else
+                gpio_put(LED_PIN, 0);
+            liveLED = !liveLED;
+        }
+
+        // Transmit LED
+        if (tx0.getPtt() || tx1.getPtt()) 
+            gpio_put(LED2_PIN, 1);
+        else
+            gpio_put(LED2_PIN, 0);
 
         // Check for commands
         char d0 = core0.getLastDtmfDetection();
