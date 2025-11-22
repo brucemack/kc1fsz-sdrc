@@ -555,7 +555,7 @@ int main(int argc, const char** argv) {
                 uiMode = UIMode::UIMODE_SHELL;
                 log.setEnabled(false);
                 shell.reset();
-            } else if (c == 't') {
+            } else if (c == 's') {
                 // Clear off the status screen
                 printf("\033[2J");
                 // Hide cursor

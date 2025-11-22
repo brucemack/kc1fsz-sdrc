@@ -92,7 +92,7 @@ void Config::setFactoryDefaults(Config* cfg) {
     cfg->txc0.hangTime = 1500;
     cfg->txc0.ctLevel = -10;
     cfg->txc0.idMode = 0;
-    cfg->txc0.idLevel = -10;
+    cfg->txc0.idLevel = -15;
     for (unsigned i = 0; i < Config::maxReceivers; i++)
         cfg->txc0.rxEligible[i] = false;
     cfg->txc0.rxEligible[0] = true;
