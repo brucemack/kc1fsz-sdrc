@@ -414,8 +414,14 @@ int main(int argc, const char** argv) {
 
     // Enable the watchdog, requiring the watchdog to be updated or the chip 
     // will reboot. The second arg is "pause on debug" which means 
-    // the watchdog will pause when stepping through code
-    watchdog_enable(WATCHDOG_INTERVAL_MS, 1);
+    // the watchdog will pause when stepping through code. From SDK docs:
+    //
+    // pause_on_debug: If set to true, the watchdog will pause its countdown 
+    // when a debugger is connected and active. This is useful during development 
+    // to prevent unexpected resets.
+    //watchdog_enable(WATCHDOG_INTERVAL_MS, 1);
+    // In production we turn this feature off
+    watchdog_enable(WATCHDOG_INTERVAL_MS, 0);
 
     // Enable audio processing 
     audio_setup(audio_proc);
@@ -425,18 +431,19 @@ int main(int argc, const char** argv) {
     bool liveLED = false;
 
     clock.reset();
-    //clock.setScale(10);
 
-    // Display/diagnostic should happen once per second
+    // Display/diagnostic should happen twice per second
     PicoPollTimer flashTimer;
     flashTimer.setIntervalUs(500 * 1000);
 
     StdTx tx0(clock, log, 0, R0_PTT_PIN, core0,
+        // IMPORTANT SAFETY MECHANISM: Polled to control keying
         []() {
             return config.tx0.enabled2;
         }
     );
     StdTx tx1(clock, log, 1, R1_PTT_PIN, core1,
+        // IMPORTANT SAFETY MECHANISM: Polled to control keying
         []() {
             return config.tx1.enabled2;
         }
