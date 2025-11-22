@@ -1,7 +1,13 @@
 Releases
 ========
 
-v1 2025-11-22 - Installed at the W1TZK Repeate site.
+* v1 2025-11-22 - Installed at the W1TZK Repeate site.
+* v1.1 2025-11-23 
+    - Eliminated a lockout problem. Previously, any activity during the lockout
+    would extend the lockout period. Now the lockout starts after timeout and
+    will not be extended.
+    - Raised the CW ID frequency to 600 Hz.
+    
 
 Dev Environment Setup Notes
 ===========================
