@@ -36,6 +36,7 @@ When targeting RP2350 (Pico 2), command used to load code onto the board:
 #include "kc1fsz-tools/CommandShell.h"
 #include "kc1fsz-tools/OutStream.h"
 #include "kc1fsz-tools/WindowAverage.h"
+#include "kc1fsz-tools/DTMFDetector2.h"
 #include "kc1fsz-tools/rp2040/PicoPollTimer.h"
 #include "kc1fsz-tools/rp2040/PicoPerfTimer.h"
 #include "kc1fsz-tools/rp2040/PicoClock.h"
@@ -56,6 +57,7 @@ using namespace kc1fsz;
 // CONFIGURATION PARAMETERS
 // ===========================================================================
 //
+static const char* VERSION = "V2R0 2025-11-20";
 #define LED_PIN (PICO_DEFAULT_LED_PIN)
 #define R0_COS_PIN (14)
 #define R0_CTCSS_PIN (13)
@@ -63,6 +65,7 @@ using namespace kc1fsz;
 #define R1_COS_PIN (17)
 #define R1_CTCSS_PIN (16)
 #define R1_PTT_PIN (15)
+#define LED2_PIN (18)
 
 // System clock rate
 #define SYS_KHZ (153600)
@@ -161,7 +164,7 @@ static void render_status(const Rx& rx0, const Rx& rx1, const Tx& tx0, const Tx&
     const TxControl& txc0, const TxControl& txc1) {
 
     printf("\033[H");
-    printf("W1TKZ Software Defined Repeater Controller\n");
+    printf("W1TKZ Software Defined Repeater Controller (%s)\n", VERSION);
     printf("\n");
 
     printf("\033[30;47m");
@@ -363,6 +366,8 @@ int main(int argc, const char** argv) {
 
     gpio_init(LED_PIN);
     gpio_set_dir(LED_PIN, GPIO_OUT);
+    gpio_init(LED2_PIN);
+    gpio_set_dir(LED2_PIN, GPIO_OUT);
     
     gpio_init(R0_COS_PIN);
     gpio_set_dir(R0_COS_PIN, GPIO_IN);
@@ -391,7 +396,7 @@ int main(int argc, const char** argv) {
 
     log.info("W1TKZ Software Defined Repeater Controller");
     log.info("Copyright (C) 2025 Bruce MacKinnon KC1FSZ");
-    log.info("Firmware R00236 2025-06-22");
+    log.info("Firmware %s", VERSION);
 
     if (watchdog_enable_caused_reboot()) {
         log.info("Rebooted by watchdog timer");
@@ -423,7 +428,8 @@ int main(int argc, const char** argv) {
 
     int strobe = 0;
     bool liveDisplay = false;
-    
+    bool liveLED = false;
+
     clock.reset();
 
     // Display/diagnostic should happen twice per second
@@ -509,8 +515,12 @@ int main(int argc, const char** argv) {
 
     // DTMF Command processing
     CommandProcessor dtmfCmdProc(log, clock);
-    dtmfCmdProc.setAccessTrigger([&log]() {
-        log.info("Access");
+    dtmfCmdProc.setAccessTrigger([&log, &txCtl0, &txCtl1](bool enabled) {
+        if (enabled) {
+            log.info("Access enabled");
+        } else {
+            log.info("Access disabled");
+        }
     });
     dtmfCmdProc.setDisableTrigger([&log]() {
         log.info("Disable");
@@ -598,6 +608,21 @@ int main(int argc, const char** argv) {
                 txCtl1.forceId();
             }
         }
+
+        // Running LED
+        if (flash) {
+            if (liveLED) 
+                gpio_put(LED_PIN, 1);
+            else
+                gpio_put(LED_PIN, 0);
+            liveLED = !liveLED;
+        }
+
+        // Transmit LED
+        if (tx0.getPtt() || tx1.getPtt()) 
+            gpio_put(LED2_PIN, 1);
+        else
+            gpio_put(LED2_PIN, 0);
 
         // Check for commands
         char d0 = core0.getLastDtmfDetection();

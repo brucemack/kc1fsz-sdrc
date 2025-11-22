@@ -54,6 +54,14 @@ public:
     void forceId() { _enterPreId(); }
     void startTest() { _enterTest(); }
     void stopTest() { _enterIdle(); }
+
+    /**
+     * This featue puts the transmitter in a temporary mute state
+     * which could be used for cases when DTMF commands are being
+     * received and processed.
+     */
+    void setMute(bool mute);
+
     int getState() const { return (int)_state; }
    
     void setCall(const char* callSign) { _idToneGenerator.setCall(callSign); }
@@ -61,7 +69,6 @@ public:
     void setTimeoutTime(uint32_t ms) { _timeoutWindowMs = ms; }
     void setLockoutTime(uint32_t ms) { _lockoutWindowMs = ms; }
     void setHangTime(uint32_t ms) { _hangWindowMs = ms; }
-    //void setCtMode(CourtesyToneGenerator::Type mode) { _courtesyToneGenerator.setType(mode); }
     void setCtLevel(float db) { _courtesyToneGenerator.setLevel(db); }
     void setIdMode(int mode) { _idMode = mode; }
     void setIdLevel(float db) { _idToneGenerator.setLevel(db); } 
@@ -72,7 +79,7 @@ public:
 private:
 
     enum State { INIT, IDLE, VOTING, ACTIVE, PRE_ID, ID, POST_ID, 
-        ID_URGENT, PRE_COURTESY, COURTESY, HANG, LOCKOUT, TEST };
+        ID_URGENT, PRE_COURTESY, COURTESY, HANG, LOCKOUT, TEST, TEMPORARY_MUTE };
 
     void _setState(State state, uint32_t timeoutWindowMs = 0);
     bool _isStateTimedOut() const;

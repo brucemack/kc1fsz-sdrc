@@ -33,8 +33,7 @@ CommandProcessor::CommandProcessor(Log& log, Clock& clock)
     _clock(clock) { 
     _unlockCode[0] = '7';
     _unlockCode[1] = '8';
-    _unlockCode[2] = '1';
-    _unlockCode[3] = 0;
+    _unlockCode[2] = 0;
 }
 
 void CommandProcessor::processSymbol(char symbol) {
@@ -48,17 +47,18 @@ void CommandProcessor::processSymbol(char symbol) {
     run();
 
     if (_access) {
-        if (symbol == '*')
+        if (symbol == '*') {
+            _queueLen = 0;
+            // No change to access status
             return;
+        }
         // Put symbol onto queue
         if (_queueLen < MAX_QUEUE_LEN) {
             _queue[_queueLen++] = symbol;
         }
         _processQueue();
-    }
-    else if (symbol == '*') {
-        if (_accessTrigger) _accessTrigger();
-        _access = true;
+    } else if (symbol == '*') {
+        _enterAccess();
     }
 }
 
@@ -67,7 +67,7 @@ void CommandProcessor::run() {
     if (_access && _clock.isPast(_lastSymbolTime + _accessTimeout)) {
         _log.info("Access timed out");
         _queueLen = 0;
-        _access = false;
+        _exitAccess();
     }
 }
 
@@ -81,24 +81,27 @@ void CommandProcessor::_processQueue() {
         _log.info("Unlocked");
     }
     // Repeater system off
-    else if (_queueEq("C002")) {
-        _popQueue(4);
+    else if (_queueEq("0")) {
+        _popQueue(3);
         if (_unlock) {
             _notifyOk();
             if (_disableTrigger) _disableTrigger();
         }
     }
     // Repeater system on
-    else if (_queueEq("C003")) {
-        _popQueue(4);
+    else if (_queueEq("1")) {
+        _popQueue(3);
         if (_unlock) {
             _notifyOk();
             if (_reenableTrigger) _reenableTrigger();
         }
     }
-    else if (_queueEq("C310")) {
-        _popQueue(4);
+    // Force ID/status
+    else if (_queueEq("2")) {
+        _popQueue(3);
         if (_unlock) {
+            // This command kicks us out of access mode
+            _exitAccess();
             _notifyOk();
             if (_forceIdTrigger) _forceIdTrigger();
         }
@@ -115,12 +118,24 @@ bool CommandProcessor::_queueEq(const char* a) const {
 }
 
 void CommandProcessor::_popQueue(unsigned count) {
+    if (count > _queueLen)
+        count = _queueLen;
     for (unsigned i = 0; i < _queueLen - count; i++)
         _queue[i] = _queue[i + count];
     _queueLen -= count;
 }
 
 void CommandProcessor::_notifyOk() {
+}
+
+void CommandProcessor::_enterAccess() {
+    _access = true;
+    if (_accessTrigger) _accessTrigger(_access);
+}
+
+void CommandProcessor::_exitAccess() {
+    _access = false;
+    if (_accessTrigger) _accessTrigger(_access);
 }
 
 }

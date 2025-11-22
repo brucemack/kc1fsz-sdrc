@@ -17,15 +17,14 @@
  *
  * NOT FOR COMMERCIAL USE WITHOUT PERMISSION.
  */
-#ifndef _AudioCore_h
-#define _AudioCore_h
+#pragma once
 
 #include <cstdint>
 #include <cmath>
 
 #include <arm_math.h>
 
-#include "DTMFDetector2.h"
+#include "kc1fsz-tools/DTMFDetector2.h"
 
 namespace kc1fsz {
 
@@ -369,5 +368,3 @@ private:
 };
 
 }
-
-#endif

@@ -156,7 +156,7 @@ void TxControl::run() {
         _lastCommunicationTime = _clock.time();     
 
         // Look for timeout
-        if (_clock.isPast(_timeoutTime)) {
+        if (_timeoutTime != 0 && _clock.isPast(_timeoutTime)) {
             _log.info("Timeout detected, lockout start");
             _enterLockout();
         } 
@@ -249,6 +249,16 @@ bool TxControl::_anyRxActivityAmongstEligible() const {
     return false;
 }
 
+void TxControl::setMute(bool mute) {
+    if (mute) {
+        _enterIdle();
+        // Go park in a state where nothing will happen
+        _state = State::TEMPORARY_MUTE;
+    } else {
+        _enterIdle();
+    }
+}
+
 void TxControl::_enterIdle() {
     _state = State::IDLE;
     _lastIdleStartTime = _clock.time();
@@ -264,13 +274,19 @@ void TxControl::_enterVoting() {
 void TxControl::_enterTest() {
     _tx.setPtt(true);
     _testToneGenerator.start();
-    _timeoutTime = _clock.time() + _timeoutWindowMs;
+    if (_timeoutWindowMs)
+        _timeoutTime = _clock.time() + _timeoutWindowMs;
+    else
+        _timeoutTime = 0;
     _setState(State::TEST, 0);
 }
 
 void TxControl::_enterActive() {
     _setState(State::ACTIVE, 0);
-    _timeoutTime = _clock.time() + _timeoutWindowMs;
+    if (_timeoutWindowMs)
+        _timeoutTime = _clock.time() + _timeoutWindowMs;
+    else
+        _timeoutTime = 0;
     // Reset the audio delay since we are about to start passing 
     // audio through the system.
     for (unsigned i = 0; i < MAX_RX_COUNT; i++)

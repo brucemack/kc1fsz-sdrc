@@ -42,7 +42,7 @@ public:
     virtual int getId() const { return _id; };
 
     virtual void setEnabled(bool en);
-    virtual bool getEnabled() const { return _enabled; }
+    virtual bool getEnabled() const;
     virtual void setPtt(bool ptt);
     virtual bool getPtt() const;
 

@@ -23,6 +23,10 @@
 
 namespace kc1fsz {
 
+/**
+ * VERY IMPORTANT: This should be the only place in the code that touches
+ * the GPIO pins used for PTT!
+ */
 StdTx::StdTx(Clock& clock, Log& log, int id, int pttPin, AudioCore& core,
     std::function<bool()> positiveEnableCheck)
 :   _clock(clock),
@@ -46,9 +50,19 @@ void StdTx::setEnabled(bool en) {
         _log.info("Transmitter disabled [%d]", _id);
 }
 
+bool StdTx::getEnabled() const {
+    bool enabled = _enabled;
+    // An extra level of checking using an outside callback
+    if (_positiveEnableCheck)
+        enabled = enabled && _positiveEnableCheck();
+    return enabled; 
+}
+
 void StdTx::setPtt(bool ptt) {
 
     bool enabled = _enabled;
+
+    // An extra level of checking using an outside callback
     if (_positiveEnableCheck)
         enabled = enabled && _positiveEnableCheck();
 
