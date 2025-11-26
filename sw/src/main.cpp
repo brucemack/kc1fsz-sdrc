@@ -57,7 +57,7 @@ using namespace kc1fsz;
 // CONFIGURATION PARAMETERS
 // ===========================================================================
 //
-static const char* VERSION = "V2R0 2025-11-20";
+static const char* VERSION = "V1.1 2025-11-23";
 #define LED_PIN (PICO_DEFAULT_LED_PIN)
 #define R0_COS_PIN (14)
 #define R0_CTCSS_PIN (13)
@@ -562,7 +562,7 @@ int main(int argc, const char** argv) {
                 uiMode = UIMode::UIMODE_SHELL;
                 log.setEnabled(false);
                 shell.reset();
-            } else if (c == 't') {
+            } else if (c == 's') {
                 // Clear off the status screen
                 printf("\033[2J");
                 // Hide cursor

@@ -220,12 +220,9 @@ void TxControl::run() {
     // In this state we are waiting a defined period of 
     // time, during which nothing can happen. 
     else if (_state == State::LOCKOUT) {
-        // Any time we have activity the lockout phase gets restarted
-        if (_anyRxActivityAmongstEligible()) {
-            _enterLockout();
-        }
+        // There is nothing that can happen until the timeout passes.
         // Look for end of lockout time
-        else if (_isStateTimedOut()) {
+        if (_isStateTimedOut()) {
             _log.info("Lockout end");
             _enterPreId();
         }
