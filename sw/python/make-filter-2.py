@@ -13,6 +13,11 @@ import math
 from scipy.signal import lfilter, firwin
 import firpm 
 
+def rms(signal):
+    signal_array = np.array(signal)
+    rms_value = np.sqrt(np.mean(signal_array**2))
+    return rms_value
+
 def fir_freq_response(coefficients, sampling_rate):
     # Calculate the frequency response using the DFT (FFT)
     frequency_response = np.fft.fft(coefficients)    
@@ -26,10 +31,12 @@ def fir_freq_response(coefficients, sampling_rate):
 taps = 127
 fs = 8000
 print("HPF for CTCSS elimination below 250")
-#wc0 = 150 / fs
 # Making this transition band a bit wider eliminated a lot of ripple
 wc0 = 100 / fs
 wc1 = 225 / fs
+# Sliding up
+#wc0 = 175 / fs
+#wc1 = 250 / fs
 h, _ = firpm.design(taps, 1, 2, [ 0.00, wc0, wc1, 0.5 ], [ 0.00, 1.0 ], [ 1.0, 1.0 ] )
 h_reverse = list(h)
 h_reverse.reverse()
@@ -42,7 +49,6 @@ frequencies, frequency_response = fir_freq_response(h, fs)
 
 # Plot the magnitude and phase responses
 db_data = 20 * np.log10(np.abs(frequency_response[:len(frequencies)//2]))
-
 fig, ax = plt.subplots()
 ax.plot(frequencies[:len(frequencies)//2], db_data)
 ax.set_xscale('log') 
@@ -54,12 +60,22 @@ plt.show()
 
 # Sanity check: generate a sample signal of one second
 t = np.linspace(0, fs, fs, endpoint=False)
-ft = 123
+ft = 200
 omega = 2 * 3.1415926 * ft / fs
 signal = np.sin(omega * t)
 
 # Apply the FIR filter
 filtered_signal = lfilter(h, [1.0], signal)
+
+# Compute the RMS powers
+print("RMS of original", rms(signal))
+print("RMS of filtered", rms(filtered_signal))
+print("dB", 10 * math.log10(rms(filtered_signal)/rms(signal)))
+
+
+
+
+
 
 # Plot resulting signal
 fig, ax = plt.subplots()

@@ -86,7 +86,7 @@ static const char* MorseSymbols[] = {
   "--..",   // 90 Z
 };
 
-const float freq = 500;
+const float freq = 600;
 const unsigned int dotMs = 50;
 
 IDToneGenerator::IDToneGenerator(Log& log, Clock& clock, AudioCore& core) 
