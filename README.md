@@ -36,7 +36,11 @@ Serial Console
 
 Connect serial-USB module to GPIO0/GPIO1 pins and use this command:
 
-        minicom -b 115200 -c on -o -D /dev/ttyUSB0
+    minicom -b 115200 -c on -o -D /dev/ttyUSB0
+
+On the Mac laptop, something like this:
+
+    minicom -b 115200 -c on -o -D /dev/tty.usbserial-AL02A1A1
 
 
 
