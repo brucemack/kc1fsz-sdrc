@@ -18,7 +18,7 @@
  * NOT FOR COMMERCIAL USE WITHOUT PERMISSION.
  */
 #include "IDToneGenerator.h"
-#include "AudioCore.h"
+#include "AudioCoreOutputPort.h"
 
 namespace kc1fsz {
 
@@ -89,7 +89,7 @@ static const char* MorseSymbols[] = {
 const float freq = 600;
 const unsigned int dotMs = 50;
 
-IDToneGenerator::IDToneGenerator(Log& log, Clock& clock, AudioCore& core) 
+IDToneGenerator::IDToneGenerator(Log& log, Clock& clock, AudioCoreOutputPort& core) 
 :   _log(log),
     _clock(clock),
     _core(core)

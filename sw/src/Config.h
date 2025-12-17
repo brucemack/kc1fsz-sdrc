@@ -30,7 +30,7 @@ namespace kc1fsz {
  */
 struct Config {
 
-    const static int CONFIG_VERSION = 0xbabe + 16;
+    const static int CONFIG_VERSION = 0xbabe + 17;
     const static int CONFIG_SIZE = 512;
 
     const static int callSignMaxLen = 16;
@@ -59,7 +59,6 @@ struct Config {
         float toneLevel;
         float toneFreq;
         float gain;
-        uint32_t ctMode;
         uint32_t delayTime;
         uint32_t agcMode;
         float agcLevel;
@@ -73,6 +72,7 @@ struct Config {
         float toneLevel;
         float toneFreq;
         float gain;
+        uint32_t ctMode;
         // This is a separate enabled/disable flag that will be 
         // controlled via remote interface
         bool enabled2;

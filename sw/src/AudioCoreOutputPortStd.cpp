@@ -15,45 +15,34 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-#pragma once
-
-#include "kc1fsz-tools/Log.h"
-#include "kc1fsz-tools/Clock.h"
-
-#include "ToneGenerator.h"
+#include "Rx.h"
+#include "AudioCore.h"
+#include "AudioCoreOutputPortStd.h"
 
 namespace kc1fsz {
 
-class AudioCoreOutputPort;
+AudioCoreOutputPortStd::AudioCoreOutputPortStd(AudioCore& core, Rx& rx0, Rx& rx1)
+:   _core(core), _rx0(rx0), _rx1(rx1) { 
+}
 
-class IDToneGenerator : public ToneGenerator {
-public:
+bool AudioCoreOutputPortStd::isAudioActive() const {    
+    return _rx0.isActive() || _rx1.isActive();
+}
 
-    IDToneGenerator(Log& log, Clock& clock, AudioCoreOutputPort& core);
+void AudioCoreOutputPortStd::setToneEnabled(bool b) {
+    _core.setToneEnabled(b);
+}
 
-    virtual void run();
+void AudioCoreOutputPortStd::setToneFreq(float hz) {
+    _core.setToneFreq(hz);
+}
 
-    virtual void start();
-    virtual bool isFinished();
+void AudioCoreOutputPortStd::setToneLevel(float dbv) {
+    _core.setToneLevel(dbv);
+}
 
-    void setCall(const char* callSign);
-    void setLevel(float db) { _level = db; }
-
-private:
-
-    Log& _log;
-    Clock& _clock;
-    AudioCoreOutputPort& _core;
-
-    static const unsigned _maxCallSignLen = 16;
-    char _callSign[_maxCallSignLen];
-    float _level = -10;
-    
-    bool _running = false;
-    uint32_t _endTime = 0;
-    unsigned int _state = 0;
-    unsigned int _callPtr = 0;
-    unsigned int _symPtr = 0;
-};
+void AudioCoreOutputPortStd::resetDelay() {
+    _core.resetDelay();
+}
 
 }

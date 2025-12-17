@@ -94,6 +94,7 @@ add_executable(main
   src/IDToneGenerator.cpp
   src/TestToneGenerator.cpp
   src/CommandProcessor.cpp
+  src/AudioCoreOutputPortStd.cpp
   radlib/util/dsp_util.cpp  
   kc1fsz-tools-cpp/src/Common.cpp
   kc1fsz-tools-cpp/src/CommandShell.cpp

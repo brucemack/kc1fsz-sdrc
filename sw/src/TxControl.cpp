@@ -20,11 +20,11 @@
 #include <cassert>
 
 #include "TxControl.h"
-#include "AudioCore.h"
+#include "AudioCoreOutputPort.h"
 
 namespace kc1fsz {
 
-TxControl::TxControl(Clock& clock, Log& log, Tx& tx, AudioCore& core)
+TxControl::TxControl(Clock& clock, Log& log, Tx& tx, AudioCoreOutputPort& core)
 :   _clock(clock),
     _log(log),
     _tx(tx),
@@ -35,56 +35,12 @@ TxControl::TxControl(Clock& clock, Log& log, Tx& tx, AudioCore& core)
 {
 }
 
-void TxControl::setRx(unsigned i, Rx* rx) {
-    assert(i < MAX_RX_COUNT);
-    _rx[i] = rx;
-}
-
-void TxControl::setRxEligible(unsigned i, bool b) {
-    assert(i < MAX_RX_COUNT);
-    _rxEligible[i] = b;
-}
-
-void TxControl::_clearSelected() {
-    for (unsigned i = 0; i < MAX_RX_COUNT; i++)
-        _rxSelected[i] = false;
-}
-
 void TxControl::run() { 
 
     // Advance sub-components
     _idToneGenerator.run();
     _courtesyToneGenerator.run();
     _testToneGenerator.run();
-
-    // ----- Keep Track of Receiver Activity ----------------------------------
-    
-    unsigned activeCount = 0;
-    bool active[MAX_RX_COUNT];
-    for (unsigned i = 0; i < MAX_RX_COUNT; i++) {
-        if (_rx[i] != 0 && _rxEligible[i] && _rxSelected[i] && _rx[i]->isActive()) {
-            _lastActiveReceiver = i;
-            active[i] = true;
-            activeCount++;
-        } else {
-            active[i] = false;
-        }
-    }
-
-    // ----- Adjust Receiver Routing/Mixing -----------------------------------
-    //
-    // This is an ongoing process of adjusting the "cross gains" of the 
-    // transmitter to make sure the audio from the correct receivers is 
-    // being mixed and passed through to this transmitter. 
-    // 
-    // This is a low-cost operation so, to simplify the logic, it is just
-    // done all the time.
-
-    // Divide the gain evenly across the active receivers
-    float gain = (activeCount != 0) ? 1.0 / (float)activeCount : 0;
-    for (unsigned i = 0; i < MAX_RX_COUNT; i++)
-        if (_rx[i] != 0)
-            _audioCore.setCrossGainLinear(i, active[i] ? gain : 0.0);
 
     // ----- Transmitter State Machine ----------------------------------------
 
@@ -96,10 +52,10 @@ void TxControl::run() {
             _enterPreId();
         }
         // Check all of the receivers for activity. If anything happens then enter
-        // the voting mode to decide which receiver to focus on.
-        else if (_anyRxActivityAmongstEligible()) {
+        // the active mode.
+        else if (_audioCore.isAudioActive()) {
             //_log.info("RX activity seen");
-            _enterVoting();
+            _enterActive();
         }
     }
     // In this state we are pausing before sending the CW ID.  Nothing
@@ -124,32 +80,6 @@ void TxControl::run() {
             _enterIdle();
         }
     }
-    // In this state we collect receiver status and decide
-    // which receiver to select. 
-    else if (_state == State::VOTING) {
-
-        // If nothing is seen during the voting period then 
-        // go back to idle.
-        if (_isStateTimedOut()) {
-            _enterIdle();
-        }
-
-        // Look for active receivers
-        else {
-            // TODO: Current implementation is first-come-first-served
-            bool anyActive = false;
-            for (unsigned int i = 0; i < MAX_RX_COUNT; i++) {
-                if (_rx[i] != 0 && _rxEligible[i] && _rx[i]->isActive()) {
-                    _log.info("%d: Receiver [%d] is selected", _tx.getId(), i);
-                    _rxSelected[i] = true;
-                    anyActive = true;
-                    break;
-                }
-            }
-            if (anyActive) 
-                _enterActive();
-        }
-    }
     else if (_state == State::ACTIVE) {
 
         // Keep on updating the timestamp
@@ -166,14 +96,11 @@ void TxControl::run() {
         //}
 
         // Look for unkey of all active receivers.
-        else if (activeCount == 0) {
-            _log.info("Receiver COS dropped [%u]", _lastActiveReceiver);
+        else if (!_audioCore.isAudioActive()) {
+            _log.info("Receiver COS dropped");
             _log.info("Pause before courtesy");
             // The type of courtesy tone is a function of the last receiver
-            // whose activity was being repeated through this transmitter.
-            if (_rx[_lastActiveReceiver] != 0)
-                _courtesyToneGenerator.setType(_rx[_lastActiveReceiver]->getCourtesyType());
-            _clearSelected();
+            _courtesyToneGenerator.setType(_tx.getCourtesyType());
             _enterPreCourtesy();
         } 
 
@@ -189,9 +116,9 @@ void TxControl::run() {
         }
         // Check to see if the previously active receiver
         // has come back (i.e. debounce)
-        else if (_anyRxActivityAmongstEligible()) {
+        else if (_audioCore.isAudioActive()) {
             _log.info("RX activity, cancelled courtesy");
-            _enterVoting();
+            _enterActive();
         }
     }
     // In this state we are waiting for the courtesy
@@ -211,10 +138,10 @@ void TxControl::run() {
             _enterIdle();
         }
         // Any receive activity will end the hang period
-        // and will jump back into the voting state.
-        else if (_anyRxActivityAmongstEligible()) {
+        // and will jump back into the active state.
+        else if (_audioCore.isAudioActive()) {
             _log.info("RX activity, hang cancelled");
-            _enterVoting();
+            _enterActive();
         }
     }
     // In this state we are waiting a defined period of 
@@ -223,8 +150,20 @@ void TxControl::run() {
         // There is nothing that can happen until the timeout passes.
         // Look for end of lockout time
         if (_isStateTimedOut()) {
-            _log.info("Lockout end");
-            _enterPreId();
+            // Per Dan W1DAN's suggestion, before leaving lock-out, recheck 
+            // to see if there is activty (ex: stuck transmitter). If so
+            // extend again.
+            if (_audioCore.isAudioActive()) {
+                _log.info("Lockout extended");
+                // Should be needed, but just in case
+                _tx.setPtt(false);
+                // Doing this just to extend the timeout
+                _setState(State::LOCKOUT, _lockoutWindowMs);
+            }
+            else {
+                _log.info("Lockout end");
+                _enterPreId();
+            }
         }
     }
     else if (_state == State::TEST) {
@@ -237,13 +176,6 @@ void TxControl::run() {
             _enterIdle();
         }
     }
-}
-
-bool TxControl::_anyRxActivityAmongstEligible() const {
-    for (unsigned i = 0; i < MAX_RX_COUNT; i++)
-        if (_rx[i] != 0 && _rxEligible[i] && _rx[i]->isActive())
-            return true;
-    return false;
 }
 
 void TxControl::setMute(bool mute) {
@@ -259,13 +191,8 @@ void TxControl::setMute(bool mute) {
 void TxControl::_enterIdle() {
     _state = State::IDLE;
     _lastIdleStartTime = _clock.time();
-    _clearSelected();
     _tx.setPtt(false);
     _testToneGenerator.stop();
-}
-
-void TxControl::_enterVoting() {
-    _setState(State::VOTING, _votingWindowMs);
 }
 
 void TxControl::_enterTest() {
@@ -286,9 +213,7 @@ void TxControl::_enterActive() {
         _timeoutTime = 0;
     // Reset the audio delay since we are about to start passing 
     // audio through the system.
-    for (unsigned i = 0; i < MAX_RX_COUNT; i++)
-        if (_rx[i] != 0 && _rxSelected[i])
-            _rx[i]->resetDelay();
+    _audioCore.resetDelay();
     // Key the transmitter
     _tx.setPtt(true);
 }
@@ -331,7 +256,6 @@ void TxControl::_enterHang() {
 }
 
 void TxControl::_enterLockout() {
-    _clearSelected();
     _tx.setPtt(false);
     _setState(State::LOCKOUT, _lockoutWindowMs);
 }

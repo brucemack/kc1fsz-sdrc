@@ -14,11 +14,8 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
- *
- * NOT FOR COMMERCIAL USE WITHOUT PERMISSION.
  */
-#ifndef _CourtesyToneGenerator_h
-#define _CourtesyToneGenerator_h
+#pragma once
 
 #include "kc1fsz-tools/Log.h"
 #include "kc1fsz-tools/Clock.h"
@@ -27,14 +24,14 @@
 
 namespace kc1fsz {
 
-class AudioCore;
+class AudioCoreOutputPort;
 
 class CourtesyToneGenerator : public ToneGenerator {
 public:
 
     enum Type { NONE, SINGLE, FAST_UPCHIRP, FAST_DOWNCHIRP };
 
-    CourtesyToneGenerator(Log& log, Clock& clock, AudioCore& core);
+    CourtesyToneGenerator(Log& log, Clock& clock, AudioCoreOutputPort& core);
 
     virtual void run();
     virtual void start();
@@ -46,7 +43,7 @@ private:
 
     Log& _log;
     Clock& _clock;
-    AudioCore& _core;
+    AudioCoreOutputPort& _core;
 
     unsigned int _chirpMs = 50;
     unsigned int _toneMs = 150;
@@ -58,5 +55,3 @@ private:
 };
 
 }
-
-#endif

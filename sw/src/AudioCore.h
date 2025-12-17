@@ -206,7 +206,7 @@ public:
     static float dbToLinear(float dbv) {
         return pow(10, (dbv / 20));
     }
-
+    
 private:
 
     const unsigned _id;

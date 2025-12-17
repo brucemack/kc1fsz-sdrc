@@ -18,11 +18,11 @@
  * NOT FOR COMMERCIAL USE WITHOUT PERMISSION.
  */
 #include "CourtesyToneGenerator.h"
-#include "AudioCore.h"
+#include "AudioCoreOutputPort.h"
 
 namespace kc1fsz {
 
-CourtesyToneGenerator::CourtesyToneGenerator(Log& log, Clock& clock, AudioCore& core) 
+CourtesyToneGenerator::CourtesyToneGenerator(Log& log, Clock& clock, AudioCoreOutputPort& core) 
 :   _log(log),
     _clock(clock),
     _core(core)

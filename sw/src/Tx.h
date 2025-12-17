@@ -14,13 +14,12 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
- *
- * NOT FOR COMMERCIAL USE WITHOUT PERMISSION.
  */
-#ifndef _Tx_h
-#define _Tx_h
+#pragma once
 
 #include "kc1fsz-tools/Runnable.h"
+
+#include "CourtesyToneGenerator.h"
 
 namespace kc1fsz {
 
@@ -42,8 +41,8 @@ public:
     virtual void setToneMode(ToneMode mode) = 0;
     virtual void setToneFreq(float hz) = 0;
     virtual void setToneLevel(float db) = 0;
+    virtual CourtesyToneGenerator::Type getCourtesyType() const = 0;
+    virtual void setCtMode(CourtesyToneGenerator::Type ctType) = 0;
 };
 
 }
-
-#endif

@@ -14,24 +14,21 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
- *
- * NOT FOR COMMERCIAL USE WITHOUT PERMISSION.
  */
-#ifndef _TestToneGenerator_h
-#define _TestToneGenerator_h
+#pragma once
 
 #include "kc1fsz-tools/Log.h"
 #include "kc1fsz-tools/Clock.h"
 
 #include "ToneGenerator.h"
-#include "AudioCore.h"
+#include "AudioCoreOutputPort.h"
 
 namespace kc1fsz {
 
 class TestToneGenerator : public ToneGenerator {
 public:
 
-    TestToneGenerator(Log& log, Clock& clock, AudioCore& core);
+    TestToneGenerator(Log& log, Clock& clock, AudioCoreOutputPort& core);
 
     virtual void run();
 
@@ -45,7 +42,7 @@ private:
 
     Log& _log;
     Clock& _clock;
-    AudioCore& _core;
+    AudioCoreOutputPort& _core;
 
     float _freq = 1000.0;
     float _level = -10.0;    
@@ -54,5 +51,3 @@ private:
 };
 
 }
-
-#endif

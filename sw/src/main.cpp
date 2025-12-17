@@ -47,6 +47,7 @@ When targeting RP2350 (Pico 2), command used to load code onto the board:
 #include "TxControl.h"
 #include "ShellCommand.h"
 #include "AudioCore.h"
+#include "AudioCoreOutputPortStd.h"
 #include "CommandProcessor.h"
 
 #include "i2s_setup.h"
@@ -57,7 +58,7 @@ using namespace kc1fsz;
 // CONFIGURATION PARAMETERS
 // ===========================================================================
 //
-static const char* VERSION = "V1.1 2025-11-23";
+static const char* VERSION = "V1.1 2025-12-08";
 #define LED_PIN (PICO_DEFAULT_LED_PIN)
 #define R0_COS_PIN (14)
 #define R0_CTCSS_PIN (13)
@@ -294,7 +295,6 @@ static void transferConfigRx(const Config::ReceiveConfig& config, Rx& rx) {
     rx.setToneLevel(config.toneLevel);
     rx.setToneFreq(config.toneFreq);
     rx.setGainLinear(AudioCore::dbToLinear(config.gain));
-    rx.setCtMode((CourtesyToneGenerator::Type)config.ctMode);
     rx.setDelayTime(config.delayTime);
     rx.setDtmfDetectLevel(config.dtmfDetectLevel);
     rx.setDeemphMode(config.deemphMode);
@@ -305,6 +305,7 @@ static void transferConfigTx(const Config::TransmitConfig& config, Tx& tx) {
     tx.setToneMode((Tx::ToneMode)config.toneMode);
     tx.setToneLevel(config.toneLevel);
     tx.setToneFreq(config.toneFreq);
+    tx.setCtMode((CourtesyToneGenerator::Type)config.ctMode);
 }
 
 static void transferControlConfig(const Config::ControlConfig& config, TxControl& txc) {
@@ -314,8 +315,9 @@ static void transferControlConfig(const Config::ControlConfig& config, TxControl
     txc.setCtLevel(config.ctLevel);
     txc.setIdMode(config.idMode);
     txc.setIdLevel(config.idLevel);
-    for (unsigned i = 0; i < Config::maxReceivers; i++)
-        txc.setRxEligible(i, config.rxEligible[i]);
+    // At the moment, all receivers are eligible
+    //for (unsigned i = 0; i < Config::maxReceivers; i++)
+    //    txc.setRxEligible(i, config.rxEligible[i]);
 }
 
 /**
@@ -452,13 +454,12 @@ int main(int argc, const char** argv) {
     StdRx rx0(clock, log, 0, R0_COS_PIN, R0_CTCSS_PIN, core0);
     StdRx rx1(clock, log, 1, R1_COS_PIN, R1_CTCSS_PIN, core1);
 
-    TxControl txCtl0(clock, log, tx0, core0);
-    TxControl txCtl1(clock, log, tx1, core1);
+    // #### TODO: REVIEW THIS TEMPORARY BRIDGE CLASS
+    AudioCoreOutputPortStd acop0(core0, rx0, rx1);
+    AudioCoreOutputPortStd acop1(core1, rx0, rx1);
 
-    txCtl0.setRx(0, &rx0);
-    txCtl0.setRx(1, &rx1);
-    txCtl1.setRx(0, &rx0);
-    txCtl1.setRx(1, &rx1);  
+    TxControl txCtl0(clock, log, tx0, acop0);
+    TxControl txCtl1(clock, log, tx1, acop1);
 
     int i = 0;
 
@@ -640,6 +641,27 @@ int main(int argc, const char** argv) {
         core0.setRxMute(dtmfCmdProc.isAccess());
         core1.setRxMute(dtmfCmdProc.isAccess());
 
+        // ----- Adjust Receiver Routing/Mixing -----------------------------------
+        //
+        // This is an ongoing process of adjusting the "cross gains" of the 
+        // transmitter to make sure the audio from the correct receivers is 
+        // being mixed and passed through to this transmitter. 
+        // 
+        // This is a low-cost operation so, to simplify the logic, it is just
+        // done all the time.
+        unsigned activeCount = 0;
+        if (rx0.isActive())
+            activeCount++;
+        if (rx1.isActive())
+            activeCount++;
+
+        // Divide the gain evenly across the active receivers
+        float gain = (activeCount != 0) ? 1.0 / (float)activeCount : 0;
+        core0.setCrossGainLinear(0, rx0.isActive() ? gain : 0.0);
+        core0.setCrossGainLinear(1, rx1.isActive() ? gain : 0.0);
+        core1.setCrossGainLinear(0, rx0.isActive() ? gain : 0.0);
+        core1.setCrossGainLinear(1, rx1.isActive() ? gain : 0.0);
+   
         // Run all components
         tx0.run();
         tx1.run();
