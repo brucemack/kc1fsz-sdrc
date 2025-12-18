@@ -30,17 +30,17 @@ public:
 
     virtual int getId() const = 0;
     virtual void setEnabled(bool en) = 0;
-    virtual bool getEnabled() const;
+    virtual bool getEnabled() const = 0;
     virtual void setPtt(bool ptt) = 0;
     virtual bool getPtt() const = 0;
     
     // ----- CONFIGURATION ---------------------------------------------------
 
-    enum ToneMode { NONE, SOFT };
+    enum PLToneMode { NONE, SOFT };
 
-    virtual void setToneMode(ToneMode mode) = 0;
-    virtual void setToneFreq(float hz) = 0;
-    virtual void setToneLevel(float db) = 0;
+    virtual void setPLToneMode(PLToneMode mode) = 0;
+    virtual void setPLToneFreq(float hz) = 0;
+    virtual void setPLToneLevel(float db) = 0;
     virtual CourtesyToneGenerator::Type getCourtesyType() const = 0;
     virtual void setCtMode(CourtesyToneGenerator::Type ctType) = 0;
 };

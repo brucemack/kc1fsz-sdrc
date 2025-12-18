@@ -28,10 +28,10 @@ TxControl::TxControl(Clock& clock, Log& log, Tx& tx, AudioCoreOutputPort& core)
 :   _clock(clock),
     _log(log),
     _tx(tx),
+    _audioCore(core),
     _courtesyToneGenerator(log, clock, core),
     _idToneGenerator(log, clock, core),
-    _testToneGenerator(log, clock, core),
-    _audioCore(core)
+    _testToneGenerator(log, clock, core)
 {
 }
 
