@@ -105,6 +105,7 @@ void IDToneGenerator::run() {
                 if (_callSign[_callPtr] == 0) {
                     _running = false;
                     _log.info("CWID end");
+                    _core.setToneEnabled(false);
                 }
                 else {
                     char c = toupper(_callSign[_callPtr]);
@@ -144,14 +145,12 @@ void IDToneGenerator::run() {
                     _endTime = _clock.time() + dotMs;
                     _core.setToneFreq(freq);
                     _core.setToneLevel(_level);
-                    _core.setToneEnabled(true);
                     _state = 2;
                 }
                 else if (MorseSymbols[i][_symPtr] == '-') {
                     _endTime = _clock.time() + dotMs * 3;
                     _core.setToneFreq(freq);
                     _core.setToneLevel(_level);
-                    _core.setToneEnabled(true);
                     _state = 2;
                 }
                 else {
@@ -163,7 +162,8 @@ void IDToneGenerator::run() {
             }
             // Symbol is finished transmitting
             else if (_state == 2) {
-                _core.setToneEnabled(false);
+                // Set the level to silent
+                _core.setToneLevel(-96);
                 // Go quiet for a dot pause
                 _endTime = _clock.time() + dotMs;
                 _state = 3;
@@ -185,6 +185,7 @@ void IDToneGenerator::start() {
     // This is set in the past so that we immediately start working on the first
     // symbol of the ID.
     _endTime = 0;
+    _core.setToneEnabled(true);
     _log.info("CWID start %s", _callSign);
 }
 

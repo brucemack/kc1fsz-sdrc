@@ -46,7 +46,7 @@ public:
     void stopTest() { _enterIdle(); }
 
     /**
-     * This featue puts the transmitter in a temporary mute state
+     * This feature puts the transmitter in a temporary mute state
      * which could be used for cases when DTMF commands are being
      * received and processed.
      */
@@ -65,6 +65,8 @@ public:
     void setIdRequiredInt(uint32_t sec) { _idRequiredIntSec = sec; }
     void setDiagToneFreq(float hz) { _testToneGenerator.setFreq(hz); }
     void setDiagToneLevel(float dbv) { _testToneGenerator.setLevel(dbv); }
+
+    // #### TODO: MOVE COURTESY TONE CONFIGURATION HERE
 
 private:
 

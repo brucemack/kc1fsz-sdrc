@@ -26,6 +26,14 @@ namespace kc1fsz {
 
 class AudioCoreOutputPort;
 
+/**
+ * A state machine that generates a CW ID message. This relies on the AudioCoreOutputPort 
+ * methods for controlling audio tones. 
+ * 
+ * To improve sound quality the on/off behavior is controlled using the 
+ * .setToneLevel() method with the expectation that the audio implementation
+ * will create a smooth transition and avoid "clicks."
+ */
 class IDToneGenerator : public ToneGenerator {
 public:
 

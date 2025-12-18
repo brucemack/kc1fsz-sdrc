@@ -14,9 +14,9 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
- *
- * NOT FOR COMMERCIAL USE WITHOUT PERMISSION.
  */
+#include <cassert>
+
 #include "CourtesyToneGenerator.h"
 #include "AudioCoreOutputPort.h"
 
@@ -39,9 +39,15 @@ void CourtesyToneGenerator::run() {
                     _core.setToneFreq(1280);
                 _part = 1;
                 _endTime = _clock.time() + _chirpMs;
-            } else {
-                _running = false;
+            } else if (_part == 1) {
+                _core.setToneLevel(-96);
+                _part = 2;
+                _endTime = _clock.time() + _toneMs;
+            } else if (_part == 2) {
                 _core.setToneEnabled(false);
+                _running = false;
+            } else {
+                assert(false);
             }
         }
     }
@@ -50,10 +56,11 @@ void CourtesyToneGenerator::run() {
 void CourtesyToneGenerator::start() {
     if (_type == Type::NONE) {
         _running = false;
-        _core.setToneEnabled(false);
     } 
     else {
         _running = true;
+        _core.setToneEnabled(true);
+        _core.setToneLevel(_level);
         if (_type == Type::SINGLE) {
             _part = 1;
             _endTime = _clock.time() + _toneMs;
@@ -69,8 +76,6 @@ void CourtesyToneGenerator::start() {
             _endTime = _clock.time() + _chirpMs;
             _core.setToneFreq(1000);
         }
-        _core.setToneEnabled(true);
-        _core.setToneLevel(_level);
     }
 }
 

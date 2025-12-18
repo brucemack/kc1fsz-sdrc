@@ -26,6 +26,15 @@ namespace kc1fsz {
 
 class AudioCoreOutputPort;
 
+/**
+ * A state machine that generates courtesy tones of a few different types.
+ * This relies on the AudioCoreOutputPort methods for controlling audio
+ * tones. 
+ * 
+ * To improve sound quality the on/off behavior is controlled using the 
+ * .setToneLevel() method with the expectation that the audio implementation
+ * will create a smooth transition and avoid "clicks."
+ */
 class CourtesyToneGenerator : public ToneGenerator {
 public:
 
@@ -45,10 +54,10 @@ private:
     Clock& _clock;
     AudioCoreOutputPort& _core;
 
-    unsigned int _chirpMs = 50;
-    unsigned int _toneMs = 150;
+    unsigned int _chirpMs = 40;
+    unsigned int _toneMs = 120;
     bool _running = false;
-    Type _type = Type::FAST_DOWNCHIRP;
+    Type _type = Type::FAST_UPCHIRP;
     float _level = -10;
     int _part = 0;
     uint32_t _endTime = 0;
