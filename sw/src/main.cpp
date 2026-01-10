@@ -33,11 +33,11 @@ When targeting RP2350 (Pico 2), command used to load code onto the board:
 #include "hardware/watchdog.h"
 
 #include "kc1fsz-tools/Log.h"
+#include "kc1fsz-tools/StdPollTimer.h"
 #include "kc1fsz-tools/CommandShell.h"
 #include "kc1fsz-tools/OutStream.h"
 #include "kc1fsz-tools/WindowAverage.h"
 #include "kc1fsz-tools/DTMFDetector2.h"
-#include "kc1fsz-tools/rp2040/PicoPollTimer.h"
 #include "kc1fsz-tools/rp2040/PicoPerfTimer.h"
 #include "kc1fsz-tools/rp2040/PicoClock.h"
 
@@ -58,7 +58,7 @@ using namespace kc1fsz;
 // CONFIGURATION PARAMETERS
 // ===========================================================================
 //
-static const char* VERSION = "V1.1 2025-12-08";
+static const char* VERSION = "V1.2 2026-01-10";
 #define LED_PIN (PICO_DEFAULT_LED_PIN)
 #define R0_COS_PIN (14)
 #define R0_CTCSS_PIN (13)
@@ -70,7 +70,6 @@ static const char* VERSION = "V1.1 2025-12-08";
 
 // System clock rate
 #define SYS_KHZ (153600)
-//#define SYS_KHZ (129600)
 #define WATCHDOG_INTERVAL_MS (2000)
 
 // ===========================================================================
@@ -302,9 +301,9 @@ static void transferConfigRx(const Config::ReceiveConfig& config, Rx& rx) {
 
 static void transferConfigTx(const Config::TransmitConfig& config, Tx& tx) {
     tx.setEnabled((bool)config.enabled);
-    tx.setToneMode((Tx::ToneMode)config.toneMode);
-    tx.setToneLevel(config.toneLevel);
-    tx.setToneFreq(config.toneFreq);
+    tx.setPLToneMode((Tx::PLToneMode)config.toneMode);
+    tx.setPLToneLevel(config.toneLevel);
+    tx.setPLToneFreq(config.toneFreq);
     tx.setCtMode((CourtesyToneGenerator::Type)config.ctMode);
 }
 
@@ -364,7 +363,9 @@ int main(int argc, const char** argv) {
     // audio sampling frequency.
     set_sys_clock_khz(SYS_KHZ, true);
 
-    stdio_init_all();
+    //stdio_init_all();
+    // Very high speed
+    stdio_uart_init_full(uart0, 1152000, 0, 1);
 
     gpio_init(LED_PIN);
     gpio_set_dir(LED_PIN, GPIO_OUT);
@@ -435,8 +436,7 @@ int main(int argc, const char** argv) {
     clock.reset();
 
     // Display/diagnostic should happen twice per second
-    PicoPollTimer flashTimer;
-    flashTimer.setIntervalUs(500 * 1000);
+    StdPollTimer flashTimer(clock, 500 * 1000);
 
     StdTx tx0(clock, log, 0, R0_PTT_PIN, core0,
         // IMPORTANT SAFETY MECHANISM: Polled to control keying
