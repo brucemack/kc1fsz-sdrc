@@ -43,6 +43,8 @@ public:
     virtual void setPtt(bool ptt);
     virtual bool getPtt() const;
 
+    // ----- CONFIGURATION ---------------------------------------------------
+
     void setPLToneMode(PLToneMode mode) { 
         _toneMode = mode; 
         if (_toneMode == PLToneMode::SOFT) {

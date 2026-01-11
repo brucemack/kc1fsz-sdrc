@@ -46,9 +46,9 @@ public:
 
     /**
      * @brief Called once per CODEC block. Expected to run quickly 
-     * inside of the interupt service routine.
+     * inside of the interrupt service routine.
      *
-     * @param adc_in One block of signed 32-bit PCM audio.
+     * @param adc_in One block of signed 32-bit PCM audio at the 32k rate.
      * @param cross_out One block of audio data at the 8k rate 
      * ready to be shared across the repeater.
      */
@@ -56,11 +56,21 @@ public:
 
     /**
      * @brief Called once per CODEC block. Expected to run quickly 
-     * inside of the interupt service routine.
+     * inside of the interrupt service routine.
      *
      * @param dac_out A block of 32-bit signed PCM samples will be written here
      */
     void cycleTx(const float** cross_ins, int32_t* codec_out);
+
+    /**
+     * Controls how much of each cross input gets included in the output
+     * during calls to cycleTx.
+     * 
+     * @param i The contributor index, corresponds to the cross_ins array
+     * index in the cycleTx() function.
+     * @param gain 0->1 linear scale.
+     */
+    void setCrossGainLinear(unsigned i, float gain);
 
     /**
      * The "noise" is basically all power above ~5kHz.
@@ -111,8 +121,6 @@ public:
      * @brief The received audio is multiplied by this value.
      */
     void setRxGainLinear(float gain) { _rxGain = gain; }
-
-    void setCrossGainLinear(unsigned i, float gain);
 
     /**
      * @brief Controls the HPF that is intended to filter out the low

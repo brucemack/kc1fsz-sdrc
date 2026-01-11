@@ -1,5 +1,5 @@
 /**
- * Software Defined Repeater Controller
+ * Digital Repeater Controller
  * Copyright (C) 2025, Bruce MacKinnon KC1FSZ
  *
  * This program is free software: you can redistribute it and/or modify
@@ -17,34 +17,12 @@
  */
 #pragma once
 
-#include <cstdint>
-
-#include "AudioCoreOutputPort.h"
-
 namespace kc1fsz {
 
-class Clock;
-class AudioCore;
-class Activatable;
-
-class AudioCoreOutputPortStd : public AudioCoreOutputPort {
+class Activatable {
 public:
 
-    AudioCoreOutputPortStd(AudioCore& core, Activatable& rx0, Activatable& rx1, 
-        Activatable& rx2);
-
-    virtual bool isAudioActive() const;
-    virtual void setToneEnabled(bool b);
-    virtual void setToneFreq(float hz);
-    virtual void setToneLevel(float dbv);
-    virtual void resetDelay();
-
-private:
-
-    AudioCore& _core;
-    Activatable& _rx0;
-    Activatable& _rx1;
-    Activatable& _rx2;
+    virtual bool isActive() const = 0;
 };
 
 }

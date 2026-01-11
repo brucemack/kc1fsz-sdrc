@@ -17,15 +17,13 @@
  *
  * NOT FOR COMMERCIAL USE WITHOUT PERMISSION.
  */
-#ifndef _TxControl_h
-#define _TxControl_h
+#pragma once
 
 #include "kc1fsz-tools/Log.h"
 #include "kc1fsz-tools/Clock.h"
 
 #include "Tx.h"
 #include "Rx.h"
-//#include "AudioCore.h"
 #include "CourtesyToneGenerator.h"
 #include "IDToneGenerator.h"
 #include "TestToneGenerator.h"
@@ -142,5 +140,3 @@ private:
 };
 
 }
-
-#endif

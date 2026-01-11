@@ -20,15 +20,14 @@
 #include <cstdint>
 
 #include "kc1fsz-tools/Runnable.h"
+#include "Activatable.h"
 
 namespace kc1fsz {
 
-class Rx : public Runnable {
+class Rx : public Runnable, public Activatable {
 public:
 
     virtual void run() = 0;
-
-    virtual int getId() const = 0;
 
     /**
      * @returns true when the receiver audio is valid. This will depend
@@ -37,6 +36,8 @@ public:
      * everything.
      */
     virtual bool isActive() const = 0;
+
+    virtual int getId() const = 0;
 
     /**
      * @returns true when carrier is detected.  May be hard or soft, 

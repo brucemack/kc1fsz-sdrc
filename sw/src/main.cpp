@@ -32,6 +32,9 @@ When targeting RP2350 (Pico 2), command used to load code onto the board:
 #include "hardware/clocks.h"
 #include "hardware/watchdog.h"
 
+#include "hardware/dma.h"
+#include "hardware/uart.h"
+
 #include "kc1fsz-tools/Log.h"
 #include "kc1fsz-tools/StdPollTimer.h"
 #include "kc1fsz-tools/CommandShell.h"
@@ -49,6 +52,7 @@ When targeting RP2350 (Pico 2), command used to load code onto the board:
 #include "AudioCore.h"
 #include "AudioCoreOutputPortStd.h"
 #include "CommandProcessor.h"
+#include "DigitalPort.h"
 
 #include "i2s_setup.h"
 
@@ -89,8 +93,10 @@ static Config config;
 static PicoClock clock;
 static PicoPerfTimer perfTimerLoop;
 
-static AudioCore core0(0, 2, clock);
-static AudioCore core1(1, 2, clock);
+static AudioCore core0(0, 3, clock);
+static AudioCore core1(1, 3, clock);
+// This core is the digital audio input port
+static DigitalPort core2(2, 3, clock);
 
 // The console can work in one of three modes:
 // 
@@ -120,12 +126,15 @@ static void audio_proc(const int32_t* r0_samples, const int32_t* r1_samples,
     
     float r0_cross[ADC_SAMPLE_COUNT / 4];
     float r1_cross[ADC_SAMPLE_COUNT / 4];
-    const float* cross_ins[2] = { r0_cross, r1_cross };
+    float r2_cross[ADC_SAMPLE_COUNT / 4];
+    const float* cross_ins[3] = { r0_cross, r1_cross, r2_cross };
 
     core0.cycleRx(r0_samples, r0_cross);
     core1.cycleRx(r1_samples, r1_cross);
+    core2.cycleRx(r2_cross);
     core0.cycleTx(cross_ins, r0_out);
     core1.cycleTx(cross_ins, r1_out);
+    core2.cycleTx(cross_ins);
 }
 
 static void print_bar(float vrms, float vpeak) {
@@ -357,13 +366,135 @@ static void transferConfig(const Config& config,
     transferControlConfig(config.txc1, txc1);
 }
 
+#define BUF_SIZE 256
+static uint8_t rx_buf[BUF_SIZE];
+static uint8_t tx_buf[BUF_SIZE + 1];
+static unsigned rx_state = 0;
+static unsigned rx_size = 0;
+static unsigned tx_state = 0;
+static unsigned tx_size = 0;
+
+
+// ------ UART Setup Stuff -------------------------------------------------
+
+static uint dma_ch_tx;
+static uint dma_ch_rx;
+
+static void dma_tx_handler() {
+}
+
+// IMPORTANT NOTE: This is running in an interrupt so move quickly!!!
+static void process_rx_message(const uint8_t* rxData, unsigned rxDataLen) {   
+    // TEMPORARY ECHO
+    tx_buf[0] = rxDataLen;
+    memcpy(tx_buf + 1, rxData, rxDataLen);
+    // Fire the outbound transfer for the full body
+    dma_channel_transfer_from_buffer_now(dma_ch_tx, tx_buf, rxDataLen + 1);
+    // Get another RX going
+    dma_channel_transfer_to_buffer_now(dma_ch_rx, rx_buf, 1);
+
+}
+
+static void dma_rx_handler() {    
+    strcpy((char*)tx_buf, "HELLO IZZY!");
+    // Fire the outbound transfer for the full body
+    dma_channel_transfer_from_buffer_now(dma_ch_tx, tx_buf, 10);
+    // Get another RX going
+    dma_channel_transfer_to_buffer_now(dma_ch_rx, rx_buf, 1);
+    /*
+    // Waiting for length?
+    if (rx_state == 0) {
+        rx_size = rx_buf[0];
+        // Restart the inbound transfer for the full body
+        dma_channel_transfer_to_buffer_now(dma_ch_rx, rx_buf,
+//            dma_encode_transfer_count(rx_size));
+            rx_size);
+        rx_state = 1;
+    }
+    // Waiting for body?
+    else if (rx_state == 1) {
+        // Process the message
+        process_rx_message(rx_buf, rx_size);
+        // Restart the inbound transfer for the length byte
+        dma_channel_transfer_to_buffer_now(dma_ch_rx, rx_buf,
+//            dma_encode_transfer_count(1));
+            1);
+        rx_state = 0;
+    }
+        */
+}
+
+static void dma_irq1_handler() {   
+    // Figure out which interrupt fired
+    if (dma_hw->ints1 & (1u << dma_ch_tx)) {
+        // Clear the IRQ status
+        dma_hw->ints1 = 1u << dma_ch_tx;
+        dma_tx_handler();
+    } else if (dma_hw->ints1 & (1u << dma_ch_rx)) {
+        // Clear the IRQ status
+        dma_hw->ints1 = 1u << dma_ch_rx;
+        dma_rx_handler();
+    }
+}
+
+static void uart_setup() {
+
+    uart_init(uart0, 1152000);
+    gpio_set_function(0, GPIO_FUNC_UART);
+    gpio_set_function(1, GPIO_FUNC_UART);
+
+    uint dma_ch_rx = dma_claim_unused_channel(true);
+    dma_channel_config c = dma_channel_get_default_config(dma_ch_rx);
+    channel_config_set_transfer_data_size(&c, DMA_SIZE_8);
+    // Always reading from static UART register
+    channel_config_set_read_increment(&c, false); 
+    // Writing to increasing memory address    
+    channel_config_set_write_increment(&c, true); 
+    channel_config_set_dreq(&c, DREQ_UART0_RX);
+    
+    // For a circular buffer, use channel_config_set_wrap() and 
+    // dma_channel_set_write_addr() to restart the transfer when the 
+    // buffer limit is reached.
+    dma_channel_configure(
+        dma_ch_rx,
+        &c,
+        rx_buf,                  // Destination address
+        &uart_get_hw(uart0)->dr, // Source address (UART Data Register)
+        1,                       // Number of transfers
+        false                    // Start immediately
+    );
+    dma_channel_set_irq1_enabled(dma_ch_rx, true);
+
+    uint dma_ch_tx = dma_claim_unused_channel(true);
+    c = dma_channel_get_default_config(dma_ch_tx);
+    channel_config_set_transfer_data_size(&c, DMA_SIZE_8);
+    // Always write to static UART register
+    channel_config_set_write_increment(&c, false); 
+    // Reading from increasing memory address    
+    channel_config_set_read_increment(&c, true); 
+    channel_config_set_dreq(&c, DREQ_UART0_TX);
+    dma_channel_configure(
+        dma_ch_tx,
+        &c,
+        &uart_get_hw(uart0)->dr,
+        tx_buf,
+        BUF_SIZE,
+        false);
+    dma_channel_set_irq1_enabled(dma_ch_tx, true);
+
+    // Bind to the interrupt handler 
+    irq_set_exclusive_handler(DMA_IRQ_1, dma_irq1_handler);
+    irq_set_enabled(DMA_IRQ_1, true);
+
+    dma_channel_start(dma_ch_rx);
+}
+
 int main(int argc, const char** argv) {
 
     // Adjust system clock to more evenly divide the 
     // audio sampling frequency.
     set_sys_clock_khz(SYS_KHZ, true);
 
-    //stdio_init_all();
     // Very high speed
     stdio_uart_init_full(uart0, 1152000, 0, 1);
 
@@ -407,6 +538,15 @@ int main(int argc, const char** argv) {
         log.info("Clean boot");
     }
     
+    // ##### TEMP!
+    sleep_ms(1000);
+    stdio_uart_deinit();
+    uart_setup();
+
+    while (1) {
+        sleep_ms(1000);
+    }
+
     // ----- READ CONFIGURATION FROM FLASH ------------------------------------
     Config::loadConfig(&config);
     if (!config.isValid()) {
@@ -455,8 +595,8 @@ int main(int argc, const char** argv) {
     StdRx rx1(clock, log, 1, R1_COS_PIN, R1_CTCSS_PIN, core1);
 
     // #### TODO: REVIEW THIS TEMPORARY BRIDGE CLASS
-    AudioCoreOutputPortStd acop0(core0, rx0, rx1);
-    AudioCoreOutputPortStd acop1(core1, rx0, rx1);
+    AudioCoreOutputPortStd acop0(core0, rx0, rx1, core2);
+    AudioCoreOutputPortStd acop1(core1, rx0, rx1, core2);
 
     TxControl txCtl0(clock, log, tx0, acop0);
     TxControl txCtl1(clock, log, tx1, acop1);
@@ -654,13 +794,20 @@ int main(int argc, const char** argv) {
             activeCount++;
         if (rx1.isActive())
             activeCount++;
+        if (core2.isActive())
+            activeCount++;
 
         // Divide the gain evenly across the active receivers
         float gain = (activeCount != 0) ? 1.0 / (float)activeCount : 0;
         core0.setCrossGainLinear(0, rx0.isActive() ? gain : 0.0);
         core0.setCrossGainLinear(1, rx1.isActive() ? gain : 0.0);
+        core0.setCrossGainLinear(2, core2.isActive() ? gain : 0.0);
         core1.setCrossGainLinear(0, rx0.isActive() ? gain : 0.0);
         core1.setCrossGainLinear(1, rx1.isActive() ? gain : 0.0);
+        core1.setCrossGainLinear(2, core2.isActive() ? gain : 0.0);
+        core2.setCrossGainLinear(0, rx0.isActive() ? gain : 0.0);
+        core2.setCrossGainLinear(1, rx1.isActive() ? gain : 0.0);
+        core2.setCrossGainLinear(2, core2.isActive() ? gain : 0.0);
    
         // Run all components
         tx0.run();

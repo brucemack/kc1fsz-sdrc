@@ -17,16 +17,18 @@
  */
 #include "Rx.h"
 #include "AudioCore.h"
+#include "Activatable.h"
 #include "AudioCoreOutputPortStd.h"
 
 namespace kc1fsz {
 
-AudioCoreOutputPortStd::AudioCoreOutputPortStd(AudioCore& core, Rx& rx0, Rx& rx1)
-:   _core(core), _rx0(rx0), _rx1(rx1) { 
+AudioCoreOutputPortStd::AudioCoreOutputPortStd(AudioCore& core, 
+    Activatable& rx0, Activatable& rx1, Activatable& rx2)
+:   _core(core), _rx0(rx0), _rx1(rx1), _rx2(rx2) { 
 }
 
 bool AudioCoreOutputPortStd::isAudioActive() const {    
-    return _rx0.isActive() || _rx1.isActive();
+    return _rx0.isActive() || _rx1.isActive() || _rx2.isActive();
 }
 
 void AudioCoreOutputPortStd::setToneEnabled(bool b) {
