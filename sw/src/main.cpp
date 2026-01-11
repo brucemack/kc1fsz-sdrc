@@ -381,6 +381,14 @@ static uint dma_ch_tx;
 static uint dma_ch_rx;
 
 static void dma_tx_handler() {
+    /*
+    // Queue another request
+    strcpy((char*)tx_buf, "HELLO IZZY!\r\n");
+    // Fire the outbound transfer for the full body
+    dma_channel_set_read_addr(dma_ch_tx, tx_buf, false);
+    dma_channel_set_trans_count(dma_ch_tx, 12, true);
+    //dma_channel_start(dma_ch_tx);
+    */
 }
 
 // IMPORTANT NOTE: This is running in an interrupt so move quickly!!!
@@ -389,18 +397,23 @@ static void process_rx_message(const uint8_t* rxData, unsigned rxDataLen) {
     tx_buf[0] = rxDataLen;
     memcpy(tx_buf + 1, rxData, rxDataLen);
     // Fire the outbound transfer for the full body
-    dma_channel_transfer_from_buffer_now(dma_ch_tx, tx_buf, rxDataLen + 1);
+    //dma_channel_transfer_from_buffer_now(dma_ch_tx, tx_buf, rxDataLen + 1);
     // Get another RX going
-    dma_channel_transfer_to_buffer_now(dma_ch_rx, rx_buf, 1);
+    //dma_channel_transfer_to_buffer_now(dma_ch_rx, rx_buf, 1);
 
 }
 
 static void dma_rx_handler() {    
-    strcpy((char*)tx_buf, "HELLO IZZY!");
+    strcpy((char*)tx_buf, "HELLO IZZY! ");
     // Fire the outbound transfer for the full body
-    dma_channel_transfer_from_buffer_now(dma_ch_tx, tx_buf, 10);
+    dma_channel_set_read_addr(dma_ch_tx, tx_buf, false);
+    dma_channel_set_trans_count(dma_ch_tx, 12, true);
+
     // Get another RX going
-    dma_channel_transfer_to_buffer_now(dma_ch_rx, rx_buf, 1);
+    dma_channel_set_write_addr(dma_ch_rx, rx_buf, false);
+    dma_channel_set_trans_count(dma_ch_rx, 1, true);
+
+    //dma_channel_transfer_to_buffer_now(dma_ch_rx, rx_buf, 1);
     /*
     // Waiting for length?
     if (rx_state == 0) {
@@ -427,13 +440,13 @@ static void dma_rx_handler() {
 static void dma_irq1_handler() {   
     // Figure out which interrupt fired
     if (dma_hw->ints1 & (1u << dma_ch_tx)) {
+        dma_tx_handler();
         // Clear the IRQ status
         dma_hw->ints1 = 1u << dma_ch_tx;
-        dma_tx_handler();
     } else if (dma_hw->ints1 & (1u << dma_ch_rx)) {
+        dma_rx_handler();
         // Clear the IRQ status
         dma_hw->ints1 = 1u << dma_ch_rx;
-        dma_rx_handler();
     }
 }
 
@@ -442,40 +455,44 @@ static void uart_setup() {
     uart_init(uart0, 1152000);
     gpio_set_function(0, GPIO_FUNC_UART);
     gpio_set_function(1, GPIO_FUNC_UART);
-
-    uint dma_ch_rx = dma_claim_unused_channel(true);
-    dma_channel_config c = dma_channel_get_default_config(dma_ch_rx);
-    channel_config_set_transfer_data_size(&c, DMA_SIZE_8);
+  
+    dma_ch_rx = dma_claim_unused_channel(true);
+    dma_channel_config c_rx = dma_channel_get_default_config(dma_ch_rx);
+    channel_config_set_transfer_data_size(&c_rx, DMA_SIZE_8);
     // Always reading from static UART register
-    channel_config_set_read_increment(&c, false); 
+    channel_config_set_read_increment(&c_rx, false); 
     // Writing to increasing memory address    
-    channel_config_set_write_increment(&c, true); 
-    channel_config_set_dreq(&c, DREQ_UART0_RX);
-    
+    channel_config_set_write_increment(&c_rx, true); 
+    channel_config_set_dreq(&c_rx, DREQ_UART0_RX);
+    channel_config_set_enable(&c_rx, true);
+
     // For a circular buffer, use channel_config_set_wrap() and 
     // dma_channel_set_write_addr() to restart the transfer when the 
     // buffer limit is reached.
     dma_channel_configure(
         dma_ch_rx,
-        &c,
-        rx_buf,                  // Destination address
+        &c_rx,
+        // Destination address        
+        rx_buf,
         &uart_get_hw(uart0)->dr, // Source address (UART Data Register)
-        1,                       // Number of transfers
-        false                    // Start immediately
-    );
+        // First transfer is for the header only
+        1,
+        false);
     dma_channel_set_irq1_enabled(dma_ch_rx, true);
 
-    uint dma_ch_tx = dma_claim_unused_channel(true);
-    c = dma_channel_get_default_config(dma_ch_tx);
-    channel_config_set_transfer_data_size(&c, DMA_SIZE_8);
+    dma_ch_tx = dma_claim_unused_channel(true);
+    dma_channel_config c_tx = dma_channel_get_default_config(dma_ch_tx);
+    channel_config_set_transfer_data_size(&c_tx, DMA_SIZE_8);
     // Always write to static UART register
-    channel_config_set_write_increment(&c, false); 
+    channel_config_set_write_increment(&c_tx, false); 
     // Reading from increasing memory address    
-    channel_config_set_read_increment(&c, true); 
-    channel_config_set_dreq(&c, DREQ_UART0_TX);
+    channel_config_set_read_increment(&c_tx, true); 
+    channel_config_set_dreq(&c_tx, DREQ_UART0_TX);
+    channel_config_set_enable(&c_tx, true);
+    
     dma_channel_configure(
         dma_ch_tx,
-        &c,
+        &c_tx,
         &uart_get_hw(uart0)->dr,
         tx_buf,
         BUF_SIZE,
@@ -485,7 +502,9 @@ static void uart_setup() {
     // Bind to the interrupt handler 
     irq_set_exclusive_handler(DMA_IRQ_1, dma_irq1_handler);
     irq_set_enabled(DMA_IRQ_1, true);
-
+    
+    // Start the ball rolling on the RX side
+    rx_state = 0;
     dma_channel_start(dma_ch_rx);
 }
 
