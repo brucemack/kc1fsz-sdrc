@@ -381,14 +381,6 @@ static uint dma_ch_tx;
 static uint dma_ch_rx;
 
 static void dma_tx_handler() {
-    /*
-    // Queue another request
-    strcpy((char*)tx_buf, "HELLO IZZY!\r\n");
-    // Fire the outbound transfer for the full body
-    dma_channel_set_read_addr(dma_ch_tx, tx_buf, false);
-    dma_channel_set_trans_count(dma_ch_tx, 12, true);
-    //dma_channel_start(dma_ch_tx);
-    */
 }
 
 // IMPORTANT NOTE: This is running in an interrupt so move quickly!!!
@@ -397,44 +389,29 @@ static void process_rx_message(const uint8_t* rxData, unsigned rxDataLen) {
     tx_buf[0] = rxDataLen;
     memcpy(tx_buf + 1, rxData, rxDataLen);
     // Fire the outbound transfer for the full body
-    //dma_channel_transfer_from_buffer_now(dma_ch_tx, tx_buf, rxDataLen + 1);
-    // Get another RX going
-    //dma_channel_transfer_to_buffer_now(dma_ch_rx, rx_buf, 1);
-
+    dma_channel_transfer_from_buffer_now(dma_ch_tx, tx_buf, rxDataLen + 1);
 }
 
 static void dma_rx_handler() {    
-    strcpy((char*)tx_buf, "HELLO IZZY! ");
-    // Fire the outbound transfer for the full body
-    dma_channel_set_read_addr(dma_ch_tx, tx_buf, false);
-    dma_channel_set_trans_count(dma_ch_tx, 12, true);
 
-    // Get another RX going
-    dma_channel_set_write_addr(dma_ch_rx, rx_buf, false);
-    dma_channel_set_trans_count(dma_ch_rx, 1, true);
+    //strcpy((char*)tx_buf, "HELLO IZZY! ");
+    //dma_channel_transfer_from_buffer_now(dma_ch_tx, tx_buf, 12);
 
-    //dma_channel_transfer_to_buffer_now(dma_ch_rx, rx_buf, 1);
-    /*
     // Waiting for length?
     if (rx_state == 0) {
         rx_size = rx_buf[0];
         // Restart the inbound transfer for the full body
-        dma_channel_transfer_to_buffer_now(dma_ch_rx, rx_buf,
-//            dma_encode_transfer_count(rx_size));
-            rx_size);
+        dma_channel_transfer_to_buffer_now(dma_ch_rx, rx_buf, rx_size);
         rx_state = 1;
     }
     // Waiting for body?
     else if (rx_state == 1) {
         // Process the message
         process_rx_message(rx_buf, rx_size);
-        // Restart the inbound transfer for the length byte
-        dma_channel_transfer_to_buffer_now(dma_ch_rx, rx_buf,
-//            dma_encode_transfer_count(1));
-            1);
+        // Restart the inbound transfer for the next length byte
+        dma_channel_transfer_to_buffer_now(dma_ch_rx, rx_buf, 1);
         rx_state = 0;
     }
-        */
 }
 
 static void dma_irq1_handler() {   
