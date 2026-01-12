@@ -62,7 +62,7 @@ using namespace kc1fsz;
 // CONFIGURATION PARAMETERS
 // ===========================================================================
 //
-static const char* VERSION = "V1.2 2026-01-10";
+static const char* VERSION = "V1.2 2026-01-12";
 #define LED_PIN (PICO_DEFAULT_LED_PIN)
 #define R0_COS_PIN (14)
 #define R0_CTCSS_PIN (13)
@@ -368,12 +368,10 @@ static void transferConfig(const Config& config,
 
 #define BUF_SIZE 256
 static uint8_t rx_buf[BUF_SIZE];
-static uint8_t tx_buf[BUF_SIZE + 1];
-static unsigned rx_state = 0;
-static unsigned rx_size = 0;
-static unsigned tx_state = 0;
-static unsigned tx_size = 0;
+static uint8_t tx_buf[BUF_SIZE];
 
+static volatile unsigned rx_state = 0;
+static unsigned packet_size = 133;
 
 // ------ UART Setup Stuff -------------------------------------------------
 
@@ -386,48 +384,53 @@ static void dma_tx_handler() {
 // IMPORTANT NOTE: This is running in an interrupt so move quickly!!!
 static void process_rx_message(const uint8_t* rxData, unsigned rxDataLen) {   
     // TEMPORARY ECHO
-    tx_buf[0] = rxDataLen;
-    memcpy(tx_buf + 1, rxData, rxDataLen);
+    memcpy(tx_buf, rxData, rxDataLen);
     // Fire the outbound transfer for the full body
-    dma_channel_transfer_from_buffer_now(dma_ch_tx, tx_buf, rxDataLen + 1);
+    dma_channel_transfer_from_buffer_now(dma_ch_tx, tx_buf, rxDataLen);
 }
 
+// IMPORTANT NOTE: This is running in an interrupt so move quickly!!!
 static void dma_rx_handler() {    
-
-    //strcpy((char*)tx_buf, "HELLO IZZY! ");
-    //dma_channel_transfer_from_buffer_now(dma_ch_tx, tx_buf, 12);
-
-    // Waiting for length?
+    // Waiting for header?
     if (rx_state == 0) {
-        rx_size = rx_buf[0];
-        // Restart the inbound transfer for the full body
-        dma_channel_transfer_to_buffer_now(dma_ch_rx, rx_buf, rx_size);
-        rx_state = 1;
+        if (rx_buf[0] == 0) {
+            rx_state = 1;
+            // Restart the inbound transfer for the full body
+            dma_channel_transfer_to_buffer_now(dma_ch_rx, rx_buf, packet_size);
+        } else {
+            // Restart the inbound transfer for the header byte
+            dma_channel_transfer_to_buffer_now(dma_ch_rx, rx_buf, 1);
+        }
     }
     // Waiting for body?
     else if (rx_state == 1) {
-        // Process the message
-        process_rx_message(rx_buf, rx_size);
-        // Restart the inbound transfer for the next length byte
+        // Decode the packet
+        // Make sure there are no header bytes in the buffer
+        bool fault = false;
+        //for (unsigned i = 0; i < packet_size && !fault; i++)
+        //    if (rx_buf[i] == 0)
+        //        fault = true;
+        if (!fault) 
+            process_rx_message(rx_buf, packet_size);
+        // Restart the inbound transfer for the next header byte
         dma_channel_transfer_to_buffer_now(dma_ch_rx, rx_buf, 1);
         rx_state = 0;
     }
 }
 
+// IMPORTANT NOTE: This is running in an interrupt so move quickly!!!
 static void dma_irq1_handler() {   
-    // Figure out which interrupt fired
-    if (dma_hw->ints1 & (1u << dma_ch_tx)) {
+    if (dma_channel_get_irq1_status(dma_ch_tx)) {
+        dma_channel_acknowledge_irq1(dma_ch_tx);
         dma_tx_handler();
-        // Clear the IRQ status
-        dma_hw->ints1 = 1u << dma_ch_tx;
-    } else if (dma_hw->ints1 & (1u << dma_ch_rx)) {
+    }
+    if (dma_channel_get_irq1_status(dma_ch_rx)) {
+        dma_channel_acknowledge_irq1(dma_ch_rx);
         dma_rx_handler();
-        // Clear the IRQ status
-        dma_hw->ints1 = 1u << dma_ch_rx;
     }
 }
 
-static void uart_setup() {
+static void streaming_uart_setup() {
 
     uart_init(uart0, 1152000);
     gpio_set_function(0, GPIO_FUNC_UART);
@@ -532,15 +535,6 @@ int main(int argc, const char** argv) {
         log.info("Rebooted by watchdog timer");
     } else {
         log.info("Clean boot");
-    }
-    
-    // ##### TEMP!
-    sleep_ms(1000);
-    stdio_uart_deinit();
-    uart_setup();
-
-    while (1) {
-        sleep_ms(1000);
     }
 
     // ----- READ CONFIGURATION FROM FLASH ------------------------------------
@@ -709,6 +703,10 @@ int main(int argc, const char** argv) {
             } else if (c == 'i') {
                 txCtl0.forceId();
                 txCtl1.forceId();
+            } else if (c == 'a') {
+                // Enter streaming mode
+                stdio_uart_deinit();
+                streaming_uart_setup();
             }
             //if (flash)
             //    printf("DTMF diag %f\n", core1.getDtmfDetectDiagValue());
