@@ -25,7 +25,6 @@ if (HOST)
 add_executable(main
   src/test/test-AudioCore.cpp
   src/AudioCore.cpp
-  src/DTMFDetector2.cpp
   #src/TxControl.cpp
   #src/TestToneGenerator.cpp
   #src/Config.cpp
@@ -43,7 +42,6 @@ target_include_directories(main PRIVATE
 
 add_executable(dtmf-test-1
   src/test/dtmf-test-1.cpp
-  src/DTMFDetector2.cpp
   kc1fsz-tools-cpp/src/Common.cpp
   gsm-0610-codec/src/fixed_math.cpp
 ) 
@@ -59,7 +57,6 @@ target_include_directories(dtmf-test-1 PRIVATE kc1fsz-tools-cpp/include)
 add_executable(cmd-test-1
   src/test/cmd-test-1.cpp
   src/CommandProcessor.cpp
-  src/DTMFDetector2.cpp
   kc1fsz-tools-cpp/src/Common.cpp
   gsm-0610-codec/src/fixed_math.cpp
 ) 
@@ -71,6 +68,19 @@ target_include_directories(cmd-test-1 PRIVATE
 )
 target_compile_options(cmd-test-1 PRIVATE -fstack-protector-all -Wall -Wpedantic -g)
 target_include_directories(cmd-test-1 PRIVATE kc1fsz-tools-cpp/include)
+
+add_executable(uart-test-1
+  src/test/uart-test-1.cpp
+  src/uart_setup.cpp
+  kc1fsz-tools-cpp/src/Common.cpp
+  kc1fsz-tools-cpp/src/CobsCodec.cpp
+) 
+target_include_directories(uart-test-1 PRIVATE
+  src
+  kc1fsz-tools-cpp/include
+)
+target_compile_options(uart-test-1 PRIVATE -fstack-protector-all -Wall -Wpedantic -g)
+target_include_directories(uart-test-1 PRIVATE kc1fsz-tools-cpp/include)
 
 # ===== PICO EXECUTABLES =====================================================
 else()
