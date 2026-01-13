@@ -91,6 +91,7 @@ else()
 add_executable(main
   src/i2s.pio
   src/i2s_setup.cpp
+  src/uart_setup.cpp
   src/main.cpp
   src/AudioCore.cpp
   src/Config.cpp
@@ -113,6 +114,7 @@ add_executable(main
   kc1fsz-tools-cpp/src/DTMFDetector2.cpp
   kc1fsz-tools-cpp/src/StdPollTimer.cpp
   kc1fsz-tools-cpp/src/rp2040/PicoPerfTimer.cpp
+  kc1fsz-tools-cpp/src/CobsCodec.cpp
 )
 target_compile_definitions(main PRIVATE -DPICO_BUILD=1)
 pico_enable_stdio_usb(main 0)

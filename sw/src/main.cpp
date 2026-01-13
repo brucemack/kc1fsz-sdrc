@@ -56,6 +56,7 @@ When targeting RP2350 (Pico 2), command used to load code onto the board:
 #include "DigitalPort.h"
 
 #include "i2s_setup.h"
+#include "uart_setup.h"
 
 using namespace kc1fsz;
 
@@ -129,7 +130,7 @@ static void audio_proc(const int32_t* r0_samples, const int32_t* r1_samples,
     // it into core2.
     //core2.clearAudio();
     networkAudioReceiveIfAvailable(
-        [&core2](const uint8_t* buf, unsigned bufLen) {
+        [](const uint8_t* buf, unsigned bufLen) {
             //core2.setAudio(buf, bufLen);
             // Temp echo
             networkAudioSend(buf, bufLen);

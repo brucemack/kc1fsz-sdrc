@@ -46,6 +46,12 @@ static uint8_t tx_buf[UART_TX_BUF_SIZE];
 static uint dma_ch_tx = 0;
 static uint dma_ch_rx = 0;
 
+// This pointer keeps track of read progress
+static uint8_t* nextReadPtr = rx_buf;
+
+// 1 header null + 128 message + 1 COBS overhead + 4 control
+static const unsigned FIXED_MESSAGE_SIZE = 134;
+
 static void __not_in_flash_func(dma_tx_handler)() {
 }
 
@@ -57,7 +63,7 @@ static void __not_in_flash_func(dma_irq1_handler)() {
     }
 }
 
-static void streaming_uart_setup() {
+void streaming_uart_setup() {
 
     uart_init(uart0, 1152000);
     gpio_set_function(0, GPIO_FUNC_UART);
@@ -118,12 +124,11 @@ static void streaming_uart_setup() {
     dma_channel_start(dma_ch_rx);
 }
 
-
-// 1 header null + 128 message + 1 COBS overhead + 4 control
-static const unsigned FIXED_MESSAGE_SIZE = 134;
-
-static unsigned avail(unsigned readIx, unsigned writeIx,
-    unsigned bufSize) {
+/**
+ * Calculates the number of bytes available for processing in a circular buffer.
+ * This takes into account the wrap
+ */
+static unsigned avail(unsigned readIx, unsigned writeIx, unsigned bufSize) {
     if (writeIx >= readIx)
         return writeIx - readIx;
     else
@@ -133,7 +138,7 @@ static unsigned avail(unsigned readIx, unsigned writeIx,
 }
 
 int processRxBuf(uint8_t* rxBuf, uint8_t** nextReadPtr,
-    uint8_t* dmaWritePtr, unsigned bufSize,
+    const uint8_t* dmaWritePtr, unsigned bufSize,
     std::function<void(const uint8_t* buf, unsigned bufLen)> cb) {
     // Scan up to a header byte
     while (*nextReadPtr != dmaWritePtr && **nextReadPtr != 0) {
@@ -146,17 +151,11 @@ int processRxBuf(uint8_t* rxBuf, uint8_t** nextReadPtr,
     if (**nextReadPtr != 0)
         return 1;
     // Check to see if we have enough for a full message
-    unsigned a = avail(*nextReadPtr - rxBuf, 
-        dmaWritePtr - rxBuf, bufSize);
+    unsigned a = avail(*nextReadPtr - rxBuf, dmaWritePtr - rxBuf, bufSize);
     if (a < FIXED_MESSAGE_SIZE)
         return 2;
-    // Decode the message. Don't need the header or the overhead
-    uint8_t decodeBuf[FIXED_MESSAGE_SIZE - 2];
-    int rc2 = cobsDecode(*nextReadPtr + 1, FIXED_MESSAGE_SIZE - 1,
-        decodeBuf, sizeof(decodeBuf));
-    // Fire the callback to transfer the decoded message
-    if (rc2 == 0)
-        cb(decodeBuf, sizeof(decodeBuf));
+    // Fire the callback and give the encoded message, minus the null header byte
+    cb(*nextReadPtr + 1, FIXED_MESSAGE_SIZE - 1);
     // Advance the read pointer and deal with wrap
     *nextReadPtr += FIXED_MESSAGE_SIZE;
     if (*nextReadPtr >= (rxBuf + bufSize))
@@ -166,18 +165,30 @@ int processRxBuf(uint8_t* rxBuf, uint8_t** nextReadPtr,
 
 void networkAudioReceiveIfAvailable(
     std::function<void(const uint8_t* buf, unsigned bufLen)> cb) {
-    
-
+    // Get the DMA live write pointer (will be moving)
+    const uint8_t* dmaWritePtr = (const uint8_t* )dma_hw->ch[dma_ch_rx].write_addr;
+    int rc = processRxBuf(rx_buf, &nextReadPtr, dmaWritePtr, UART_RX_BUF_SIZE,
+        [cb](const uint8_t* encodedBuf, unsigned encodedBufLen) {
+            assert(encodedBufLen == FIXED_MESSAGE_SIZE - 1);
+            // Decode the message. Don't need the header or the overhead
+            uint8_t decodedBuf[FIXED_MESSAGE_SIZE - 2];
+            int rc2 = cobsDecode(encodedBuf, encodedBufLen, decodedBuf, sizeof(decodedBuf));
+            if (rc2 == encodedBufLen - 1)
+                cb(decodedBuf, encodedBufLen - 1);
+        }
+    );
 }
 
 void networkAudioSend(const uint8_t* frame, unsigned len) { 
-    assert(len == 128 + 4);
+    assert(len == FIXED_MESSAGE_SIZE - 2);
     if (dma_ch_tx) {
+        // Header byte
         tx_buf[0] = 0;
-        tx_buf[1] = 1;
-        mempcy(tx_buf + 2, frame, len);
+        // Encode the message in COBS format
+        cobsEncode(frame, len, tx_buf + 1, UART_TX_BUF_SIZE - 1); 
+        // Stream out immediately
         dma_channel_set_read_addr(dma_ch_tx, tx_buf, false);
-        dma_channel_set_trans_count(dma_ch_tx, 134, true);
+        dma_channel_set_trans_count(dma_ch_tx, FIXED_MESSAGE_SIZE, true);
     }
 }
 
