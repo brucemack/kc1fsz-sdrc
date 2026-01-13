@@ -127,13 +127,15 @@ static void audio_proc(const int32_t* r0_samples, const int32_t* r1_samples,
     
     // Try to pull an audio frame from the network and load
     // it into core2.
-    core2.clearAudio();
+    //core2.clearAudio();
     networkAudioReceiveIfAvailable(
         [&core2](const uint8_t* buf, unsigned bufLen) {
-            core2.setAudio(buf, bufLen);
+            //core2.setAudio(buf, bufLen);
+            // Temp echo
+            networkAudioSend(buf, bufLen);
         }
     );
-    
+
     float r0_cross[ADC_SAMPLE_COUNT / 4];
     float r1_cross[ADC_SAMPLE_COUNT / 4];
     float r2_cross[ADC_SAMPLE_COUNT / 4];
@@ -147,10 +149,10 @@ static void audio_proc(const int32_t* r0_samples, const int32_t* r1_samples,
     core2.cycleTx(cross_ins);
 
     // Take the resulting audio and pass it back onto the network.
-    const unsigned networkAudioFrameLen = 64 * 2;
-    uint8_t audio8KLE[networkAudioFrameLen];
-    core2.getAudio(audio8KLE, networkAudioFrameLen);
-    networkAudioSend(audio8KLE, networkAudioFrameLen);
+    //const unsigned networkAudioFrameLen = 64 * 2;
+    //uint8_t audio8KLE[networkAudioFrameLen];
+    //core2.getAudio(audio8KLE, networkAudioFrameLen);
+    //networkAudioSend(audio8KLE, networkAudioFrameLen);
 }
 
 static void print_bar(float vrms, float vpeak) {
