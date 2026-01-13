@@ -9,9 +9,9 @@ int processRxBuf(uint8_t* rxBuf, uint8_t** nextReadPtr,
     std::function<void(const uint8_t* buf, unsigned bufLen)> cb);
 
 void networkAudioReceiveIfAvailable(
-    std::function<void(const uint8_t* buf, unsigned bufLen)> cb);
+    std::function<void(const uint8_t* audioFrame, unsigned len)> cb);
 
-void networkAudioSend(const uint8_t* audio8KLE, unsigned len);
+void networkAudioSend(const uint8_t* audioFrame, unsigned len);
 
 }
 
