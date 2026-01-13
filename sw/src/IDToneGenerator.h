@@ -14,11 +14,8 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
- *
- * NOT FOR COMMERCIAL USE WITHOUT PERMISSION.
  */
-#ifndef _IDToneGenerator_h
-#define _IDToneGenerator_h
+#pragma once
 
 #include "kc1fsz-tools/Log.h"
 #include "kc1fsz-tools/Clock.h"
@@ -27,12 +24,20 @@
 
 namespace kc1fsz {
 
-class AudioCore;
+class AudioCoreOutputPort;
 
+/**
+ * A state machine that generates a CW ID message. This relies on the AudioCoreOutputPort 
+ * methods for controlling audio tones. 
+ * 
+ * To improve sound quality the on/off behavior is controlled using the 
+ * .setToneLevel() method with the expectation that the audio implementation
+ * will create a smooth transition and avoid "clicks."
+ */
 class IDToneGenerator : public ToneGenerator {
 public:
 
-    IDToneGenerator(Log& log, Clock& clock, AudioCore& core);
+    IDToneGenerator(Log& log, Clock& clock, AudioCoreOutputPort& core);
 
     virtual void run();
 
@@ -46,7 +51,7 @@ private:
 
     Log& _log;
     Clock& _clock;
-    AudioCore& _core;
+    AudioCoreOutputPort& _core;
 
     static const unsigned _maxCallSignLen = 16;
     char _callSign[_maxCallSignLen];
@@ -60,5 +65,3 @@ private:
 };
 
 }
-
-#endif

@@ -15,39 +15,36 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-#pragma once
-
-#include "kc1fsz-tools/Log.h"
-#include "kc1fsz-tools/Clock.h"
-
-#include "ToneGenerator.h"
-#include "AudioCoreOutputPort.h"
+#include "Rx.h"
+#include "AudioCore.h"
+#include "Activatable.h"
+#include "AudioCoreOutputPortStd.h"
 
 namespace kc1fsz {
 
-class TestToneGenerator : public ToneGenerator {
-public:
+AudioCoreOutputPortStd::AudioCoreOutputPortStd(AudioCore& core, 
+    Activatable& rx0, Activatable& rx1, Activatable& rx2)
+:   _core(core), _rx0(rx0), _rx1(rx1), _rx2(rx2) { 
+}
 
-    TestToneGenerator(Log& log, Clock& clock, AudioCoreOutputPort& core);
+bool AudioCoreOutputPortStd::isAudioActive() const {    
+    return _rx0.isActive() || _rx1.isActive() || _rx2.isActive();
+}
 
-    virtual void run();
+void AudioCoreOutputPortStd::setToneEnabled(bool b) {
+    _core.setToneEnabled(b);
+}
 
-    virtual void start();
-    virtual void stop();
-    virtual bool isFinished();
-    void setFreq(float hz) { _freq = hz; _core.setToneFreq(_freq); }
-    void setLevel(float db) { _level = db; _core.setToneLevel(_level); }
+void AudioCoreOutputPortStd::setToneFreq(float hz) {
+    _core.setToneFreq(hz);
+}
 
-private:
+void AudioCoreOutputPortStd::setToneLevel(float dbv) {
+    _core.setToneLevel(dbv);
+}
 
-    Log& _log;
-    Clock& _clock;
-    AudioCoreOutputPort& _core;
-
-    float _freq = 1000.0;
-    float _level = -10.0;    
-    bool _running = false;
-    uint32_t _endTime = 0;
-};
+void AudioCoreOutputPortStd::resetDelay() {
+    _core.resetDelay();
+}
 
 }

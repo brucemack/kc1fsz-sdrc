@@ -18,13 +18,12 @@
  * NOT FOR COMMERCIAL USE WITHOUT PERMISSION.
  */
 #include "TestToneGenerator.h"
-#include "AudioCore.h"
 
 #define TEST_TONE_DUR_MS (30 * 1000)
 
 namespace kc1fsz {
 
-TestToneGenerator::TestToneGenerator(Log& log, Clock& clock, AudioCore& core) 
+TestToneGenerator::TestToneGenerator(Log& log, Clock& clock, AudioCoreOutputPort& core) 
 :   _log(log),
     _clock(clock),
     _core(core)

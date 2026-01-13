@@ -17,8 +17,7 @@
  *
  * NOT FOR COMMERCIAL USE WITHOUT PERMISSION.
  */
-#ifndef _StdRx_h
-#define _StdRx_h
+#pragma once
 
 #include <limits>
 
@@ -154,14 +153,6 @@ public:
 
     void setGainLinear(float lvl) { _core.setRxGainLinear(lvl); }
 
-    virtual CourtesyToneGenerator::Type getCourtesyType() const { 
-        return _courtesyType;
-    }
-
-    void setCtMode(CourtesyToneGenerator::Type ctType) {
-        _courtesyType = ctType;
-    }
-
     void setDelayTime(unsigned ms) { _core.setRxDelayMs(ms); }
 
     virtual void setAgcMode(uint32_t mode) { _core.setAgcEnabled(mode == 1); }
@@ -191,7 +182,6 @@ private:
     TimeDebouncer _cosDebouncer;
     TimeDebouncer _toneDebouncer;
 
-    CourtesyToneGenerator::Type _courtesyType = CourtesyToneGenerator::Type::FAST_UPCHIRP;
     uint32_t _startTime;
     bool _active = false;
     unsigned int _state = 0;
@@ -201,5 +191,3 @@ private:
 };
 
 }
-
-#endif

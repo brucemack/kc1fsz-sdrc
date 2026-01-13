@@ -31,13 +31,17 @@ When targeting RP2350 (Pico 2), command used to load code onto the board:
 #include "pico/time.h"
 #include "hardware/clocks.h"
 #include "hardware/watchdog.h"
+#include <pico/platform.h>
+
+#include "hardware/dma.h"
+#include "hardware/uart.h"
 
 #include "kc1fsz-tools/Log.h"
+#include "kc1fsz-tools/StdPollTimer.h"
 #include "kc1fsz-tools/CommandShell.h"
 #include "kc1fsz-tools/OutStream.h"
 #include "kc1fsz-tools/WindowAverage.h"
 #include "kc1fsz-tools/DTMFDetector2.h"
-#include "kc1fsz-tools/rp2040/PicoPollTimer.h"
 #include "kc1fsz-tools/rp2040/PicoPerfTimer.h"
 #include "kc1fsz-tools/rp2040/PicoClock.h"
 
@@ -47,7 +51,9 @@ When targeting RP2350 (Pico 2), command used to load code onto the board:
 #include "TxControl.h"
 #include "ShellCommand.h"
 #include "AudioCore.h"
+#include "AudioCoreOutputPortStd.h"
 #include "CommandProcessor.h"
+#include "DigitalPort.h"
 
 #include "i2s_setup.h"
 
@@ -57,7 +63,7 @@ using namespace kc1fsz;
 // CONFIGURATION PARAMETERS
 // ===========================================================================
 //
-static const char* VERSION = "V1.1 2025-11-23";
+static const char* VERSION = "V1.2 2026-01-12";
 #define LED_PIN (PICO_DEFAULT_LED_PIN)
 #define R0_COS_PIN (14)
 #define R0_CTCSS_PIN (13)
@@ -69,7 +75,6 @@ static const char* VERSION = "V1.1 2025-11-23";
 
 // System clock rate
 #define SYS_KHZ (153600)
-//#define SYS_KHZ (129600)
 #define WATCHDOG_INTERVAL_MS (2000)
 
 // ===========================================================================
@@ -89,8 +94,10 @@ static Config config;
 static PicoClock clock;
 static PicoPerfTimer perfTimerLoop;
 
-static AudioCore core0(0, 2, clock);
-static AudioCore core1(1, 2, clock);
+static AudioCore core0(0, 3, clock);
+static AudioCore core1(1, 3, clock);
+// This core is the digital audio input port
+static DigitalPort core2(2, 3, clock);
 
 // The console can work in one of three modes:
 // 
@@ -120,12 +127,15 @@ static void audio_proc(const int32_t* r0_samples, const int32_t* r1_samples,
     
     float r0_cross[ADC_SAMPLE_COUNT / 4];
     float r1_cross[ADC_SAMPLE_COUNT / 4];
-    const float* cross_ins[2] = { r0_cross, r1_cross };
+    float r2_cross[ADC_SAMPLE_COUNT / 4];
+    const float* cross_ins[3] = { r0_cross, r1_cross, r2_cross };
 
     core0.cycleRx(r0_samples, r0_cross);
     core1.cycleRx(r1_samples, r1_cross);
+    core2.cycleRx(r2_cross);
     core0.cycleTx(cross_ins, r0_out);
     core1.cycleTx(cross_ins, r1_out);
+    core2.cycleTx(cross_ins);
 }
 
 static void print_bar(float vrms, float vpeak) {
@@ -294,7 +304,6 @@ static void transferConfigRx(const Config::ReceiveConfig& config, Rx& rx) {
     rx.setToneLevel(config.toneLevel);
     rx.setToneFreq(config.toneFreq);
     rx.setGainLinear(AudioCore::dbToLinear(config.gain));
-    rx.setCtMode((CourtesyToneGenerator::Type)config.ctMode);
     rx.setDelayTime(config.delayTime);
     rx.setDtmfDetectLevel(config.dtmfDetectLevel);
     rx.setDeemphMode(config.deemphMode);
@@ -302,9 +311,10 @@ static void transferConfigRx(const Config::ReceiveConfig& config, Rx& rx) {
 
 static void transferConfigTx(const Config::TransmitConfig& config, Tx& tx) {
     tx.setEnabled((bool)config.enabled);
-    tx.setToneMode((Tx::ToneMode)config.toneMode);
-    tx.setToneLevel(config.toneLevel);
-    tx.setToneFreq(config.toneFreq);
+    tx.setPLToneMode((Tx::PLToneMode)config.toneMode);
+    tx.setPLToneLevel(config.toneLevel);
+    tx.setPLToneFreq(config.toneFreq);
+    tx.setCtMode((CourtesyToneGenerator::Type)config.ctMode);
 }
 
 static void transferControlConfig(const Config::ControlConfig& config, TxControl& txc) {
@@ -314,8 +324,9 @@ static void transferControlConfig(const Config::ControlConfig& config, TxControl
     txc.setCtLevel(config.ctLevel);
     txc.setIdMode(config.idMode);
     txc.setIdLevel(config.idLevel);
-    for (unsigned i = 0; i < Config::maxReceivers; i++)
-        txc.setRxEligible(i, config.rxEligible[i]);
+    // At the moment, all receivers are eligible
+    //for (unsigned i = 0; i < Config::maxReceivers; i++)
+    //    txc.setRxEligible(i, config.rxEligible[i]);
 }
 
 /**
@@ -356,13 +367,98 @@ static void transferConfig(const Config& config,
     transferControlConfig(config.txc1, txc1);
 }
 
+// ------ UART Setup Stuff -------------------------------------------------
+
+#define UART_RX_BUF_SIZE 512
+// This buffer is used with the DMA ring feature so it needs to be power-of-two
+// aligned.
+static uint8_t __attribute__((aligned(UART_RX_BUF_SIZE))) rx_buf[UART_RX_BUF_SIZE];
+#define UART_TX_BUF_SIZE 256
+static uint8_t tx_buf[UART_TX_BUF_SIZE];
+
+static uint dma_ch_tx;
+static uint dma_ch_rx;
+
+static void __not_in_flash_func(dma_tx_handler)() {
+}
+
+// IMPORTANT NOTE: This is running in an interrupt so move quickly!!!
+static void __not_in_flash_func(dma_irq1_handler)() {   
+    if (dma_channel_get_irq1_status(dma_ch_tx)) {
+        dma_channel_acknowledge_irq1(dma_ch_tx);
+        dma_tx_handler();
+    }
+}
+
+static void streaming_uart_setup() {
+
+    uart_init(uart0, 1152000);
+    gpio_set_function(0, GPIO_FUNC_UART);
+    gpio_set_function(1, GPIO_FUNC_UART);
+  
+    dma_ch_rx = dma_claim_unused_channel(true);
+    dma_channel_config c_rx = dma_channel_get_default_config(dma_ch_rx);
+    // Single byte transfer
+    channel_config_set_transfer_data_size(&c_rx, DMA_SIZE_8);
+    // Always reading from static UART register
+    channel_config_set_read_increment(&c_rx, false); 
+    // Writing to increasing memory address    
+    channel_config_set_write_increment(&c_rx, true); 
+    // 512 byte circular buffer. The "true" means that this applies
+    // to the write address, which is what is relevant for receiving
+    // data from the UART.
+    channel_config_set_ring(&c_rx, true, 9);
+    channel_config_set_enable(&c_rx, true);
+
+    dma_channel_configure(
+        dma_ch_rx,
+        &c_rx,
+        // Destination address        
+        rx_buf,
+        // Source address (UART Data Register)
+        &uart_get_hw(uart0)->dr, 
+        // Full size of receive buffer.
+        UART_RX_BUF_SIZE,
+        // Not enabled yet
+        false);
+
+    dma_ch_tx = dma_claim_unused_channel(true);
+    dma_channel_config c_tx = dma_channel_get_default_config(dma_ch_tx);
+    channel_config_set_transfer_data_size(&c_tx, DMA_SIZE_8);
+    // Always write to static UART register
+    channel_config_set_write_increment(&c_tx, false); 
+    // Reading from increasing memory address    
+    channel_config_set_read_increment(&c_tx, true); 
+    channel_config_set_dreq(&c_tx, DREQ_UART0_TX);
+    channel_config_set_enable(&c_tx, true);
+    
+    dma_channel_configure(
+        dma_ch_tx,
+        &c_tx,
+        &uart_get_hw(uart0)->dr,
+        tx_buf,
+        UART_TX_BUF_SIZE,
+        // Not started yet
+        false);
+    // Fire an interrupt when the transfer out is complete
+    dma_channel_set_irq1_enabled(dma_ch_tx, true);
+
+    // Bind to the interrupt handler 
+    irq_set_exclusive_handler(DMA_IRQ_1, dma_irq1_handler);
+    irq_set_enabled(DMA_IRQ_1, true);
+    
+    // Start the ball rolling on the RX side
+    dma_channel_start(dma_ch_rx);
+}
+
 int main(int argc, const char** argv) {
 
     // Adjust system clock to more evenly divide the 
     // audio sampling frequency.
     set_sys_clock_khz(SYS_KHZ, true);
 
-    stdio_init_all();
+    // Very high speed
+    stdio_uart_init_full(uart0, 1152000, 0, 1);
 
     gpio_init(LED_PIN);
     gpio_set_dir(LED_PIN, GPIO_OUT);
@@ -403,7 +499,7 @@ int main(int argc, const char** argv) {
     } else {
         log.info("Clean boot");
     }
-    
+
     // ----- READ CONFIGURATION FROM FLASH ------------------------------------
     Config::loadConfig(&config);
     if (!config.isValid()) {
@@ -433,8 +529,7 @@ int main(int argc, const char** argv) {
     clock.reset();
 
     // Display/diagnostic should happen twice per second
-    PicoPollTimer flashTimer;
-    flashTimer.setIntervalUs(500 * 1000);
+    StdPollTimer flashTimer(clock, 500 * 1000);
 
     StdTx tx0(clock, log, 0, R0_PTT_PIN, core0,
         // IMPORTANT SAFETY MECHANISM: Polled to control keying
@@ -452,13 +547,12 @@ int main(int argc, const char** argv) {
     StdRx rx0(clock, log, 0, R0_COS_PIN, R0_CTCSS_PIN, core0);
     StdRx rx1(clock, log, 1, R1_COS_PIN, R1_CTCSS_PIN, core1);
 
-    TxControl txCtl0(clock, log, tx0, core0);
-    TxControl txCtl1(clock, log, tx1, core1);
+    // #### TODO: REVIEW THIS TEMPORARY BRIDGE CLASS
+    AudioCoreOutputPortStd acop0(core0, rx0, rx1, core2);
+    AudioCoreOutputPortStd acop1(core1, rx0, rx1, core2);
 
-    txCtl0.setRx(0, &rx0);
-    txCtl0.setRx(1, &rx1);
-    txCtl1.setRx(0, &rx0);
-    txCtl1.setRx(1, &rx1);  
+    TxControl txCtl0(clock, log, tx0, acop0);
+    TxControl txCtl1(clock, log, tx1, acop1);
 
     int i = 0;
 
@@ -572,6 +666,10 @@ int main(int argc, const char** argv) {
             } else if (c == 'i') {
                 txCtl0.forceId();
                 txCtl1.forceId();
+            } else if (c == 'a') {
+                // Enter streaming mode
+                stdio_uart_deinit();
+                streaming_uart_setup();
             }
             //if (flash)
             //    printf("DTMF diag %f\n", core1.getDtmfDetectDiagValue());
@@ -640,6 +738,34 @@ int main(int argc, const char** argv) {
         core0.setRxMute(dtmfCmdProc.isAccess());
         core1.setRxMute(dtmfCmdProc.isAccess());
 
+        // ----- Adjust Receiver Routing/Mixing -----------------------------------
+        //
+        // This is an ongoing process of adjusting the "cross gains" of the 
+        // transmitter to make sure the audio from the correct receivers is 
+        // being mixed and passed through to this transmitter. 
+        // 
+        // This is a low-cost operation so, to simplify the logic, it is just
+        // done all the time.
+        unsigned activeCount = 0;
+        if (rx0.isActive())
+            activeCount++;
+        if (rx1.isActive())
+            activeCount++;
+        if (core2.isActive())
+            activeCount++;
+
+        // Divide the gain evenly across the active receivers
+        float gain = (activeCount != 0) ? 1.0 / (float)activeCount : 0;
+        core0.setCrossGainLinear(0, rx0.isActive() ? gain : 0.0);
+        core0.setCrossGainLinear(1, rx1.isActive() ? gain : 0.0);
+        core0.setCrossGainLinear(2, core2.isActive() ? gain : 0.0);
+        core1.setCrossGainLinear(0, rx0.isActive() ? gain : 0.0);
+        core1.setCrossGainLinear(1, rx1.isActive() ? gain : 0.0);
+        core1.setCrossGainLinear(2, core2.isActive() ? gain : 0.0);
+        core2.setCrossGainLinear(0, rx0.isActive() ? gain : 0.0);
+        core2.setCrossGainLinear(1, rx1.isActive() ? gain : 0.0);
+        core2.setCrossGainLinear(2, core2.isActive() ? gain : 0.0);
+   
         // Run all components
         tx0.run();
         tx1.run();

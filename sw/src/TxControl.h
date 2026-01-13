@@ -17,46 +17,34 @@
  *
  * NOT FOR COMMERCIAL USE WITHOUT PERMISSION.
  */
-#ifndef _TxControl_h
-#define _TxControl_h
+#pragma once
 
 #include "kc1fsz-tools/Log.h"
 #include "kc1fsz-tools/Clock.h"
 
 #include "Tx.h"
 #include "Rx.h"
-#include "AudioCore.h"
 #include "CourtesyToneGenerator.h"
 #include "IDToneGenerator.h"
 #include "TestToneGenerator.h"
 
 namespace kc1fsz {
 
-class AudioCore;
+class AudioCoreOutputPort;
 
 class TxControl {
 public:
 
-    TxControl(Clock& clock, Log& log, Tx& tx, AudioCore& core);
+    TxControl(Clock& clock, Log& log, Tx& tx, AudioCoreOutputPort& core);
 
     virtual void run();
-
-    /**
-     * @brief Makes a receiver visible to the transmitter.
-     */
-    void setRx(unsigned i, Rx* rx);
-
-    /**
-     * @brief Controls whether a receiver is visible to the transmitter.
-     */
-    void setRxEligible(unsigned i, bool enabled);
 
     void forceId() { _enterPreId(); }
     void startTest() { _enterTest(); }
     void stopTest() { _enterIdle(); }
 
     /**
-     * This featue puts the transmitter in a temporary mute state
+     * This feature puts the transmitter in a temporary mute state
      * which could be used for cases when DTMF commands are being
      * received and processed.
      */
@@ -76,9 +64,11 @@ public:
     void setDiagToneFreq(float hz) { _testToneGenerator.setFreq(hz); }
     void setDiagToneLevel(float dbv) { _testToneGenerator.setLevel(dbv); }
 
+    // #### TODO: MOVE COURTESY TONE CONFIGURATION HERE
+
 private:
 
-    enum State { INIT, IDLE, VOTING, ACTIVE, PRE_ID, ID, POST_ID, 
+    enum State { INIT, IDLE, ACTIVE, PRE_ID, ID, POST_ID, 
         ID_URGENT, PRE_COURTESY, COURTESY, HANG, LOCKOUT, TEST, TEMPORARY_MUTE };
 
     void _setState(State state, uint32_t timeoutWindowMs = 0);
@@ -92,7 +82,6 @@ private:
     bool _isIdRequired(bool qsoActive) const;
 
     void _enterIdle();
-    void _enterVoting();
     void _enterActive();
     void _enterPreId();
     void _enterId();
@@ -107,35 +96,9 @@ private:
     Clock& _clock;
     Log& _log;
     Tx& _tx;
-    AudioCore& _audioCore;
+    AudioCoreOutputPort& _audioCore;
 
     State _state = State::INIT;   
-
-    const static unsigned int MAX_RX_COUNT = 8;
-
-    // This is where the bindings to the various receivers is stored
-    Rx* _rx[MAX_RX_COUNT] = { 
-        0, 0, 0, 0, 
-        0, 0, 0, 0 };
-    // These flags indicate which receivers are eligible to be 
-    // repeated through this transmitter. This is controlled by the 
-    // user configuration.
-    bool _rxEligible[MAX_RX_COUNT] = { 
-        false, false, false, false, 
-        false, false, false, false };
-    // These flags indicate which receivers have been selected for repeating.
-    // It is set based on the "voting" logic that is determined when leaving
-    // idle state.
-    bool _rxSelected[MAX_RX_COUNT] = { 
-        false, false, false, false, 
-        false, false, false, false };
-
-    /**
-     * @brief Checks to see if there is any receive activity amongst the 
-     * receivers that are marked as eligible.
-    */
-    bool _anyRxActivityAmongstEligible() const;
-    void _clearSelected();
 
     CourtesyToneGenerator _courtesyToneGenerator;
     IDToneGenerator _idToneGenerator;
@@ -177,5 +140,3 @@ private:
 };
 
 }
-
-#endif

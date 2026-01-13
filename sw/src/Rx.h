@@ -1,17 +1,33 @@
-#ifndef _Rx_h
-#define _Rx_h
+/**
+ * Digital Repeater Controller
+ * Copyright (C) 2025, Bruce MacKinnon KC1FSZ
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+#pragma once
+
+#include <cstdint>
 
 #include "kc1fsz-tools/Runnable.h"
-#include "CourtesyToneGenerator.h"
+#include "Activatable.h"
 
 namespace kc1fsz {
 
-class Rx : public Runnable {
+class Rx : public Runnable, public Activatable {
 public:
 
     virtual void run() = 0;
-
-    virtual int getId() const = 0;
 
     /**
      * @returns true when the receiver audio is valid. This will depend
@@ -20,6 +36,8 @@ public:
      * everything.
      */
     virtual bool isActive() const = 0;
+
+    virtual int getId() const = 0;
 
     /**
      * @returns true when carrier is detected.  May be hard or soft, 
@@ -100,11 +118,7 @@ public:
      * audio is multiplied by this value.
      */
     virtual void setGainLinear(float lvl) = 0;
-
-    virtual CourtesyToneGenerator::Type getCourtesyType() const = 0;
     
-    virtual void setCtMode(CourtesyToneGenerator::Type t) = 0;
-
     virtual void setDelayTime(unsigned ms) = 0;
 
     virtual void setAgcMode(uint32_t mode) = 0;
@@ -117,5 +131,3 @@ public:
 };
 
 }
-
-#endif

@@ -17,37 +17,34 @@
  */
 #pragma once
 
-#include "kc1fsz-tools/Log.h"
-#include "kc1fsz-tools/Clock.h"
+#include <cstdint>
 
-#include "ToneGenerator.h"
 #include "AudioCoreOutputPort.h"
 
 namespace kc1fsz {
 
-class TestToneGenerator : public ToneGenerator {
+class Clock;
+class AudioCore;
+class Activatable;
+
+class AudioCoreOutputPortStd : public AudioCoreOutputPort {
 public:
 
-    TestToneGenerator(Log& log, Clock& clock, AudioCoreOutputPort& core);
+    AudioCoreOutputPortStd(AudioCore& core, Activatable& rx0, Activatable& rx1, 
+        Activatable& rx2);
 
-    virtual void run();
-
-    virtual void start();
-    virtual void stop();
-    virtual bool isFinished();
-    void setFreq(float hz) { _freq = hz; _core.setToneFreq(_freq); }
-    void setLevel(float db) { _level = db; _core.setToneLevel(_level); }
+    virtual bool isAudioActive() const;
+    virtual void setToneEnabled(bool b);
+    virtual void setToneFreq(float hz);
+    virtual void setToneLevel(float dbv);
+    virtual void resetDelay();
 
 private:
 
-    Log& _log;
-    Clock& _clock;
-    AudioCoreOutputPort& _core;
-
-    float _freq = 1000.0;
-    float _level = -10.0;    
-    bool _running = false;
-    uint32_t _endTime = 0;
+    AudioCore& _core;
+    Activatable& _rx0;
+    Activatable& _rx1;
+    Activatable& _rx2;
 };
 
 }

@@ -1,7 +1,7 @@
 Releases
 ========
 
-* v1 2025-11-22 - Installed at the W1TZK Repeate site.
+* v1 2025-11-22 - Installed at the W1TZK Repeater site.
 * v1.1 2025-11-23 
     - Eliminated a lockout problem. Previously, any activity during the lockout
     would extend the lockout period. Now the lockout starts after timeout and
@@ -50,11 +50,18 @@ Serial Console
 
 Connect serial-USB module to GPIO0/GPIO1 pins and use this command:
 
+<<<<<<< HEAD
     minicom -b 115200 -c on -o -D /dev/ttyUSB0
 
 On the Mac laptop, something like this:
 
     minicom -b 115200 -c on -o -D /dev/tty.usbserial-AL02A1A1
+=======
+        minicom -b 1152000 -c on -o -D /dev/ttyUSB0
+
+Notice the higher baud rate!
+
+>>>>>>> e8753102a015bece89d759d86688f3cf88540aad
 
 
 

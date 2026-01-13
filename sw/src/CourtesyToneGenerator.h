@@ -14,11 +14,8 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
- *
- * NOT FOR COMMERCIAL USE WITHOUT PERMISSION.
  */
-#ifndef _CourtesyToneGenerator_h
-#define _CourtesyToneGenerator_h
+#pragma once
 
 #include "kc1fsz-tools/Log.h"
 #include "kc1fsz-tools/Clock.h"
@@ -27,14 +24,23 @@
 
 namespace kc1fsz {
 
-class AudioCore;
+class AudioCoreOutputPort;
 
+/**
+ * A state machine that generates courtesy tones of a few different types.
+ * This relies on the AudioCoreOutputPort methods for controlling audio
+ * tones. 
+ * 
+ * To improve sound quality the on/off behavior is controlled using the 
+ * .setToneLevel() method with the expectation that the audio implementation
+ * will create a smooth transition and avoid "clicks."
+ */
 class CourtesyToneGenerator : public ToneGenerator {
 public:
 
     enum Type { NONE, SINGLE, FAST_UPCHIRP, FAST_DOWNCHIRP };
 
-    CourtesyToneGenerator(Log& log, Clock& clock, AudioCore& core);
+    CourtesyToneGenerator(Log& log, Clock& clock, AudioCoreOutputPort& core);
 
     virtual void run();
     virtual void start();
@@ -46,17 +52,15 @@ private:
 
     Log& _log;
     Clock& _clock;
-    AudioCore& _core;
+    AudioCoreOutputPort& _core;
 
-    unsigned int _chirpMs = 50;
-    unsigned int _toneMs = 150;
+    unsigned int _chirpMs = 40;
+    unsigned int _toneMs = 120;
     bool _running = false;
-    Type _type = Type::FAST_DOWNCHIRP;
+    Type _type = Type::FAST_UPCHIRP;
     float _level = -10;
     int _part = 0;
     uint32_t _endTime = 0;
 };
 
 }
-
-#endif

@@ -14,11 +14,8 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
- *
- * NOT FOR COMMERCIAL USE WITHOUT PERMISSION.
  */
-#ifndef _StdTx_h
-#define _StdTx_h
+#pragma once
 
 #include <functional>
 
@@ -46,17 +43,28 @@ public:
     virtual void setPtt(bool ptt);
     virtual bool getPtt() const;
 
-    void setToneMode(ToneMode mode) { 
+    // ----- CONFIGURATION ---------------------------------------------------
+
+    void setPLToneMode(PLToneMode mode) { 
         _toneMode = mode; 
-        if (_toneMode == ToneMode::SOFT) {
+        if (_toneMode == PLToneMode::SOFT) {
             _core.setCtcssEncodeEnabled(true);
         } else {
             _core.setCtcssEncodeEnabled(false);
         }
     }
 
-    void setToneFreq(float hz) { _core.setCtcssEncodeFreq(hz); }
-    void setToneLevel(float db) { _core.setCtcssEncodeLevel(db); }
+    void setPLToneFreq(float hz) { _core.setCtcssEncodeFreq(hz); }
+
+    void setPLToneLevel(float db) { _core.setCtcssEncodeLevel(db); }
+
+    CourtesyToneGenerator::Type getCourtesyType() const { 
+        return _courtesyType;
+    }
+    
+    void setCtMode(CourtesyToneGenerator::Type ctType) {
+        _courtesyType = ctType;
+    }
 
 private:
 
@@ -71,9 +79,8 @@ private:
     bool _keyed = false;
 
     // Configuration
-    ToneMode _toneMode = ToneMode::NONE;
+    PLToneMode _toneMode = PLToneMode::NONE;
+    CourtesyToneGenerator::Type _courtesyType = CourtesyToneGenerator::Type::FAST_UPCHIRP;
 };
 
 }
-
-#endif

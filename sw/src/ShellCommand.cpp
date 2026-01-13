@@ -282,9 +282,9 @@ void ShellCommand::process(const char* cmd) {
                     printf(INVALID_COMMAND);                
             else if (eq(tokens[1], "ctmode"))
                 if (eq(tokens[2], "0"))
-                    _config.rx0.ctMode = atoi(tokens[3]);
+                    _config.tx0.ctMode = atoi(tokens[3]);
                 else if (eq(tokens[2], "1"))
-                    _config.rx1.ctMode = atoi(tokens[3]);
+                    _config.tx1.ctMode = atoi(tokens[3]);
                 else 
                     printf(INVALID_COMMAND);                
             else if (eq(tokens[1], "ctlevel"))

@@ -94,12 +94,14 @@ add_executable(main
   src/IDToneGenerator.cpp
   src/TestToneGenerator.cpp
   src/CommandProcessor.cpp
+  src/AudioCoreOutputPortStd.cpp
+  src/DigitalPort.cpp
   radlib/util/dsp_util.cpp  
   kc1fsz-tools-cpp/src/Common.cpp
   kc1fsz-tools-cpp/src/CommandShell.cpp
   kc1fsz-tools-cpp/src/WindowAverage.cpp
   kc1fsz-tools-cpp/src/DTMFDetector2.cpp
-  kc1fsz-tools-cpp/src/rp2040/PicoPollTimer.cpp
+  kc1fsz-tools-cpp/src/StdPollTimer.cpp
   kc1fsz-tools-cpp/src/rp2040/PicoPerfTimer.cpp
 )
 target_compile_definitions(main PRIVATE -DPICO_BUILD=1)
@@ -145,7 +147,7 @@ add_executable(analyzer
   kc1fsz-tools-cpp/src/Common.cpp
   kc1fsz-tools-cpp/src/CommandShell.cpp
   kc1fsz-tools-cpp/src/WindowAverage.cpp
-  kc1fsz-tools-cpp/src/rp2040/PicoPollTimer.cpp
+  kc1fsz-tools-cpp/src/StdPollTimer.cpp
   kc1fsz-tools-cpp/src/rp2040/PicoPerfTimer.cpp
 )
 target_compile_definitions(analyzer PRIVATE -DPICO_BUILD=1)

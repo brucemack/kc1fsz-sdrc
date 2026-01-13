@@ -56,7 +56,6 @@ void Config::setFactoryDefaults(Config* cfg) {
     cfg->rx0.toneFreq = 123;
     // This is in dB!
     cfg->rx0.gain = 0;
-    cfg->rx0.ctMode = 0;
     cfg->rx0.delayTime = 0;
     cfg->rx0.agcMode = 1;
     cfg->rx0.agcLevel = -10;
@@ -76,6 +75,7 @@ void Config::setFactoryDefaults(Config* cfg) {
     // This is in dB!
     cfg->tx0.gain = 0;
     cfg->tx0.enabled2 = true;
+    cfg->tx0.ctMode = 0;
 
     cfg->tx1.enabled = false;
     cfg->tx1.toneMode = 0;
@@ -117,7 +117,6 @@ void Config::_showRx(const Config::ReceiveConfig* cfg,
     printf("%s rxtonelevel: %.1f\n", pre, cfg->toneLevel);
     printf("%s rxtonefreq: %.1f\n", pre, cfg->toneFreq);
     printf("%s rxgain: %.1f\n", pre, cfg->gain);
-    printf("%s ctmode: %d\n", pre, cfg->ctMode);
     printf("%s delaytime: %d\n", pre, cfg->delayTime);
     printf("%s agcmode: %d\n", pre, cfg->agcMode);
     printf("%s agclevel: %.1f\n", pre, cfg->agcLevel);
@@ -133,6 +132,7 @@ void Config::_showTx(const Config::TransmitConfig* cfg,
     printf("%s txtonelevel  : %.1f\n", pre, cfg->toneLevel);
     printf("%s txtonefreq  : %.1f\n", pre, cfg->toneFreq);
     printf("%s txgain  : %.1f\n", pre, cfg->gain);
+    printf("%s ctmode: %d\n", pre, cfg->ctMode);
 }
 
 void Config::_showTxc(const Config::ControlConfig* cfg,
