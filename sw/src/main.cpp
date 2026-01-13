@@ -367,14 +367,14 @@ static void transferConfig(const Config& config,
     transferControlConfig(config.txc1, txc1);
 }
 
-#define BUF_SIZE 256
-static uint8_t rx_buf[BUF_SIZE];
-static uint8_t tx_buf[BUF_SIZE];
-
-static volatile unsigned rx_state = 0;
-static unsigned packet_size = 133;
-
 // ------ UART Setup Stuff -------------------------------------------------
+
+#define UART_RX_BUF_SIZE 512
+// This buffer is used with the DMA ring feature so it needs to be power-of-two
+// aligned.
+static uint8_t __attribute__((aligned(UART_RX_BUF_SIZE))) rx_buf[UART_RX_BUF_SIZE];
+#define UART_TX_BUF_SIZE 256
+static uint8_t tx_buf[UART_TX_BUF_SIZE];
 
 static uint dma_ch_tx;
 static uint dma_ch_rx;
@@ -383,57 +383,10 @@ static void __not_in_flash_func(dma_tx_handler)() {
 }
 
 // IMPORTANT NOTE: This is running in an interrupt so move quickly!!!
-static void __not_in_flash_func(process_rx_message)(const uint8_t* rxData, unsigned rxDataLen) {   
-    // TEMPORARY ECHO
-    memcpy(tx_buf, rxData, rxDataLen);
-    // Fire the outbound transfer for the full body
-    dma_channel_set_read_addr(dma_ch_tx, tx_buf, false);
-    dma_channel_set_trans_count(dma_ch_tx, rxDataLen, true);
-}
-
-// IMPORTANT NOTE: This is running in an interrupt so move quickly!!!
-static void __not_in_flash_func(dma_rx_handler)() {    
-    // Waiting for header?
-    if (rx_state == 0) {
-        if (rx_buf[0] == 0) {
-            rx_state = 1;
-            // Restart the inbound transfer for the full body
-            dma_channel_set_write_addr(dma_ch_rx, rx_buf, false);
-            dma_channel_set_trans_count(dma_ch_rx, packet_size, true);
-        } else {
-            // Restart the inbound transfer for the header byte
-            dma_channel_set_write_addr(dma_ch_rx, rx_buf, false);
-            dma_channel_set_trans_count(dma_ch_rx, 1, true);
-        }
-    }
-    // Waiting for body?
-    else if (rx_state == 1) {
-        // Decode the packet
-        // Make sure there are no header bytes in the buffer
-        bool fault = false;
-        for (unsigned i = 0; i < packet_size && !fault; i++) {
-            if (rx_buf[i] == 0) {
-                fault = true;
-            }
-        }
-        if (!fault) 
-            process_rx_message(rx_buf, packet_size);
-        // Restart the inbound transfer for the next header byte
-        dma_channel_set_write_addr(dma_ch_rx, rx_buf, false);
-        dma_channel_set_trans_count(dma_ch_rx, 1, true);
-        rx_state = 0;
-    }
-}
-
-// IMPORTANT NOTE: This is running in an interrupt so move quickly!!!
 static void __not_in_flash_func(dma_irq1_handler)() {   
     if (dma_channel_get_irq1_status(dma_ch_tx)) {
         dma_channel_acknowledge_irq1(dma_ch_tx);
         dma_tx_handler();
-    }
-    if (dma_channel_get_irq1_status(dma_ch_rx)) {
-        dma_channel_acknowledge_irq1(dma_ch_rx);
-        dma_rx_handler();
     }
 }
 
@@ -445,27 +398,29 @@ static void streaming_uart_setup() {
   
     dma_ch_rx = dma_claim_unused_channel(true);
     dma_channel_config c_rx = dma_channel_get_default_config(dma_ch_rx);
+    // Single byte transfer
     channel_config_set_transfer_data_size(&c_rx, DMA_SIZE_8);
     // Always reading from static UART register
     channel_config_set_read_increment(&c_rx, false); 
     // Writing to increasing memory address    
     channel_config_set_write_increment(&c_rx, true); 
-    channel_config_set_dreq(&c_rx, DREQ_UART0_RX);
+    // 512 byte circular buffer. The "true" means that this applies
+    // to the write address, which is what is relevant for receiving
+    // data from the UART.
+    channel_config_set_ring(&c_rx, true, 9);
     channel_config_set_enable(&c_rx, true);
 
-    // For a circular buffer, use channel_config_set_wrap() and 
-    // dma_channel_set_write_addr() to restart the transfer when the 
-    // buffer limit is reached.
     dma_channel_configure(
         dma_ch_rx,
         &c_rx,
         // Destination address        
         rx_buf,
-        &uart_get_hw(uart0)->dr, // Source address (UART Data Register)
-        // First transfer is for the header only
-        1,
+        // Source address (UART Data Register)
+        &uart_get_hw(uart0)->dr, 
+        // Full size of receive buffer.
+        UART_RX_BUF_SIZE,
+        // Not enabled yet
         false);
-    dma_channel_set_irq1_enabled(dma_ch_rx, true);
 
     dma_ch_tx = dma_claim_unused_channel(true);
     dma_channel_config c_tx = dma_channel_get_default_config(dma_ch_tx);
@@ -482,8 +437,10 @@ static void streaming_uart_setup() {
         &c_tx,
         &uart_get_hw(uart0)->dr,
         tx_buf,
-        BUF_SIZE,
+        UART_TX_BUF_SIZE,
+        // Not started yet
         false);
+    // Fire an interrupt when the transfer out is complete
     dma_channel_set_irq1_enabled(dma_ch_tx, true);
 
     // Bind to the interrupt handler 
@@ -491,7 +448,6 @@ static void streaming_uart_setup() {
     irq_set_enabled(DMA_IRQ_1, true);
     
     // Start the ball rolling on the RX side
-    rx_state = 0;
     dma_channel_start(dma_ch_rx);
 }
 
