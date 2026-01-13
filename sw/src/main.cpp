@@ -31,6 +31,7 @@ When targeting RP2350 (Pico 2), command used to load code onto the board:
 #include "pico/time.h"
 #include "hardware/clocks.h"
 #include "hardware/watchdog.h"
+#include <pico/platform.h>
 
 #include "hardware/dma.h"
 #include "hardware/uart.h"
@@ -378,28 +379,31 @@ static unsigned packet_size = 133;
 static uint dma_ch_tx;
 static uint dma_ch_rx;
 
-static void dma_tx_handler() {
+static void __not_in_flash_func(dma_tx_handler)() {
 }
 
 // IMPORTANT NOTE: This is running in an interrupt so move quickly!!!
-static void process_rx_message(const uint8_t* rxData, unsigned rxDataLen) {   
+static void __not_in_flash_func(process_rx_message)(const uint8_t* rxData, unsigned rxDataLen) {   
     // TEMPORARY ECHO
     memcpy(tx_buf, rxData, rxDataLen);
     // Fire the outbound transfer for the full body
-    dma_channel_transfer_from_buffer_now(dma_ch_tx, tx_buf, rxDataLen);
+    dma_channel_set_read_addr(dma_ch_tx, tx_buf, false);
+    dma_channel_set_trans_count(dma_ch_tx, rxDataLen, true);
 }
 
 // IMPORTANT NOTE: This is running in an interrupt so move quickly!!!
-static void dma_rx_handler() {    
+static void __not_in_flash_func(dma_rx_handler)() {    
     // Waiting for header?
     if (rx_state == 0) {
         if (rx_buf[0] == 0) {
             rx_state = 1;
             // Restart the inbound transfer for the full body
-            dma_channel_transfer_to_buffer_now(dma_ch_rx, rx_buf, packet_size);
+            dma_channel_set_write_addr(dma_ch_rx, rx_buf, false);
+            dma_channel_set_trans_count(dma_ch_rx, packet_size, true);
         } else {
             // Restart the inbound transfer for the header byte
-            dma_channel_transfer_to_buffer_now(dma_ch_rx, rx_buf, 1);
+            dma_channel_set_write_addr(dma_ch_rx, rx_buf, false);
+            dma_channel_set_trans_count(dma_ch_rx, 1, true);
         }
     }
     // Waiting for body?
@@ -407,19 +411,22 @@ static void dma_rx_handler() {
         // Decode the packet
         // Make sure there are no header bytes in the buffer
         bool fault = false;
-        //for (unsigned i = 0; i < packet_size && !fault; i++)
-        //    if (rx_buf[i] == 0)
-        //        fault = true;
+        for (unsigned i = 0; i < packet_size && !fault; i++) {
+            if (rx_buf[i] == 0) {
+                fault = true;
+            }
+        }
         if (!fault) 
             process_rx_message(rx_buf, packet_size);
         // Restart the inbound transfer for the next header byte
-        dma_channel_transfer_to_buffer_now(dma_ch_rx, rx_buf, 1);
+        dma_channel_set_write_addr(dma_ch_rx, rx_buf, false);
+        dma_channel_set_trans_count(dma_ch_rx, 1, true);
         rx_state = 0;
     }
 }
 
 // IMPORTANT NOTE: This is running in an interrupt so move quickly!!!
-static void dma_irq1_handler() {   
+static void __not_in_flash_func(dma_irq1_handler)() {   
     if (dma_channel_get_irq1_status(dma_ch_tx)) {
         dma_channel_acknowledge_irq1(dma_ch_tx);
         dma_tx_handler();
