@@ -178,40 +178,39 @@ int processRxBuf(uint8_t* rxBuf, uint8_t** nextReadPtr,
 
 void networkAudioReceiveIfAvailable(receive_processor cb) {
     if (enabled) {
-        // Force cache consistency 
+        // Force cache consistency. 
+        // 
+        // Per datasheet: Inserts a DSB instruction in to the code path. The DSB operation 
+        // completes when all explicit memory accesses before this instruction complete.
         __dsb();
-        // Please see: https://github.com/raspberrypi/pico-feedback/issues/208
+        // Get the DMA live write pointer (will be moving)
+        // NB: Please see: https://github.com/raspberrypi/pico-feedback/issues/208
         // There were some problems in the RP2040, but testing shows that things are fine
         // on the RP2040.
-        // Get the DMA live write pointer (will be moving)
         const uint8_t* dmaWritePtr = (const uint8_t* )dma_hw->ch[dma_ch_rx].write_addr;
         // This will move the nextReadPtr forward as bytes are consumed
         processRxBuf(rx_buf, &nextReadPtr, dmaWritePtr, UART_RX_BUF_SIZE,
-            // This callback is fired for each complete message pulled from the circular
+            // This callback is fired for each **complete** message pulled from the circular
             // buffer. The header byte (0) is not included.
             [cb](const uint8_t* encodedBuf, unsigned encodedBufLen) {
                 assert(encodedBufLen == FIXED_MESSAGE_SIZE - 1);
-                // Decode the message. Don't need space for the COBS overhead
-                //uint8_t decodedBuf[FIXED_MESSAGE_SIZE - 2];
-                //int rc2 = cobsDecode(encodedBuf, encodedBufLen, decodedBuf, sizeof(decodedBuf));
-                //if (rc2 == encodedBufLen - 1)
-                //    cb(decodedBuf, encodedBufLen - 1);
-                // TEMP: Pass the origin message right through
-                cb(encodedBuf, encodedBufLen);
+                // Decode the COBS message. Don't need space for the COBS overhead.
+                uint8_t decodedBuf[FIXED_MESSAGE_SIZE - 2];
+                int rc2 = cobsDecode(encodedBuf, encodedBufLen, decodedBuf, sizeof(decodedBuf));
+                if (rc2 == encodedBufLen - 1)
+                    cb(decodedBuf, encodedBufLen - 1);
             }
         );
     }
 }
 
 void networkAudioSend(const uint8_t* frame, unsigned len) { 
-    //assert(len == FIXED_MESSAGE_SIZE - 2);
-    assert(len == FIXED_MESSAGE_SIZE - 1);
+    assert(len == FIXED_MESSAGE_SIZE - 2);
     if (enabled) {
         // Header byte
         tx_buf[0] = 0;
         // Encode the message in COBS format
-        //cobsEncode(frame, len, tx_buf + 1, UART_TX_BUF_SIZE - 1); 
-        memcpy(tx_buf + 1, frame, len);
+        cobsEncode(frame, len, tx_buf + 1, UART_TX_BUF_SIZE - 1); 
         // Stream out immediately
         dma_channel_set_read_addr(dma_ch_tx, tx_buf, false);
         dma_channel_set_trans_count(dma_ch_tx, FIXED_MESSAGE_SIZE, true);
