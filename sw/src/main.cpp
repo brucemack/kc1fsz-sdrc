@@ -119,6 +119,11 @@ public:
     bool isWritable() const { return true; }
 };
 
+static void __not_in_flash_func(network_audio_proc)(const uint8_t* buf, unsigned bufLen) {
+    //core2.setAudio(buf, bufLen);
+    networkAudioSend(buf, bufLen);
+}
+
 /**
  * This is the callback that gets fired on every audio cycle. This will be 
  * called in an ISR context.
@@ -129,13 +134,7 @@ static void audio_proc(const int32_t* r0_samples, const int32_t* r1_samples,
     // Try to pull an audio frame from the network and load
     // it into core2.
     //core2.clearAudio();
-    networkAudioReceiveIfAvailable(
-        [](const uint8_t* buf, unsigned bufLen) {
-            //core2.setAudio(buf, bufLen);
-            // Temp echo
-            networkAudioSend(buf, bufLen);
-        }
-    );
+    networkAudioReceiveIfAvailable(network_audio_proc);
 
     float r0_cross[ADC_SAMPLE_COUNT / 4];
     float r1_cross[ADC_SAMPLE_COUNT / 4];

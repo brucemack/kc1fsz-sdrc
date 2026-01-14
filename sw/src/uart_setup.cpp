@@ -30,7 +30,7 @@
 #include <iostream>
 
 #include "kc1fsz-tools/CobsCodec.h"
-#include "i2s_setup.h"
+#include "uart_setup.h"
 
 using namespace std;
 
@@ -45,6 +45,7 @@ static uint8_t tx_buf[UART_TX_BUF_SIZE];
 
 static uint dma_ch_tx = 0;
 static uint dma_ch_rx = 0;
+static bool enabled = false;
 
 // This pointer keeps track of read progress
 static uint8_t* nextReadPtr = rx_buf;
@@ -68,7 +69,7 @@ void streaming_uart_setup() {
     uart_init(uart0, 1152000);
     gpio_set_function(0, GPIO_FUNC_UART);
     gpio_set_function(1, GPIO_FUNC_UART);
-  
+
     dma_ch_rx = dma_claim_unused_channel(true);
     dma_channel_config c_rx = dma_channel_get_default_config(dma_ch_rx);
     // Single byte transfer
@@ -90,11 +91,12 @@ void streaming_uart_setup() {
         rx_buf,
         // Source address (UART Data Register)
         &uart_get_hw(uart0)->dr, 
-        // Full size of receive buffer.
-        UART_RX_BUF_SIZE,
+        // Full size of receive buffer. Using RP2350 self-trigger to keep 
+        // the transfer running continuously.
+        dma_encode_transfer_count_with_self_trigger(UART_RX_BUF_SIZE),
         // Not enabled yet
         false);
-
+    
     dma_ch_tx = dma_claim_unused_channel(true);
     dma_channel_config c_tx = dma_channel_get_default_config(dma_ch_tx);
     channel_config_set_transfer_data_size(&c_tx, DMA_SIZE_8);
@@ -114,14 +116,16 @@ void streaming_uart_setup() {
         // Not started yet
         false);
     // Fire an interrupt when the transfer out is complete
-    dma_channel_set_irq1_enabled(dma_ch_tx, true);
+    //dma_channel_set_irq1_enabled(dma_ch_tx, true);
 
     // Bind to the interrupt handler 
-    irq_set_exclusive_handler(DMA_IRQ_1, dma_irq1_handler);
-    irq_set_enabled(DMA_IRQ_1, true);
+    //irq_set_exclusive_handler(DMA_IRQ_1, dma_irq1_handler);
+    //irq_set_enabled(DMA_IRQ_1, true);
     
     // Start the ball rolling on the RX side
     dma_channel_start(dma_ch_rx);
+
+    enabled = true;
 }
 
 /**
@@ -163,32 +167,62 @@ int processRxBuf(uint8_t* rxBuf, uint8_t** nextReadPtr,
     return 0;
 }
 
-void networkAudioReceiveIfAvailable(
-    std::function<void(const uint8_t* buf, unsigned bufLen)> cb) {
-    // Get the DMA live write pointer (will be moving)
-    const uint8_t* dmaWritePtr = (const uint8_t* )dma_hw->ch[dma_ch_rx].write_addr;
-    int rc = processRxBuf(rx_buf, &nextReadPtr, dmaWritePtr, UART_RX_BUF_SIZE,
-        [cb](const uint8_t* encodedBuf, unsigned encodedBufLen) {
-            assert(encodedBufLen == FIXED_MESSAGE_SIZE - 1);
-            // Decode the message. Don't need the header or the overhead
-            uint8_t decodedBuf[FIXED_MESSAGE_SIZE - 2];
-            int rc2 = cobsDecode(encodedBuf, encodedBufLen, decodedBuf, sizeof(decodedBuf));
-            if (rc2 == encodedBufLen - 1)
-                cb(decodedBuf, encodedBufLen - 1);
+void networkAudioReceiveIfAvailable(receive_processor cb) {
+    if (enabled) {
+        // Get the DMA live write pointer (will be moving)
+        //const uint8_t* dmaWritePtr = (const uint8_t* )dma_hw->ch[dma_ch_rx].write_addr;
+        // Please see: https://github.com/raspberrypi/pico-feedback/issues/208
+        // How many byte have been written to memory in this cycle?
+        // I am masking the TRAN_COUNT register to avoid any confusion with with higher MODE
+        // bits on RP2350.
+        unsigned bytesTransferred = UART_RX_BUF_SIZE - (dma_hw->ch[dma_ch_rx].transfer_count & 0b1111111111); 
+        const uint8_t* dmaWritePtr = rx_buf + bytesTransferred;
+        // #### TEMP
+        if (dmaWritePtr != nextReadPtr) {
+
+            char temp[32];
+            memset(temp, 0, 32);
+            snprintf(temp, 32, "%d\r\n", bytesTransferred);
+            cb((const uint8_t*)temp, strlen(temp));
+            nextReadPtr = (uint8_t*)dmaWritePtr;
         }
-    );
+        /*
+        // This will move the nextReadPtr forward as bytes are consumed
+        int rc = processRxBuf(rx_buf, &nextReadPtr, dmaWritePtr, UART_RX_BUF_SIZE,
+            // This callback is fired for each complete message pulled from the circular
+            // buffer. The header byte (0) is it not included.
+            [cb](const uint8_t* encodedBuf, unsigned encodedBufLen) {
+                assert(encodedBufLen == FIXED_MESSAGE_SIZE - 1);
+                // Decode the message. Don't need space for the COBS overhead
+                uint8_t decodedBuf[FIXED_MESSAGE_SIZE - 2];
+                int rc2 = cobsDecode(encodedBuf, encodedBufLen, decodedBuf, sizeof(decodedBuf));
+                if (rc2 == encodedBufLen - 1)
+                    cb(decodedBuf, encodedBufLen - 1);
+            }
+        );
+        */
+    }
 }
 
 void networkAudioSend(const uint8_t* frame, unsigned len) { 
     assert(len == FIXED_MESSAGE_SIZE - 2);
-    if (dma_ch_tx) {
+    if (enabled) {
         // Header byte
-        tx_buf[0] = 0;
+        //tx_buf[0] = 0;
         // Encode the message in COBS format
-        cobsEncode(frame, len, tx_buf + 1, UART_TX_BUF_SIZE - 1); 
+        //cobsEncode(frame, len, tx_buf + 1, UART_TX_BUF_SIZE - 1); 
         // Stream out immediately
+        //dma_channel_set_read_addr(dma_ch_tx, tx_buf, false);
+        //dma_channel_set_trans_count(dma_ch_tx, FIXED_MESSAGE_SIZE, true);
+
+        // TEMP
+        memcpy(tx_buf, frame, len);
         dma_channel_set_read_addr(dma_ch_tx, tx_buf, false);
-        dma_channel_set_trans_count(dma_ch_tx, FIXED_MESSAGE_SIZE, true);
+        dma_channel_set_trans_count(dma_ch_tx, len, true);
+
+        //strcpy((char*)tx_buf, "Hello Izzy!\r\n");
+        //dma_channel_set_read_addr(dma_ch_tx, tx_buf, false);
+        //dma_channel_set_trans_count(dma_ch_tx, 13, true);
     }
 }
 
