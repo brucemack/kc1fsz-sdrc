@@ -25,6 +25,7 @@
 #include "hardware/clocks.h"
 #include "hardware/i2c.h"
 #include "hardware/irq.h"
+#include "hardware/sync.h"
 
 #include <functional>
 #include <iostream>
@@ -161,34 +162,31 @@ int processRxBuf(uint8_t* rxBuf, uint8_t** nextReadPtr,
     unsigned a = avail(*nextReadPtr - rxBuf, dmaWritePtr - rxBuf, bufSize);
     if (a < FIXED_MESSAGE_SIZE)
         return 2;
+    // Move the complete message into a contiguous buffer
+    uint8_t completeMsg[FIXED_MESSAGE_SIZE];
+    for (unsigned i = 0; i < FIXED_MESSAGE_SIZE; i++) {
+        completeMsg[i] = **nextReadPtr;
+        // Advance and look for wrap
+        (*nextReadPtr)++;
+        if ((*nextReadPtr) == (rxBuf + bufSize))
+            *nextReadPtr = rxBuf;
+    }
     // Fire the callback and give the encoded message, minus the null header byte
-    cb(*nextReadPtr + 1, FIXED_MESSAGE_SIZE - 1);
-    // Advance the read pointer and deal with wrap
-    *nextReadPtr += FIXED_MESSAGE_SIZE;
-    if (*nextReadPtr >= (rxBuf + bufSize))
-        *nextReadPtr -= bufSize;
+    cb(completeMsg + 1, FIXED_MESSAGE_SIZE - 1);
     return 0;
 }
 
 void networkAudioReceiveIfAvailable(receive_processor cb) {
     if (enabled) {
+        // Force cache consistency 
+        __dsb();
         // Please see: https://github.com/raspberrypi/pico-feedback/issues/208
         // There were some problems in the RP2040, but testing shows that things are fine
         // on the RP2040.
         // Get the DMA live write pointer (will be moving)
         const uint8_t* dmaWritePtr = (const uint8_t* )dma_hw->ch[dma_ch_rx].write_addr;
-        /*
-        // #### TEMP
-        if (dmaWritePtr != nextReadPtr) {
-            char temp[32];
-            memset(temp, 0, 32);
-            snprintf(temp, 32, "%X\r\n", (unsigned)dmaWritePtr);
-            cb((const uint8_t*)temp, strlen(temp));
-            nextReadPtr = (uint8_t*)dmaWritePtr;
-        }
-        */
         // This will move the nextReadPtr forward as bytes are consumed
-        int rc = processRxBuf(rx_buf, &nextReadPtr, dmaWritePtr, UART_RX_BUF_SIZE,
+        processRxBuf(rx_buf, &nextReadPtr, dmaWritePtr, UART_RX_BUF_SIZE,
             // This callback is fired for each complete message pulled from the circular
             // buffer. The header byte (0) is not included.
             [cb](const uint8_t* encodedBuf, unsigned encodedBufLen) {
