@@ -16,6 +16,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #pragma once
+#include <cstdint>
 
 #include "Activatable.h"
 
@@ -61,6 +62,12 @@ public:
      */
     void setCrossGainLinear(unsigned i, float gain);
 
+    /**
+     * Used to stage some audio that will be pulled out in the next call to 
+     * cycleRx().
+     */
+    void setAudio(const uint8_t* audio8KLE, unsigned len);
+
     // ------ Activatable -----------------------------------------------------
 
     bool isActive() const;
@@ -70,6 +77,9 @@ private:
     const unsigned _id;
     const unsigned _crossCount;
     Clock& _clock;
+
+    bool _extAudioValid = false;
+    uint8_t _extAudio[BLOCK_SIZE * 2];
 
     // TEMP
     float _omega = 0;

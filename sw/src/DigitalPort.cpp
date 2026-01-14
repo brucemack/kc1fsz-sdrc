@@ -16,9 +16,13 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 #include <cmath>
+#include <cstring>
+#include <cassert>
+
 #include "DigitalPort.h"
 
 #include "kc1fsz-tools/Clock.h"
+#include "kc1fsz-tools/Common.h"
 
 namespace kc1fsz {
 
@@ -31,12 +35,22 @@ DigitalPort::DigitalPort(unsigned id, unsigned crossCount, Clock& clock)
 }
 
 void DigitalPort::cycleRx(float* crossOut) {    
+    /*
     // Contribute a steady tone
     for (unsigned i = 0; i < BLOCK_SIZE; i++) {
         crossOut[i] = 0.5 * std::cos(_phi);
         _phi += _omega;
     }
     _phi = fmod(_phi, 2.0 * 3.1415926f);
+    */
+    const uint8_t* p = _extAudio;
+    for (unsigned i = 0; i < BLOCK_SIZE; i++, p += 2)  {
+        if (_extAudioValid)
+            crossOut[i] = (float)unpack_int16_le(p) / 32767.0f;
+        else
+            crossOut[i] = 0;
+    }
+    _extAudioValid = false;
 }
 
 void DigitalPort::cycleTx(const float** cross_ins) {
@@ -52,5 +66,12 @@ bool DigitalPort::isActive() const {
     else 
         return false;
 }
+
+void DigitalPort::setAudio(const uint8_t* audio8KLE, unsigned len) {
+    assert(len == BLOCK_SIZE * 2);
+    memcpy(_extAudio, audio8KLE, len);
+    _extAudioValid = true;
+}
+
 
 }

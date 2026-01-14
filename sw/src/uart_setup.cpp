@@ -148,20 +148,42 @@ static unsigned avail(unsigned readIx, unsigned writeIx, unsigned bufSize) {
 int processRxBuf(uint8_t* rxBuf, uint8_t** nextReadPtr,
     const uint8_t* dmaWritePtr, unsigned bufSize,
     std::function<void(const uint8_t* buf, unsigned bufLen)> cb) {
-    // Scan up to a header byte
-    while (*nextReadPtr != dmaWritePtr && **nextReadPtr != 0) {
-        (*nextReadPtr)++;
-        // Look for wrap
-        if ((*nextReadPtr) == (rxBuf + bufSize))
-            *nextReadPtr = rxBuf;
+
+    // Synchronization loop
+    while (true) {
+        // Scan up to the next header byte
+        while (*nextReadPtr != dmaWritePtr && **nextReadPtr != 0) {
+            (*nextReadPtr)++;
+            // Look for wrap
+            if ((*nextReadPtr) == (rxBuf + bufSize))
+                *nextReadPtr = rxBuf;
+        }
+        // If no header byte is encountered yet then come back next time
+        if (**nextReadPtr != 0)
+            return 1;
+        // Check to see if we have enough for a full message
+        unsigned a = avail(*nextReadPtr - rxBuf, dmaWritePtr - rxBuf, bufSize);
+        if (a < FIXED_MESSAGE_SIZE)
+            return 2;
+        // Check to see if the message is clean (i.e. no nulls)
+        bool clean = true;
+        uint8_t* searchPtr = *nextReadPtr;
+        for (unsigned i = 0; i < FIXED_MESSAGE_SIZE; i++) {
+            if (searchPtr != *nextReadPtr && *searchPtr == 0) {
+                clean = false;
+                // Bump forward to the location of the null we found
+                *nextReadPtr = searchPtr;
+                break;
+            }
+            // Increment and wrap
+            if (++searchPtr == (rxBuf + bufSize)) 
+                searchPtr = rxBuf;
+
+        }
+        if (clean)
+            break;
     }
-    // If no header byte is encountered then come back next time
-    if (**nextReadPtr != 0)
-        return 1;
-    // Check to see if we have enough for a full message
-    unsigned a = avail(*nextReadPtr - rxBuf, dmaWritePtr - rxBuf, bufSize);
-    if (a < FIXED_MESSAGE_SIZE)
-        return 2;
+
     // Move the complete message into a contiguous buffer
     uint8_t completeMsg[FIXED_MESSAGE_SIZE];
     for (unsigned i = 0; i < FIXED_MESSAGE_SIZE; i++) {
@@ -189,9 +211,12 @@ void networkAudioReceiveIfAvailable(receive_processor cb) {
         // Here is what we'd like to do:
         //const uint8_t* dmaWritePtr = (const uint8_t* )dma_hw->ch[dma_ch_rx].write_addr;
         // But NB: Please see: https://github.com/raspberrypi/pico-feedback/issues/208
-        // There were some problems in the RP2040. (RP2040-E12). So here is what we need 
-        // to do to work around the defect. The top bits of the TRANS_COUNT have special 
-        // meaning on the RP2350 so we only focus on the low end of the counter.
+        // There were some problems in the RP2040. (RP2040-E12).  Basically, the WRITE_ADDR
+        // can get ahead of reality in the ring case (that we are using).
+        //
+        // So here is what we need to do to work around the defect. The top bits of the 
+        // TRANS_COUNT have special meaning on the RP2350 so we only focus on the low end 
+        // of the counter.
         const unsigned bytesTransferred = UART_RX_BUF_SIZE - 
             (dma_hw->ch[dma_ch_rx].transfer_count & 0b1111111111);
         const uint8_t* dmaWritePtr = rx_buf + bytesTransferred;

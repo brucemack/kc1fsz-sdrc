@@ -120,8 +120,9 @@ public:
 };
 
 static void __not_in_flash_func(network_audio_proc)(const uint8_t* buf, unsigned bufLen) {
-    //core2.setAudio(buf, bufLen);
-    networkAudioSend(buf, bufLen);
+    // Leave the audio frame we just got in the core so that it will be picked up 
+    // in the cross mix.
+    core2.setAudio(buf, bufLen);
 }
 
 /**
@@ -133,7 +134,6 @@ static void audio_proc(const int32_t* r0_samples, const int32_t* r1_samples,
     
     // Try to pull an audio frame from the network and load
     // it into core2.
-    //core2.clearAudio();
     networkAudioReceiveIfAvailable(network_audio_proc);
 
     float r0_cross[ADC_SAMPLE_COUNT / 4];
