@@ -78,6 +78,8 @@ void streaming_uart_setup() {
     channel_config_set_read_increment(&c_rx, false); 
     // Writing to increasing memory address    
     channel_config_set_write_increment(&c_rx, true); 
+    // Tell the DMA what to be triggered by 
+    channel_config_set_dreq(&c_rx, DREQ_UART0_RX);
     // 512 byte circular buffer. The "true" means that this applies
     // to the write address, which is what is relevant for receiving
     // data from the UART.
@@ -104,6 +106,7 @@ void streaming_uart_setup() {
     channel_config_set_write_increment(&c_tx, false); 
     // Reading from increasing memory address    
     channel_config_set_read_increment(&c_tx, true); 
+    // Tell the DMA what to be triggered by 
     channel_config_set_dreq(&c_tx, DREQ_UART0_TX);
     channel_config_set_enable(&c_tx, true);
     
@@ -169,20 +172,17 @@ int processRxBuf(uint8_t* rxBuf, uint8_t** nextReadPtr,
 
 void networkAudioReceiveIfAvailable(receive_processor cb) {
     if (enabled) {
-        // Get the DMA live write pointer (will be moving)
-        //const uint8_t* dmaWritePtr = (const uint8_t* )dma_hw->ch[dma_ch_rx].write_addr;
         // Please see: https://github.com/raspberrypi/pico-feedback/issues/208
+        // There were some problems in the RP2040, but testing shows that things are fine
+        // on the RP2040.
+        // Get the DMA live write pointer (will be moving)
+        const uint8_t* dmaWritePtr = (const uint8_t* )dma_hw->ch[dma_ch_rx].write_addr;
         // How many byte have been written to memory in this cycle?
-        // I am masking the TRAN_COUNT register to avoid any confusion with with higher MODE
-        // bits on RP2350.
-        unsigned bytesTransferred = UART_RX_BUF_SIZE - (dma_hw->ch[dma_ch_rx].transfer_count & 0b1111111111); 
-        const uint8_t* dmaWritePtr = rx_buf + bytesTransferred;
         // #### TEMP
         if (dmaWritePtr != nextReadPtr) {
-
             char temp[32];
             memset(temp, 0, 32);
-            snprintf(temp, 32, "%d\r\n", bytesTransferred);
+            snprintf(temp, 32, "%X\r\n", (unsigned)dmaWritePtr);
             cb((const uint8_t*)temp, strlen(temp));
             nextReadPtr = (uint8_t*)dmaWritePtr;
         }
