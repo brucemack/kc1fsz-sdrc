@@ -178,17 +178,26 @@ int processRxBuf(uint8_t* rxBuf, uint8_t** nextReadPtr,
 
 void networkAudioReceiveIfAvailable(receive_processor cb) {
     if (enabled) {
+
         // Force cache consistency. 
         // 
         // Per datasheet: Inserts a DSB instruction in to the code path. The DSB operation 
         // completes when all explicit memory accesses before this instruction complete.
         __dsb();
-        // Get the DMA live write pointer (will be moving)
-        // NB: Please see: https://github.com/raspberrypi/pico-feedback/issues/208
-        // There were some problems in the RP2040, but testing shows that things are fine
-        // on the RP2040.
-        const uint8_t* dmaWritePtr = (const uint8_t* )dma_hw->ch[dma_ch_rx].write_addr;
-        // This will move the nextReadPtr forward as bytes are consumed
+
+        // Get the DMA live write pointer (will be moving continuously)
+        // Here is what we'd like to do:
+        //const uint8_t* dmaWritePtr = (const uint8_t* )dma_hw->ch[dma_ch_rx].write_addr;
+        // But NB: Please see: https://github.com/raspberrypi/pico-feedback/issues/208
+        // There were some problems in the RP2040. (RP2040-E12). So here is what we need 
+        // to do to work around the defect. The top bits of the TRANS_COUNT have special 
+        // meaning on the RP2350 so we only focus on the low end of the counter.
+        const unsigned bytesTransferred = UART_RX_BUF_SIZE - 
+            (dma_hw->ch[dma_ch_rx].transfer_count & 0b1111111111);
+        const uint8_t* dmaWritePtr = rx_buf + bytesTransferred;
+
+        // Process the received bytes if possible. This will move the nextReadPtr forward 
+        // as bytes are consumed.
         processRxBuf(rx_buf, &nextReadPtr, dmaWritePtr, UART_RX_BUF_SIZE,
             // This callback is fired for each **complete** message pulled from the circular
             // buffer. The header byte (0) is not included.
