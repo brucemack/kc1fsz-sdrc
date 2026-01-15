@@ -38,6 +38,7 @@ using namespace std;
 namespace kc1fsz {
 
 #define UART_RX_BUF_SIZE 512
+#define UART_RX_BUF_MASK (0b111111111)
 // This buffer is used with the DMA ring feature so it needs to be power-of-two
 // aligned.
 static uint8_t __attribute__((aligned(UART_RX_BUF_SIZE))) rx_buf[UART_RX_BUF_SIZE];
@@ -47,6 +48,7 @@ static uint8_t tx_buf[UART_TX_BUF_SIZE];
 static uint dma_ch_tx = 0;
 static uint dma_ch_rx = 0;
 static bool enabled = false;
+
 
 // This pointer keeps track of read progress
 static uint8_t* nextReadPtr = rx_buf;
@@ -132,69 +134,50 @@ void streaming_uart_setup() {
     enabled = true;
 }
 
-/**
- * Calculates the number of bytes available for processing in a circular buffer.
- * This takes into account the wrap
- */
-static unsigned avail(unsigned readIx, unsigned writeIx, unsigned bufSize) {
-    if (writeIx >= readIx)
-        return writeIx - readIx;
-    else
-        // Move the read pointer forward by one full buffer
-        // to address the wrapping problem.
-        return (readIx + bufSize) - writeIx;
-}
-
 int processRxBuf(uint8_t* rxBuf, uint8_t** nextReadPtr,
     const uint8_t* dmaWritePtr, unsigned bufSize,
     std::function<void(const uint8_t* buf, unsigned bufLen)> cb) {
 
-    // Synchronization loop
-    while (true) {
-        // Scan up to the next header byte
-        while (*nextReadPtr != dmaWritePtr && **nextReadPtr != 0) {
-            (*nextReadPtr)++;
-            // Look for wrap
-            if ((*nextReadPtr) == (rxBuf + bufSize))
-                *nextReadPtr = rxBuf;
-        }
-        // If no header byte is encountered yet then come back next time
-        if (**nextReadPtr != 0)
-            return 1;
-        // Check to see if we have enough for a full message
-        unsigned a = avail(*nextReadPtr - rxBuf, dmaWritePtr - rxBuf, bufSize);
-        if (a < FIXED_MESSAGE_SIZE)
-            return 2;
-        // Check to see if the message is clean (i.e. no nulls)
-        bool clean = true;
-        uint8_t* searchPtr = *nextReadPtr;
-        for (unsigned i = 0; i < FIXED_MESSAGE_SIZE; i++) {
-            if (searchPtr != *nextReadPtr && *searchPtr == 0) {
-                clean = false;
-                // Bump forward to the location of the null we found
-                *nextReadPtr = searchPtr;
-                break;
-            }
-            // Increment and wrap
-            if (++searchPtr == (rxBuf + bufSize)) 
-                searchPtr = rxBuf;
-
-        }
-        if (clean)
-            break;
-    }
-
-    // Move the complete message into a contiguous buffer
+    int state = 0;
+    int completeLen = 0;
     uint8_t completeMsg[FIXED_MESSAGE_SIZE];
-    for (unsigned i = 0; i < FIXED_MESSAGE_SIZE; i++) {
-        completeMsg[i] = **nextReadPtr;
-        // Advance and look for wrap
-        (*nextReadPtr)++;
-        if ((*nextReadPtr) == (rxBuf + bufSize))
-            *nextReadPtr = rxBuf;
+    uint8_t* potentialPtr = *nextReadPtr;
+
+    bool sync = false;
+
+    while (potentialPtr != dmaWritePtr) {
+        // When a null is found we reset
+        if (*potentialPtr == 0) {
+            completeMsg[0] = 0;
+            completeLen = 1;
+            state = 1;
+            sync = true;
+        }
+        else {
+            // Discarding
+            if (state == 0) {
+                sync = true;
+            }
+            // Accumulating a potential message
+            else if (state == 1) {
+                completeMsg[completeLen++] = *potentialPtr;
+                // Did we get the entire thing?
+                if (completeLen == FIXED_MESSAGE_SIZE) {
+                    // Fire the callback and give the encoded message, minus the null header byte
+                    cb(completeMsg + 1, FIXED_MESSAGE_SIZE - 1);
+                    sync = true;
+                    state = 0;
+                }
+            }
+        }
+        // Increment an wrap
+        ++potentialPtr;
+        if (potentialPtr == rx_buf + bufSize) 
+            potentialPtr = rx_buf;
+        if (sync)
+            *nextReadPtr = potentialPtr;
     }
-    // Fire the callback and give the encoded message, minus the null header byte
-    cb(completeMsg + 1, FIXED_MESSAGE_SIZE - 1);
+
     return 0;
 }
 
