@@ -31,6 +31,7 @@ public:
     static const unsigned BLOCK_SIZE_ADC = 256;
     static const unsigned FS = FS_ADC / 4;
     static const unsigned BLOCK_SIZE = BLOCK_SIZE_ADC / 4;
+    static const unsigned MAX_CROSS_COUNT = 8;
 
     DigitalPort(unsigned id, unsigned crossCount, Clock& clock);
 
@@ -68,6 +69,12 @@ public:
      */
     void setAudio(const uint8_t* audio8KLE, unsigned len);
 
+    /**
+     * Used to pull out the last frame of audio that was loaded using the previous
+     * cycleTx() call.
+     */
+    void getAudio(uint8_t* audio8KLE, unsigned len);
+
     // ------ Activatable -----------------------------------------------------
 
     bool isActive() const;
@@ -78,12 +85,14 @@ private:
     const unsigned _crossCount;
     Clock& _clock;
 
-    bool _extAudioValid = false;
-    uint8_t _extAudio[BLOCK_SIZE * 2];
+    float _crossGains[MAX_CROSS_COUNT];
 
-    // TEMP
-    float _omega = 0;
-    float _phi = 0;
+    bool _extAudioInValid = false;
+    uint8_t _extAudioIn[BLOCK_SIZE * 2];
+    uint64_t _lastInputUs = 0;
+
+    bool _extAudioOutValid = false;
+    uint8_t _extAudioOut[BLOCK_SIZE * 2];
 };
 
 }

@@ -64,7 +64,7 @@ using namespace kc1fsz;
 // CONFIGURATION PARAMETERS
 // ===========================================================================
 //
-static const char* VERSION = "V1.2 2026-01-12";
+static const char* VERSION = "V1.2 2026-01-14";
 #define LED_PIN (PICO_DEFAULT_LED_PIN)
 #define R0_COS_PIN (14)
 #define R0_CTCSS_PIN (13)
@@ -149,10 +149,20 @@ static void audio_proc(const int32_t* r0_samples, const int32_t* r1_samples,
     core2.cycleTx(cross_ins);
 
     // Take the resulting audio and pass it back onto the network.
-    //const unsigned networkAudioFrameLen = 64 * 2;
-    //uint8_t audio8KLE[networkAudioFrameLen];
-    //core2.getAudio(audio8KLE, networkAudioFrameLen);
-    //networkAudioSend(audio8KLE, networkAudioFrameLen);
+    const unsigned networkAudioFrameLen = 64 * 2;
+    uint8_t audio8KLE[networkAudioFrameLen];
+    core2.getAudio(audio8KLE, networkAudioFrameLen);
+    // Check for silence
+    bool nonZeroFound = false;
+    for (unsigned i = 0; i < networkAudioFrameLen; i++) {
+        if (audio8KLE[i] != 0) {
+            nonZeroFound = true;
+            break;
+        }
+    }
+    // #### TODO: SETUP THE OTHER 4 BYTES!
+    if (nonZeroFound)
+        networkAudioSend(audio8KLE, networkAudioFrameLen);
 }
 
 static void print_bar(float vrms, float vpeak) {
