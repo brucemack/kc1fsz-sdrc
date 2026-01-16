@@ -43,11 +43,6 @@ using namespace std;
 namespace kc1fsz {
 
 #define NETWORK_BAUD (1152000)
-#define COBS_OVERHEAD (2)
-#define CRC_LEN (2)
-#define PAYLOAD_SIZE (160 * 2)
-// Fixed size, 1 header null + audio + CRC + COBS overhead
-#define NETWORK_MESSAGE_SIZE (1 + PAYLOAD_SIZE + CRC_LEN + COBS_OVERHEAD)
 
 #define UART_RX_BUF_SIZE 512
 #define UART_RX_BUF_BITS (9)
@@ -61,24 +56,16 @@ namespace kc1fsz {
 #define UART_TX_BUF_MASK_COUNT (0b1111111111)
 #define UART_TX_BUF_MASK (0b111111111)
 
-#define HEADER_CODE (0)
-
 static bool enabled = false;
 
 // Receive Related:
 
 static uint dma_ch_rx = 0;
+
 // This buffer is used with the DMA ring feature so it needs to be power-of-two
 // aligned.
 static uint8_t __attribute__((aligned(UART_RX_BUF_SIZE))) rx_buf[UART_RX_BUF_SIZE];
-
-// This pointer keeps track of read progress around the circular receive buffer
-static unsigned nextReadPtr = 0;
-// Accumulator for a received message
-static uint8_t completeMsg[NETWORK_MESSAGE_SIZE];
-static unsigned completeMsgLen = 0;
-static bool haveHeader = false;
-static unsigned ReceiveCount = 0;
+static AudioPortRxHandler rxBufHandler(rx_buf, UART_RX_BUF_SIZE);
 
 // Transmit Related:
 
@@ -94,19 +81,6 @@ static unsigned TxDmaLength = 0;
 
 static unsigned TxBufOverflow = 0;
 static unsigned OverlapSendDiscardedCount = 0;
-
-/*
-static void __not_in_flash_func(dma_tx_handler)() {
-}
-
-// IMPORTANT NOTE: This is running in an interrupt so move quickly!!!
-static void __not_in_flash_func(dma_irq1_handler)() {   
-    if (dma_channel_get_irq1_status(dma_ch_tx)) {
-        dma_channel_acknowledge_irq1(dma_ch_tx);
-        dma_tx_handler();
-    }
-}
-*/
 
 void streaming_uart_setup() {
 
@@ -225,36 +199,6 @@ static void startTxDMAIfPossible() {
     TxDmaLength = TxBufLen;
 }
 
-unsigned count2 = 0;
-
-static void processRxBuf(unsigned nextWritePtr,
-    std::function<void(const uint8_t* buf, unsigned bufLen)> cb) {
-
-    bool firedCb = false;
-
-    while (!firedCb && nextReadPtr != nextWritePtr) {
-        assert(nextReadPtr < UART_RX_BUF_SIZE);
-        if (rx_buf[nextReadPtr] == HEADER_CODE) {
-            // When a header is found we reset accumulation
-            completeMsg[0] = 0;
-            completeMsgLen = 1;
-            haveHeader = true;
-        } else if (haveHeader) {
-            // Accumulating a potential message
-            completeMsg[completeMsgLen++] = rx_buf[nextReadPtr];
-            // Did we get a full message?
-            if (completeMsgLen == NETWORK_MESSAGE_SIZE) {
-                // Fire the callback and give the encoded message, minus the 
-                // header byte
-                cb(completeMsg + 1, completeMsgLen - 1);
-                firedCb = true;
-                haveHeader = false;
-            }
-        } 
-        nextReadPtr = (nextReadPtr + 1) & UART_RX_BUF_MASK;
-    }
-}
-
 void networkAudioReceiveIfAvailable(receive_processor cb) {
 
     if (!enabled) 
@@ -284,50 +228,14 @@ void networkAudioReceiveIfAvailable(receive_processor cb) {
     if (dmaWritePtr == UART_RX_BUF_SIZE)
         dmaWritePtr = 0;
 
-    // Process the received bytes if possible. This will move the nextReadPtr forward 
-    // as bytes are consumed.
-    processRxBuf(dmaWritePtr,
+    // Process the received bytes if possible.
+    rxBufHandler.processRxBuf(
+        dmaWritePtr,
         // This callback is fired for each **complete** message pulled from the circular
         // buffer. The header byte/CRC are NOT included.
-        [cb](const uint8_t* encodedBuf, unsigned encodedBufLen) {
-
-            assert(encodedBufLen == NETWORK_MESSAGE_SIZE - 1);
-            ReceiveCount++;
-
-            // Decode the COBS message. Don't need space for the COBS overhead.
-            uint8_t decodedBuf[PAYLOAD_SIZE + CRC_LEN];
-            cobs_decode_result rd = cobs_decode(decodedBuf, sizeof(decodedBuf), 
-                encodedBuf, encodedBufLen);
-            assert(rd.status == COBS_DECODE_OK);  
-            assert(rd.out_len == sizeof(decodedBuf));
-
-            // CRC check
-            int16_t crcExpected = crcSlow(decodedBuf, PAYLOAD_SIZE);
-            int16_t crcActual = unpack_int16_le(decodedBuf + PAYLOAD_SIZE);
-            if (crcActual != crcExpected)
-                return;
-            // #### TODO: CHECKSUM VALIDATION HERE
-            //if (decodedBuf[PAYLOAD_SIZE] != 'a' ||
-            //    decodedBuf[PAYLOAD_SIZE + 1] != 'b')
-            //    return;
-
+        [cb](const uint8_t* decodedBuf, unsigned decodedLen) {
+            assert(decodedLen == PAYLOAD_SIZE);
             cb(decodedBuf, PAYLOAD_SIZE);
-
-            /*
-            // #### TEMP ECHO OF ENCODED MESSAGE
-            // Make a complete message
-            uint8_t txMsg[NETWORK_MESSAGE_SIZE];
-            txMsg[0] = 0;
-            memcpy(txMsg + 1, encodedBuf, encodedBufLen);
-            txMsg[1] = TxBufOverflow;
-            txMsg[2] = ReceiveCount;
-            txMsg[NETWORK_MESSAGE_SIZE - 1] = 'z';
-            // NOTE: This is an all-or-nothing queue to avoid half-baked
-            // messages going out on the network.
-            int rc = queueForTx(txMsg, NETWORK_MESSAGE_SIZE);
-            if (rc != 0)
-                TxBufOverflow++;
-            */
         }
     );
 
@@ -352,9 +260,6 @@ void networkAudioSend(const uint8_t* frame, unsigned len) {
         memcpy((uint8_t*)frameAndCrc, frame, len);
         uint16_t crc = crcSlow(frameAndCrc, PAYLOAD_SIZE);
         pack_int16_le(crc, frameAndCrc + PAYLOAD_SIZE);
-        // #### TODO CRC
-        //frameAndCrc[PAYLOAD_SIZE] = 'a';
-        //frameAndCrc[PAYLOAD_SIZE + 1] = 'b';
 
         // Encode the message in COBS format
         uint8_t txFrame[NETWORK_MESSAGE_SIZE];
@@ -368,4 +273,69 @@ void networkAudioSend(const uint8_t* frame, unsigned len) {
     }
 }
 
+AudioPortRxHandler::AudioPortRxHandler(uint8_t* rxBuf, unsigned rxBufSize)
+:   _rxBuf(rxBuf),
+    _rxBufSize(rxBufSize),
+    _nextRdPtr(0) {
+    // Convert size of buffer into bitmask for modulo wrapping
+    _rxBufMask = 0;
+    unsigned temp = rxBufSize;
+    for (unsigned i = 0; i < 32 && (temp & 1) == 0; i++) {
+        _rxBufMask = (_rxBufMask << 1) | 1;
+        temp >>= 1;
+    }
 }
+
+void AudioPortRxHandler::processRxBuf(unsigned nextWrPtr,
+    std::function<void(const uint8_t* msg, unsigned msgLen)> cb) {
+
+    bool firedCb = false;
+
+    while (!firedCb && _nextRdPtr != nextWrPtr) {
+        assert(_nextRdPtr < _rxBufSize);
+        if (_rxBuf[_nextRdPtr] == HEADER_CODE) {
+            // When a header is found we reset accumulation
+            _completeMsg[0] = 0;
+            _completeMsgLen = 1;
+            _haveHeader = true;
+        } else if (_haveHeader) {
+            // Accumulating a potential message
+            _completeMsg[_completeMsgLen++] = _rxBuf[_nextRdPtr];
+            // Did we get a full message?
+            if (_completeMsgLen == NETWORK_MESSAGE_SIZE) {
+                // Fire the callback and give the encoded message, minus the 
+                // header byte
+                _processEncodedMsg(_completeMsg + 1, _completeMsgLen - 1, cb);
+                firedCb = true;
+                _haveHeader = false;
+            }
+        } 
+        _nextRdPtr = (_nextRdPtr + 1) & _rxBufMask;
+    }
+}
+
+void AudioPortRxHandler::_processEncodedMsg(
+    const uint8_t* encodedBuf, unsigned encodedBufLen,
+    std::function<void(const uint8_t* msg, unsigned msgLen)> cb) {
+
+    assert(encodedBufLen == NETWORK_MESSAGE_SIZE - 1);
+
+    // Decode the COBS message. Don't need space for the COBS overhead.
+    uint8_t decodedBuf[PAYLOAD_SIZE + CRC_LEN];
+    cobs_decode_result rd = cobs_decode(decodedBuf, sizeof(decodedBuf), 
+        encodedBuf, encodedBufLen);
+    assert(rd.status == COBS_DECODE_OK);  
+    assert(rd.out_len == sizeof(decodedBuf));
+
+    // CRC check
+    int16_t crcExpected = crcSlow(decodedBuf, PAYLOAD_SIZE);
+    int16_t crcActual = unpack_int16_le(decodedBuf + PAYLOAD_SIZE);
+    if (crcActual != crcExpected)
+        return;
+
+    cb(decodedBuf, PAYLOAD_SIZE);
+    _rxCount++;
+}
+
+}
+
