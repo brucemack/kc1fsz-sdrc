@@ -120,9 +120,7 @@ public:
 };
 
 static void __not_in_flash_func(network_audio_proc)(const uint8_t* buf, unsigned bufLen) {
-    //core2.loadNetworkAudio(buf, bufLen);
-    // Echo Test
-    networkAudioSend(buf, bufLen);
+    core2.loadNetworkAudio(buf, bufLen);
 }
 
 // ****************************************************************************

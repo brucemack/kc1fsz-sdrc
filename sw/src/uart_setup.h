@@ -8,6 +8,10 @@ void streaming_uart_setup();
 
 typedef void (*receive_processor)(const uint8_t* buf, unsigned len);
 
+/**
+ * Called on every audio tick. Checks for inbound network audio and 
+ * dispatches the callback if any is available.
+ */
 void networkAudioReceiveIfAvailable(receive_processor cb);
 
 /**
