@@ -114,6 +114,7 @@ add_executable(main
   kc1fsz-tools-cpp/src/DTMFDetector2.cpp
   kc1fsz-tools-cpp/src/StdPollTimer.cpp
   kc1fsz-tools-cpp/src/rp2040/PicoPerfTimer.cpp
+  kc1fsz-tools-cpp/src/crc/crc.c
   cobs-c/cobs.c
 )
 target_compile_definitions(main PRIVATE -DPICO_BUILD=1)
@@ -124,6 +125,7 @@ pico_generate_pio_header(main ${CMAKE_CURRENT_LIST_DIR}/src/i2s.pio)
 target_include_directories(main PRIVATE 
   src
   kc1fsz-tools-cpp/include
+  kc1fsz-tools-cpp/include/kc1fsz-tools/crc
   cobs-c
   radlib
   ${HOME}/pico/CMSISDSP/CMSIS-DSP/Include
