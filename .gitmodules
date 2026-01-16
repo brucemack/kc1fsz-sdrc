@@ -7,3 +7,6 @@
 [submodule "sw/gsm-0610-codec"]
 	path = sw/gsm-0610-codec
 	url = https://github.com/brucemack/gsm-0610-codec.git
+[submodule "sw/cobs-c"]
+	path = sw/cobs-c
+	url = https://github.com/cmcqueen/cobs-c.git

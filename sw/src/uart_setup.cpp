@@ -30,32 +30,43 @@
 #include <functional>
 #include <iostream>
 
-#include "kc1fsz-tools/CobsCodec.h"
+// 3rd party
+#include "cobs.h"
+
 #include "uart_setup.h"
 
 using namespace std;
 
 namespace kc1fsz {
 
-#define UART_RX_BUF_SIZE 512
-#define UART_RX_BUF_MASK (0b111111111)
+#define NETWORK_BAUD (1152000)
+#define COBS_OVERHEAD (2)
+// Fixed size, 1 header null + audio + 1 COBS overhead
+#define NETWORK_MESSAGE_SIZE (1 + (160 * 2) + COBS_OVERHEAD)
+
+//#define UART_RX_BUF_SIZE 512
+//#define UART_RX_BUF_BITS (9)
+// This is one more bit since the counter gets to 1000..00
+//#define UART_RX_BUF_MASK (0b1111111111)
+
+#define UART_RX_BUF_SIZE 1024
+#define UART_RX_BUF_BITS (10)
+// This is one more bit since the counter gets to 1000..00
+#define UART_RX_BUF_MASK (0b11111111111)
+
+#define UART_TX_BUF_SIZE 512
+
 // This buffer is used with the DMA ring feature so it needs to be power-of-two
 // aligned.
 static uint8_t __attribute__((aligned(UART_RX_BUF_SIZE))) rx_buf[UART_RX_BUF_SIZE];
-#define UART_TX_BUF_SIZE 256
+// Not used in ring mode
 static uint8_t tx_buf[UART_TX_BUF_SIZE];
-
 static uint dma_ch_tx = 0;
 static uint dma_ch_rx = 0;
 static bool enabled = false;
 
 
-// This pointer keeps track of read progress
-static uint8_t* nextReadPtr = rx_buf;
-
-// 1 header null + 128 message + 1 COBS overhead + 4 control
-static const unsigned FIXED_MESSAGE_SIZE = 134;
-
+/*
 static void __not_in_flash_func(dma_tx_handler)() {
 }
 
@@ -66,10 +77,11 @@ static void __not_in_flash_func(dma_irq1_handler)() {
         dma_tx_handler();
     }
 }
+*/
 
 void streaming_uart_setup() {
 
-    uart_init(uart0, 1152000);
+    uart_init(uart0, NETWORK_BAUD);
     gpio_set_function(0, GPIO_FUNC_UART);
     gpio_set_function(1, GPIO_FUNC_UART);
 
@@ -86,7 +98,7 @@ void streaming_uart_setup() {
     // 512 byte circular buffer. The "true" means that this applies
     // to the write address, which is what is relevant for receiving
     // data from the UART.
-    channel_config_set_ring(&c_rx, true, 9);
+    channel_config_set_ring(&c_rx, true, UART_RX_BUF_BITS);
     channel_config_set_enable(&c_rx, true);
 
     dma_channel_configure(
@@ -121,65 +133,49 @@ void streaming_uart_setup() {
         UART_TX_BUF_SIZE,
         // Not started yet
         false);
-    // Fire an interrupt when the transfer out is complete
-    //dma_channel_set_irq1_enabled(dma_ch_tx, true);
 
-    // Bind to the interrupt handler 
-    //irq_set_exclusive_handler(DMA_IRQ_1, dma_irq1_handler);
-    //irq_set_enabled(DMA_IRQ_1, true);
-    
     // Start the ball rolling on the RX side
     dma_channel_start(dma_ch_rx);
-
     enabled = true;
 }
 
-int processRxBuf(uint8_t* rxBuf, uint8_t** nextReadPtr,
-    const uint8_t* dmaWritePtr, unsigned bufSize,
+// This pointer keeps track of read progress around the circular receive buffer
+static unsigned nextReadPtr = 0;
+// Accumulator
+static uint8_t completeMsg[NETWORK_MESSAGE_SIZE];
+static unsigned completeMsgLen = 0;
+
+static void processRxBuf(unsigned dmaWritePtr,
     std::function<void(const uint8_t* buf, unsigned bufLen)> cb) {
 
-    int state = 0;
-    int completeLen = 0;
-    uint8_t completeMsg[FIXED_MESSAGE_SIZE];
-    uint8_t* potentialPtr = *nextReadPtr;
+    bool firedCb = false;
 
-    bool sync = false;
-
-    while (potentialPtr != dmaWritePtr) {
-        // When a null is found we reset
-        if (*potentialPtr == 0) {
+    while (!firedCb && nextReadPtr != dmaWritePtr) {
+        assert(nextReadPtr < UART_RX_BUF_SIZE);
+        // When a null is found we reset accumulation
+        if (rx_buf[nextReadPtr] == 0) {
             completeMsg[0] = 0;
-            completeLen = 1;
-            state = 1;
-            sync = true;
+            completeMsgLen = 1;
         }
         else {
-            // Discarding
-            if (state == 0) {
-                sync = true;
-            }
             // Accumulating a potential message
-            else if (state == 1) {
-                completeMsg[completeLen++] = *potentialPtr;
-                // Did we get the entire thing?
-                if (completeLen == FIXED_MESSAGE_SIZE) {
-                    // Fire the callback and give the encoded message, minus the null header byte
-                    cb(completeMsg + 1, FIXED_MESSAGE_SIZE - 1);
-                    sync = true;
-                    state = 0;
-                }
+            completeMsg[completeMsgLen] = rx_buf[nextReadPtr];
+            completeMsgLen++;
+            // Did we get a full message without hitting a null?
+            if (completeMsgLen == NETWORK_MESSAGE_SIZE) {
+                // Fire the callback and give the encoded message, minus the null header byte
+                cb(completeMsg + 1, completeMsgLen - 1);
+                firedCb = true;
             }
         }
-        // Increment an wrap
-        ++potentialPtr;
-        if (potentialPtr == rx_buf + bufSize) 
-            potentialPtr = rx_buf;
-        if (sync)
-            *nextReadPtr = potentialPtr;
+        // Increment and wrap
+        nextReadPtr++;
+        if (nextReadPtr == UART_RX_BUF_SIZE) 
+            nextReadPtr = 0;
     }
-
-    return 0;
 }
+
+static unsigned counter = 1;
 
 void networkAudioReceiveIfAvailable(receive_processor cb) {
     if (enabled) {
@@ -200,37 +196,62 @@ void networkAudioReceiveIfAvailable(receive_processor cb) {
         // So here is what we need to do to work around the defect. The top bits of the 
         // TRANS_COUNT have special meaning on the RP2350 so we only focus on the low end 
         // of the counter.
-        const unsigned bytesTransferred = UART_RX_BUF_SIZE - 
-            (dma_hw->ch[dma_ch_rx].transfer_count & 0b1111111111);
-        const uint8_t* dmaWritePtr = rx_buf + bytesTransferred;
+        unsigned transferCountRemaining = (dma_hw->ch[dma_ch_rx].transfer_count & UART_RX_BUF_MASK);
+        assert(transferCountRemaining <= UART_RX_BUF_SIZE);
+        unsigned dmaWritePtr = UART_RX_BUF_SIZE - transferCountRemaining;
+        if (dmaWritePtr == UART_RX_BUF_SIZE)
+            dmaWritePtr = 0;
 
         // Process the received bytes if possible. This will move the nextReadPtr forward 
         // as bytes are consumed.
-        processRxBuf(rx_buf, &nextReadPtr, dmaWritePtr, UART_RX_BUF_SIZE,
+        processRxBuf(dmaWritePtr,
             // This callback is fired for each **complete** message pulled from the circular
             // buffer. The header byte (0) is not included.
             [cb](const uint8_t* encodedBuf, unsigned encodedBufLen) {
-                assert(encodedBufLen == FIXED_MESSAGE_SIZE - 1);
+                assert(encodedBufLen == NETWORK_MESSAGE_SIZE - 1);
+                /*
                 // Decode the COBS message. Don't need space for the COBS overhead.
-                uint8_t decodedBuf[FIXED_MESSAGE_SIZE - 2];
-                int rc2 = cobsDecode(encodedBuf, encodedBufLen, decodedBuf, sizeof(decodedBuf));
-                if (rc2 == encodedBufLen - 1)
-                    cb(decodedBuf, encodedBufLen - 1);
+                uint8_t decodedBuf[NETWORK_MESSAGE_SIZE - 1 - COBS_OVERHEAD];
+                cobs_decode_result rd = cobs_decode(decodedBuf, sizeof(decodedBuf), 
+                    encodedBuf, encodedBufLen);
+                assert(rd.status == COBS_DECODE_OK);  
+                assert(rd.out_len == sizeof(decodedBuf));
+                decodedBuf[0] = counter++;
+                cb(decodedBuf, sizeof(decodedBuf));
+                */
+                // NOTE: I've seen cases where two transmits overlapped
+                unsigned transferCountRemaining = dma_hw->ch[dma_ch_tx].transfer_count;
+                if (transferCountRemaining != 0)
+                    return;
+                // Header byte
+                tx_buf[0] = 0;       
+                memcpy(tx_buf + 1, encodedBuf, encodedBufLen);
+                dma_channel_set_read_addr(dma_ch_tx, tx_buf, false);
+                dma_channel_set_trans_count(dma_ch_tx, NETWORK_MESSAGE_SIZE, false);
+                __dsb();
+                dma_channel_start(dma_ch_tx);
             }
         );
     }
 }
 
 void networkAudioSend(const uint8_t* frame, unsigned len) { 
-    assert(len == FIXED_MESSAGE_SIZE - 2);
     if (enabled) {
+        // NOTE: I've seen cases where two transmits overlapped
+        unsigned transferCountRemaining = dma_hw->ch[dma_ch_tx].transfer_count;
+        if (transferCountRemaining != 0)
+            return;
+        assert(len == NETWORK_MESSAGE_SIZE - 2);
         // Header byte
-        tx_buf[0] = 0;
+        tx_buf[0] = 0;       
         // Encode the message in COBS format
-        cobsEncode(frame, len, tx_buf + 1, UART_TX_BUF_SIZE - 1); 
-        // Stream out immediately
+        cobs_encode_result re = cobs_encode(tx_buf + 1, UART_TX_BUF_SIZE - 1, frame, len);
+        assert(re.status == COBS_ENCODE_OK);
+        assert(re.out_len <= len + COBS_OVERHEAD);
+        // Stream out immediately. The assumption is that the pacing is correct
+        // and we will never overwrite a transmit DMA in process.
         dma_channel_set_read_addr(dma_ch_tx, tx_buf, false);
-        dma_channel_set_trans_count(dma_ch_tx, FIXED_MESSAGE_SIZE, true);
+        dma_channel_set_trans_count(dma_ch_tx, NETWORK_MESSAGE_SIZE, true);
     }
 }
 

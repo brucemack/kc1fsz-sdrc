@@ -4,19 +4,15 @@
 
 namespace kc1fsz {
 
-typedef void (*receive_processor)(const uint8_t* buf, unsigned len);
-
 void streaming_uart_setup();
 
-int processRxBuf(uint8_t* rxBuf, uint8_t** nextReadPtr,
-    const uint8_t* dmaWritePtr, unsigned bufSize,
-    std::function<void(const uint8_t* buf, unsigned bufLen)> cb);
+typedef void (*receive_processor)(const uint8_t* buf, unsigned len);
 
 void networkAudioReceiveIfAvailable(receive_processor cb);
 
 /**
  * @param audioFrame Does not include header. 
- * @param len At this point (64 * 2) + 4
+ * @param len At this point (160 * 2)
  */
 void networkAudioSend(const uint8_t* audioFrame, unsigned len);
 

@@ -64,7 +64,7 @@ using namespace kc1fsz;
 // CONFIGURATION PARAMETERS
 // ===========================================================================
 //
-static const char* VERSION = "V1.2 2026-01-14";
+static const char* VERSION = "V1.2 2026-01-15";
 #define LED_PIN (PICO_DEFAULT_LED_PIN)
 #define R0_COS_PIN (14)
 #define R0_CTCSS_PIN (13)
@@ -120,20 +120,22 @@ public:
 };
 
 static void __not_in_flash_func(network_audio_proc)(const uint8_t* buf, unsigned bufLen) {
-    // Leave the audio frame we just got in the core so that it will be picked up 
-    // in the cross mix.
-    core2.setAudio(buf, bufLen);
+    //core2.loadNetworkAudio(buf, bufLen);
+    // Echo Test
+    networkAudioSend(buf, bufLen);
 }
 
-/**
- * This is the callback that gets fired on every audio cycle. This will be 
- * called in an ISR context.
- */
+// ****************************************************************************
+// NOTE: This function is called from inside of the audio frame ISR so keep it 
+// short!
+// ****************************************************************************
+//
+// This is the callback that gets fired on every audio tick. 
+//
 static void audio_proc(const int32_t* r0_samples, const int32_t* r1_samples,
     int32_t* r0_out, int32_t* r1_out) {
     
-    // Try to pull an audio frame from the network and load
-    // it into core2.
+    // Try to pull an audio frame from the network and load it into core2.
     networkAudioReceiveIfAvailable(network_audio_proc);
 
     float r0_cross[ADC_SAMPLE_COUNT / 4];
@@ -148,10 +150,12 @@ static void audio_proc(const int32_t* r0_samples, const int32_t* r1_samples,
     core1.cycleTx(cross_ins, r1_out);
     core2.cycleTx(cross_ins);
 
-    // Take the resulting audio and pass it back onto the network.
-    const unsigned networkAudioFrameLen = 64 * 2;
+    /*
+    // Take the resulting audio (if any) and pass it back onto the network.
+    const unsigned networkAudioFrameLen = 160 * 2;
     uint8_t audio8KLE[networkAudioFrameLen];
-    core2.getAudio(audio8KLE, networkAudioFrameLen);
+    core2.extractNetworkAudio(audio8KLE, networkAudioFrameLen);
+
     // Check for silence
     bool nonZeroFound = false;
     for (unsigned i = 0; i < networkAudioFrameLen; i++) {
@@ -160,9 +164,9 @@ static void audio_proc(const int32_t* r0_samples, const int32_t* r1_samples,
             break;
         }
     }
-    // #### TODO: SETUP THE OTHER 4 BYTES!
     if (nonZeroFound)
         networkAudioSend(audio8KLE, networkAudioFrameLen);
+    */
 }
 
 static void print_bar(float vrms, float vpeak) {
