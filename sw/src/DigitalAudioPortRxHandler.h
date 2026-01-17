@@ -73,8 +73,8 @@ private:
 
     uint8_t* const _rxBuf;
     const unsigned _rxBufSize;
-    unsigned _rxBufMask;
     unsigned _nextRdPtr;
+    const unsigned _rxBufMask;
     bool _haveHeader = false;
     uint8_t _completeMsg[NETWORK_MESSAGE_SIZE];
     unsigned _completeMsgLen = 0;
