@@ -17,6 +17,7 @@
  */
 #include <cstring>
 #include <cassert>
+#include <iostream>
 
 // 3rd party
 #include "cobs.h"
@@ -26,6 +27,8 @@
 #include "kc1fsz-tools/Common.h"
 
 #include "DigitalAudioPortRxHandler.h"
+
+using namespace std;
 
 namespace kc1fsz {
 
@@ -49,7 +52,7 @@ void DigitalAudioPortRxHandler::processRxBuf(unsigned nextWrPtr,
 
     while (!firedCb && _nextRdPtr != nextWrPtr) {
         assert(_nextRdPtr < _rxBufSize);
-        if (_rxBuf[_nextRdPtr] == HEADER_CODE) {
+        if (_rxBuf[_nextRdPtr] == HEADER_CODE) {               
             // When a header is found we reset accumulation
             _completeMsg[0] = 0;
             _completeMsgLen = 1;
@@ -80,14 +83,16 @@ void DigitalAudioPortRxHandler::_processEncodedMsg(
     uint8_t decodedBuf[PAYLOAD_SIZE + CRC_LEN];
     cobs_decode_result rd = cobs_decode(decodedBuf, sizeof(decodedBuf), 
         encodedBuf, encodedBufLen);
-    assert(rd.status == COBS_DECODE_OK);  
-    assert(rd.out_len == sizeof(decodedBuf));
+    if (rd.status != COBS_DECODE_OK || 
+        rd.out_len != sizeof(decodedBuf)) 
+        return;
 
     // CRC check
     int16_t crcExpected = crcSlow(decodedBuf, PAYLOAD_SIZE);
     int16_t crcActual = unpack_int16_le(decodedBuf + PAYLOAD_SIZE);
-    if (crcActual != crcExpected)
+    if (crcActual != crcExpected) {
         return;
+    }
 
     cb(decodedBuf, PAYLOAD_SIZE);
     _rxCount++;
