@@ -29,14 +29,27 @@
 
 namespace kc1fsz {
 
+/**
+ * Contains the read pointer for the circular receive buffer. The
+ * write pointer is external because it is typically being maintained
+ * by a DMA controller or something similar.
+ */
 class DigitalAudioPortRxHandler {
 public:
 
+    /**
+     * @param rxBuf Receive buffer, typically shared with a DMA controller.
+     * @param rxBufSize Size of the circular receive buffer. Must be a 
+     * power of two!!
+     */
     DigitalAudioPortRxHandler(uint8_t* rxBuf, unsigned rxBufSize);
 
     /**
      * Processes data in the circular buffer and fires the callback for 
      * each successfully received/decoded message.
+     *
+     * @param nextWrPtr The external write pointer, which is typically
+     * taken from a DMA controller or something.
      */
     void processRxBuf(unsigned nextWrPtr,
         std::function<void(const uint8_t* msg, unsigned msgLen)> cb);
