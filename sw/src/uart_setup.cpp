@@ -247,14 +247,6 @@ void networkAudioReceiveIfAvailable(receive_processor cb) {
 void networkAudioSend(const uint8_t* frame, unsigned len) { 
     if (enabled) {
         assert(len == PAYLOAD_SIZE);
-        // Check to make sure there is already a send in process. If so, 
-        // the send is lost. 
-        // NOTE: I've seen cases where two transmits overlapped
-        unsigned transferCountRemaining = dma_hw->ch[dma_ch_tx].transfer_count;
-        if (transferCountRemaining != 0) {
-            OverlapSendDiscardedCount++;
-            return;
-        }
 
         // Add the CRC
         uint8_t frameAndCrc[PAYLOAD_SIZE + CRC_LEN];
@@ -265,12 +257,19 @@ void networkAudioSend(const uint8_t* frame, unsigned len) {
         // Encode the message in COBS format
         uint8_t txFrame[NETWORK_MESSAGE_SIZE];
         txFrame[0] = HEADER_CODE; 
+        // Make sure there are no zeros in the packet if the COBS encoding doesn't end
+        // up using all of the overhead space available.
+        txFrame[NETWORK_MESSAGE_SIZE - 2] = 'x';
+        txFrame[NETWORK_MESSAGE_SIZE - 1] = 'x';
         cobs_encode_result re = cobs_encode(txFrame + 1, NETWORK_MESSAGE_SIZE - 1, 
             frameAndCrc, sizeof(frameAndCrc));
         assert(re.status == COBS_ENCODE_OK);
         assert(re.out_len <= PAYLOAD_SIZE + CRC_LEN + COBS_OVERHEAD);
 
         queueForTx(txFrame, NETWORK_MESSAGE_SIZE);
+
+        // Check if there is anything waiting to go out
+        startTxDMAIfPossible();
     }
 }
 

@@ -144,12 +144,13 @@ static void audio_proc(const int32_t* r0_samples, const int32_t* r1_samples,
 
     core0.cycleRx(r0_samples, r0_cross);
     core1.cycleRx(r1_samples, r1_cross);
+    // There is no ADC input in this case:
     core2.cycleRx(r2_cross);
     core0.cycleTx(cross_ins, r0_out);
     core1.cycleTx(cross_ins, r1_out);
+    // There is no DAC output in this case:
     core2.cycleTx(cross_ins);
 
-    /*
     // Take the resulting audio (if any) and pass it back onto the network.
     const unsigned networkAudioFrameLen = 160 * 2;
     uint8_t audio8KLE[networkAudioFrameLen];
@@ -165,7 +166,6 @@ static void audio_proc(const int32_t* r0_samples, const int32_t* r1_samples,
     }
     if (nonZeroFound)
         networkAudioSend(audio8KLE, networkAudioFrameLen);
-    */
 }
 
 static void print_bar(float vrms, float vpeak) {
@@ -612,8 +612,8 @@ int main(int argc, const char** argv) {
             } else if (c == 'i') {
                 txCtl0.forceId();
                 txCtl1.forceId();
-            } else if (c == 'a') {
-                // Enter streaming mode
+            } else if (c == 4) {
+                // Control-D to enter streaming mode
                 stdio_uart_deinit();
                 streaming_uart_setup();
             }
@@ -710,7 +710,8 @@ int main(int argc, const char** argv) {
         core1.setCrossGainLinear(2, core2.isActive() ? gain : 0.0);
         core2.setCrossGainLinear(0, rx0.isActive() ? gain : 0.0);
         core2.setCrossGainLinear(1, rx1.isActive() ? gain : 0.0);
-        core2.setCrossGainLinear(2, core2.isActive() ? gain : 0.0);
+        // Never echo audio back on this connection
+        core2.setCrossGainLinear(2, 0.0);
    
         // Run all components
         tx0.run();

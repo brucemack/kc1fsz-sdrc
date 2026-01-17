@@ -46,6 +46,12 @@ public:
      */
     unsigned getRxCount() const { return _rxCount; }
 
+    /**
+     * @returns The number of bad messages discarded due to 
+     * CRC errors or some other malformation.
+     */
+    unsigned getBadCount() const { return _badCount; }
+
 private:
 
     void _processEncodedMsg(
@@ -60,6 +66,7 @@ private:
     uint8_t _completeMsg[NETWORK_MESSAGE_SIZE];
     unsigned _completeMsgLen = 0;
     unsigned _rxCount = 0;
+    unsigned _badCount = 0;
 };
 
 }

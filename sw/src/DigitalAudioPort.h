@@ -81,6 +81,12 @@ public:
     void loadNetworkAudio(const uint8_t* audio8KLE, unsigned len);
 
     /**
+     * @returns true If there is any network audio waiting to be 
+     * extracted.
+     */
+    bool isNetworkAudioPending() const;
+
+    /**
      * Used to pull out the next 20ms frame of audio that was loaded using the 
      * previous cycleTx() call.
      * 

@@ -121,6 +121,14 @@ void DigitalAudioPort::cycleTx(const float** cross_ins) {
 // NOTE: This function is called from inside of the audio frame ISR so keep it 
 // short!
 // ****************************************************************************
+bool DigitalAudioPort::isNetworkAudioPending() const {
+    return !(_extAudioOutRd == _extAudioOutWr);
+}
+
+// ****************************************************************************
+// NOTE: This function is called from inside of the audio frame ISR so keep it 
+// short!
+// ****************************************************************************
 void DigitalAudioPort::extractNetworkAudio(uint8_t* audio8KLE, unsigned len) {
     assert(len == NETWORK_FRAME_SIZE);
     // Move new data out of circular buffer

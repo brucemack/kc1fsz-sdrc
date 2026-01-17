@@ -15,7 +15,7 @@ typedef void (*receive_processor)(const uint8_t* buf, unsigned len);
 void networkAudioReceiveIfAvailable(receive_processor cb);
 
 /**
- * @param audioFrame Does not include header. 
+ * @param audioFrame Does not include header/CRC/COBS
  * @param len At this point (160 * 2)
  */
 void networkAudioSend(const uint8_t* audioFrame, unsigned len);

@@ -32,14 +32,8 @@ namespace kc1fsz {
 DigitalAudioPortRxHandler::DigitalAudioPortRxHandler(uint8_t* rxBuf, unsigned rxBufSize)
 :   _rxBuf(rxBuf),
     _rxBufSize(rxBufSize),
-    _nextRdPtr(0) {
-    // Convert size of buffer into bitmask for modulo wrapping
-    _rxBufMask = 0;
-    unsigned temp = rxBufSize;
-    for (unsigned i = 0; i < 32 && (temp & 1) == 0; i++) {
-        _rxBufMask = (_rxBufMask << 1) | 1;
-        temp >>= 1;
-    }
+    _nextRdPtr(0), 
+    _rxBufMask(sizeToBitMask(rxBufSize)) {
 }
 
 void DigitalAudioPortRxHandler::processRxBuf(unsigned nextWrPtr,
@@ -50,17 +44,17 @@ void DigitalAudioPortRxHandler::processRxBuf(unsigned nextWrPtr,
     while (!firedCb && _nextRdPtr != nextWrPtr) {
         assert(_nextRdPtr < _rxBufSize);
         if (_rxBuf[_nextRdPtr] == HEADER_CODE) {
-            // When a header is found we reset accumulation
+            // When a header is found we reset the accumulation and 
+            // start again.
             _completeMsg[0] = 0;
             _completeMsgLen = 1;
             _haveHeader = true;
         } else if (_haveHeader) {
-            // Accumulating a potential message
+            // Keep accumulating a potential message
             _completeMsg[_completeMsgLen++] = _rxBuf[_nextRdPtr];
             // Did we get a full message?
             if (_completeMsgLen == NETWORK_MESSAGE_SIZE) {
-                // Fire the callback and give the encoded message, minus the 
-                // header byte
+                // Skipping the header byte
                 _processEncodedMsg(_completeMsg + 1, _completeMsgLen - 1, cb);
                 firedCb = true;
                 _haveHeader = false;
@@ -76,18 +70,24 @@ void DigitalAudioPortRxHandler::_processEncodedMsg(
 
     assert(encodedBufLen == NETWORK_MESSAGE_SIZE - 1);
 
-    // Decode the COBS message. Don't need space for the COBS overhead.
+    // Decode the COBS message. Don't need space for the COBS overhead
+    // that is being stripped off.
     uint8_t decodedBuf[PAYLOAD_SIZE + CRC_LEN];
     cobs_decode_result rd = cobs_decode(decodedBuf, sizeof(decodedBuf), 
         encodedBuf, encodedBufLen);
-    assert(rd.status == COBS_DECODE_OK);  
-    assert(rd.out_len == sizeof(decodedBuf));
+    if (rd.status != COBS_DECODE_OK ||
+        rd.out_len != sizeof(decodedBuf)) {
+        _badCount++;
+        return;
+    }
 
     // CRC check
     int16_t crcExpected = crcSlow(decodedBuf, PAYLOAD_SIZE);
     int16_t crcActual = unpack_int16_le(decodedBuf + PAYLOAD_SIZE);
-    if (crcActual != crcExpected)
+    if (crcActual != crcExpected) {
+        _badCount++;
         return;
+    }
 
     cb(decodedBuf, PAYLOAD_SIZE);
     _rxCount++;
