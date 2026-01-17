@@ -31,7 +31,7 @@ class Clock;
  * Network audio frames are 160 PCM16 samples (every 20ms). The SDR
  * audio frames are 64 PCM16 samples (every 8ms).
  */
-class DigitalPort : public Activatable {
+class DigitalAudioPort : public Activatable {
 public:
 
     static const unsigned FS_ADC = 32000;
@@ -42,7 +42,7 @@ public:
     // Size in bytes (16 bit PCM)
     static const unsigned NETWORK_FRAME_SIZE = 160 * 2;
 
-    DigitalPort(unsigned id, unsigned crossCount, Clock& clock);
+    DigitalAudioPort(unsigned id, unsigned crossCount, Clock& clock);
 
     /**
      * @brief Called once per CODEC block. Expected to run quickly 

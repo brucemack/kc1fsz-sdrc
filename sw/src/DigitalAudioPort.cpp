@@ -19,14 +19,14 @@
 #include <cstring>
 #include <cassert>
 
-#include "DigitalPort.h"
+#include "DigitalAudioPort.h"
 
 #include "kc1fsz-tools/Clock.h"
 #include "kc1fsz-tools/Common.h"
 
 namespace kc1fsz {
 
-DigitalPort::DigitalPort(unsigned id, unsigned crossCount, Clock& clock)
+DigitalAudioPort::DigitalAudioPort(unsigned id, unsigned crossCount, Clock& clock)
 :   _id(id),
     _crossCount(crossCount),
     _clock(clock) {
@@ -41,7 +41,7 @@ DigitalPort::DigitalPort(unsigned id, unsigned crossCount, Clock& clock)
 // data is placed in the circular buffer so it is available for cycleRx() on
 // the next audio tick.
 //
-void DigitalPort::loadNetworkAudio(const uint8_t* audio8KLE, unsigned len) {
+void DigitalAudioPort::loadNetworkAudio(const uint8_t* audio8KLE, unsigned len) {
     assert(len == NETWORK_FRAME_SIZE);
     // Move new data into circular buffer
     for (unsigned i = 0; i < len; i++) {
@@ -60,7 +60,7 @@ void DigitalPort::loadNetworkAudio(const uint8_t* audio8KLE, unsigned len) {
 // 
 // This is called on each tick to extract a frame of audio for playback.
 //
-void DigitalPort::cycleRx(float* crossOut) {    
+void DigitalAudioPort::cycleRx(float* crossOut) {    
     // Check for the drain situation.
     if (_extAudioInLen < BLOCK_SIZE * 2) {
         for (unsigned i = 0; i < BLOCK_SIZE; i++)
@@ -102,7 +102,7 @@ void DigitalPort::cycleRx(float* crossOut) {
 // This function is called on every audio tick. It delivers the output
 // audio that should be sent out on the network as soon as possible.
 //
-void DigitalPort::cycleTx(const float** cross_ins) {
+void DigitalAudioPort::cycleTx(const float** cross_ins) {
     // Mix all of the audio sources and produce a single 8K PCM16 frame
     for (unsigned i = 0; i < BLOCK_SIZE; i++)  {
         float mix = 0;
@@ -121,7 +121,7 @@ void DigitalPort::cycleTx(const float** cross_ins) {
 // NOTE: This function is called from inside of the audio frame ISR so keep it 
 // short!
 // ****************************************************************************
-void DigitalPort::extractNetworkAudio(uint8_t* audio8KLE, unsigned len) {
+void DigitalAudioPort::extractNetworkAudio(uint8_t* audio8KLE, unsigned len) {
     assert(len == NETWORK_FRAME_SIZE);
     // Move new data out of circular buffer
     for (unsigned i = 0; i < len; i++) {
@@ -136,12 +136,12 @@ void DigitalPort::extractNetworkAudio(uint8_t* audio8KLE, unsigned len) {
     }
 }
 
-void DigitalPort::setCrossGainLinear(unsigned i, float gain) {  
+void DigitalAudioPort::setCrossGainLinear(unsigned i, float gain) {  
     assert(i < MAX_CROSS_COUNT);
     _crossGains[i] = gain;
 }
 
-bool DigitalPort::isActive() const {
+bool DigitalAudioPort::isActive() const {
     // If audio was received within the last 40ms then we are active
     return (_clock.timeUs() - _lastInputUs < 40 * 1000);
 }

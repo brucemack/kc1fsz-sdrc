@@ -53,7 +53,7 @@ When targeting RP2350 (Pico 2), command used to load code onto the board:
 #include "AudioCore.h"
 #include "AudioCoreOutputPortStd.h"
 #include "CommandProcessor.h"
-#include "DigitalPort.h"
+#include "DigitalAudioPort.h"
 
 #include "i2s_setup.h"
 #include "uart_setup.h"
@@ -64,7 +64,7 @@ using namespace kc1fsz;
 // CONFIGURATION PARAMETERS
 // ===========================================================================
 //
-static const char* VERSION = "V1.2 2026-01-15";
+static const char* VERSION = "V1.2 2026-01-17";
 #define LED_PIN (PICO_DEFAULT_LED_PIN)
 #define R0_COS_PIN (14)
 #define R0_CTCSS_PIN (13)
@@ -77,6 +77,7 @@ static const char* VERSION = "V1.2 2026-01-15";
 // System clock rate
 #define SYS_KHZ (153600)
 #define WATCHDOG_INTERVAL_MS (2000)
+#define UART0_BAUD (460800)
 
 // ===========================================================================
 // DIAGNOSTIC COUNTERS/FLAGS
@@ -98,7 +99,7 @@ static PicoPerfTimer perfTimerLoop;
 static AudioCore core0(0, 3, clock);
 static AudioCore core1(1, 3, clock);
 // This core is the digital audio input port
-static DigitalPort core2(2, 3, clock);
+static DigitalAudioPort core2(2, 3, clock);
 
 // The console can work in one of three modes:
 // 
@@ -403,7 +404,7 @@ int main(int argc, const char** argv) {
     set_sys_clock_khz(SYS_KHZ, true);
 
     // Very high speed
-    stdio_uart_init_full(uart0, 1152000, 0, 1);
+    stdio_uart_init_full(uart0, UART0_BAUD, 0, 1);
 
     gpio_init(LED_PIN);
     gpio_set_dir(LED_PIN, GPIO_OUT);
