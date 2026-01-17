@@ -17,6 +17,7 @@
  */
 #include <cstring>
 #include <cassert>
+#include <iostream>
 
 // 3rd party
 #include "cobs.h"
@@ -26,6 +27,8 @@
 #include "kc1fsz-tools/Common.h"
 
 #include "DigitalAudioPortRxHandler.h"
+
+using namespace std;
 
 namespace kc1fsz {
 
