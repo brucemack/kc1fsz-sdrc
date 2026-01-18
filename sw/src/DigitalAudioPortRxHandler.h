@@ -20,12 +20,13 @@
 #include <cstdint>
 #include <functional>
 
-#define COBS_OVERHEAD (2)
-#define CRC_LEN (2)
-#define PAYLOAD_SIZE (160 * 2)
-// Fixed size, 1 header null + audio + CRC + COBS overhead
-#define NETWORK_MESSAGE_SIZE (1 + PAYLOAD_SIZE + CRC_LEN + COBS_OVERHEAD)
 #define HEADER_CODE (0)
+#define PAYLOAD_SIZE (160 * 2)
+#define FLAGS_LEN (2)
+#define COBS_OVERHEAD (2)
+// 16-bit CRC with extra to avoid zeros
+#define CRC_LEN (3)
+#define NETWORK_MESSAGE_SIZE (1 + FLAGS_LEN + PAYLOAD_SIZE + COBS_OVERHEAD + CRC_LEN)
 
 namespace kc1fsz {
 
@@ -64,6 +65,31 @@ public:
      * CRC errors or some other malformation.
      */
     unsigned getBadCount() const { return _badCount; }
+
+    /**
+     * Turns a 16-bit CRC value into 3-bytes with no zeros.
+     */
+    static void encodeCrc(int16_t crc, uint8_t* crc3);
+
+    /**
+     * Turns 3-bytes into a 16-bit CRC value. 
+     */
+    static int16_t decodeCrc(const uint8_t* crc3);
+
+    /**
+     * Encodes a payload into a complete message, including the 
+     * leading header byte.
+     */
+    static void encodeMsg(const uint8_t* payload, unsigned playloadLen,
+        uint8_t* msg, unsigned msgLen);
+
+    /**
+     * Decodes a message starting with (and including) the leading
+     * header byte.
+     * @returns -1 If the message is invalid
+     */
+    static int decodeMsg(const uint8_t* msg, unsigned msgLen,
+        uint8_t* payload, unsigned payloadLen);
 
 private:
 

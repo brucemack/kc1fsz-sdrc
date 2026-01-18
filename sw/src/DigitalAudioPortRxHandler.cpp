@@ -57,8 +57,7 @@ void DigitalAudioPortRxHandler::processRxBuf(unsigned nextWrPtr,
             _completeMsg[_completeMsgLen++] = _rxBuf[_nextRdPtr];
             // Did we get a full message?
             if (_completeMsgLen == NETWORK_MESSAGE_SIZE) {
-                // Skipping the header byte
-                _processEncodedMsg(_completeMsg + 1, _completeMsgLen - 1, cb);
+                _processEncodedMsg(_completeMsg, _completeMsgLen, cb);
                 firedCb = true;
                 _haveHeader = false;
             }
@@ -71,30 +70,100 @@ void DigitalAudioPortRxHandler::_processEncodedMsg(
     const uint8_t* encodedBuf, unsigned encodedBufLen,
     std::function<void(const uint8_t* msg, unsigned msgLen)> cb) {
 
-    assert(encodedBufLen == NETWORK_MESSAGE_SIZE - 1);
+    assert(encodedBufLen == NETWORK_MESSAGE_SIZE);
 
-    // Decode the COBS message. Don't need space for the COBS overhead
-    // that is being stripped off.
-    uint8_t decodedBuf[PAYLOAD_SIZE + CRC_LEN];
-    cobs_decode_result rd = cobs_decode(decodedBuf, sizeof(decodedBuf), 
-        encodedBuf, encodedBufLen);
-    if (rd.status != COBS_DECODE_OK ||
-        rd.out_len != sizeof(decodedBuf)) {
+    // Decode the payload.
+    uint8_t payload[PAYLOAD_SIZE];
+    int rc = decodeMsg(encodedBuf, encodedBufLen, payload, PAYLOAD_SIZE);
+    if (rc == 0) {
+        cb(payload, PAYLOAD_SIZE);
+        _rxCount++;
+    } else {
         _badCount++;
-        return;
     }
-
-    // CRC check
-    int16_t crcExpected = crcSlow(decodedBuf, PAYLOAD_SIZE);
-    int16_t crcActual = unpack_int16_le(decodedBuf + PAYLOAD_SIZE);
-    if (crcActual != crcExpected) {
-        _badCount++;
-        return;
-    }
-
-    cb(decodedBuf, PAYLOAD_SIZE);
-    _rxCount++;
 }
 
+void DigitalAudioPortRxHandler::encodeCrc(int16_t crc, uint8_t* crc3) {
+    crc3[0] = 0x01;
+    pack_int16_le(crc, crc3 + 1);
+    // Check for a zero bytes and fix them
+    if (crc3[1] == 0) {
+        crc3[0] |= 0x80;
+        crc3[1] = 0x0ff;
+    }
+    if (crc3[2] == 0) {
+        crc3[0] |= 0x40;
+        crc3[2] = 0x0ff;
+    }
+}
+
+int16_t DigitalAudioPortRxHandler::decodeCrc(const uint8_t* crc3) {
+    uint8_t temp[2] = { crc3[1], crc3[2] };
+    if (crc3[0] & 0x80)
+        temp[0] = 0;
+    if (crc3[0] & 0x40)
+        temp[1] = 0;
+    return unpack_int16_le(temp);
+}
+
+void DigitalAudioPortRxHandler::encodeMsg(
+    const uint8_t* payload, unsigned playloadLen,
+    uint8_t* msg, unsigned msgLen) {
+
+    assert(payloadLen == PAYLOAD_SIZE);
+    assert(msgLEn == NETWORK_MESSAGE_SIZE);
+
+    msg[0] = HEADER_CODE;
+    // Flags
+    msg[1] = 0x01;
+    // Payload is encoded using COBS
+    cobs_encode_result re = cobs_encode(msg + 3, NETWORK_MESSAGE_SIZE - 3,
+        payload, PAYLOAD_SIZE);
+    assert(re.status == COBS_ENCODE_OK);
+    // This is the case where the COBS overhead is 1
+    if (re.out_len == PAYLOAD_SIZE + 1) {
+        // Flag the short COBS case
+        msg[2] = 1;
+        // Mark the overhead byte that wasn't used
+        msg[3 + PAYLOAD_SIZE + 1] = 0xff;
+    } else if (re.out_len == PAYLOAD_SIZE + 2) {
+        // Flag the long COBS case
+        msg[2] = 2;
+    } else {
+        assert(false);
+    }
+    // CRC is everything, including the header
+    int16_t crc = crcSlow(msg, 1 + FLAGS_LEN + PAYLOAD_SIZE + COBS_OVERHEAD);
+    encodeCrc(crc, msg + NETWORK_MESSAGE_SIZE - 3);
+}
+
+int DigitalAudioPortRxHandler::decodeMsg(
+    const uint8_t* msg, unsigned msgLen,
+    uint8_t* payload, unsigned payloadLen) {    
+
+    assert(msgLen == NETWORK_MESSAGE_SIZE);
+    assert(payloadLen == PAYLOAD_SIZE);
+
+    // Header
+    if (msg[0] != HEADER_CODE)
+        return -1;
+    // CRC is everything, including the header
+    int16_t expectedCrc = crcSlow(msg, 1 + FLAGS_LEN + PAYLOAD_SIZE + COBS_OVERHEAD);
+    int16_t crc = decodeCrc(msg + NETWORK_MESSAGE_SIZE - 3);
+    if (crc != expectedCrc)
+        return -2;
+    if (msg[1] != 0x01)
+        return -3;
+    unsigned cobsOverhead = msg[2];
+    if (!(cobsOverhead == 1 || cobsOverhead == 2))
+        return -4;
+    cobs_decode_result rd = cobs_decode(payload, PAYLOAD_SIZE,
+        msg + 3, PAYLOAD_SIZE + cobsOverhead);
+    if (rd.status != COBS_DECODE_OK)
+        return -5;
+    if (rd.out_len != PAYLOAD_SIZE)
+        return -6;
+    return 0;
+}
 
 }

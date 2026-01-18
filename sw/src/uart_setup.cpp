@@ -31,10 +31,6 @@
 #include "hardware/irq.h"
 #include "hardware/sync.h"
 
-// 3rd party tools
-#include "cobs.h"
-#include "crc.h"
-
 #include "kc1fsz-tools/Common.h"
 
 #include "DigitalAudioPortRxHandler.h"
@@ -248,27 +244,13 @@ void networkAudioSend(const uint8_t* frame, unsigned len) {
     if (enabled) {
         assert(len == PAYLOAD_SIZE);
 
-        // Add the CRC
-        uint8_t frameAndCrc[PAYLOAD_SIZE + CRC_LEN];
-        memcpy((uint8_t*)frameAndCrc, frame, len);
-        uint16_t crc = crcSlow(frameAndCrc, PAYLOAD_SIZE);
-        pack_int16_le(crc, frameAndCrc + PAYLOAD_SIZE);
-
         // Encode the message in COBS format
         uint8_t txFrame[NETWORK_MESSAGE_SIZE];
-        txFrame[0] = HEADER_CODE; 
-        // Make sure there are no zeros in the packet if the COBS encoding doesn't end
-        // up using all of the overhead space available.
-        txFrame[NETWORK_MESSAGE_SIZE - 2] = 'x';
-        txFrame[NETWORK_MESSAGE_SIZE - 1] = 'x';
-        cobs_encode_result re = cobs_encode(txFrame + 1, NETWORK_MESSAGE_SIZE - 1, 
-            frameAndCrc, sizeof(frameAndCrc));
-        assert(re.status == COBS_ENCODE_OK);
-        assert(re.out_len <= PAYLOAD_SIZE + CRC_LEN + COBS_OVERHEAD);
+        DigitalAudioPortRxHandler::encodeMsg(frame, PAYLOAD_SIZE,
+            txFrame, NETWORK_MESSAGE_SIZE);
 
+        // Ship out
         queueForTx(txFrame, NETWORK_MESSAGE_SIZE);
-
-        // Check if there is anything waiting to go out
         startTxDMAIfPossible();
     }
 }

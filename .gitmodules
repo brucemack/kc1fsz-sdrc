@@ -10,3 +10,6 @@
 [submodule "sw/cobs-c"]
 	path = sw/cobs-c
 	url = https://github.com/cmcqueen/cobs-c.git
+[submodule "sw/amp-core"]
+	path = sw/amp-core
+	url = https://github.com/Ampersand-ASL/amp-core.git
