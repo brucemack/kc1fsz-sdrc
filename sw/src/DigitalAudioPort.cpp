@@ -122,7 +122,14 @@ void DigitalAudioPort::cycleTx(const float** cross_ins) {
 // short!
 // ****************************************************************************
 bool DigitalAudioPort::isNetworkAudioPending() const {
-    return !(_extAudioOutRd == _extAudioOutWr);
+
+    unsigned pending;
+    if (_extAudioOutWr >= _extAudioOutRd)
+        pending = _extAudioOutWr - _extAudioOutRd;
+    else 
+        pending = _extAudioOutWr + _extAudioOutCapacity - _extAudioOutRd;
+
+    return (pending >= NETWORK_FRAME_SIZE);
 }
 
 // ****************************************************************************

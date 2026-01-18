@@ -81,14 +81,14 @@ public:
     void loadNetworkAudio(const uint8_t* audio8KLE, unsigned len);
 
     /**
-     * @returns true If there is any network audio waiting to be 
-     * extracted.
+     * @returns true If there is enough network audio waiting to 
+     * extract a complete frame.
      */
     bool isNetworkAudioPending() const;
 
     /**
      * Used to pull out the next 20ms frame of audio that was loaded using the 
-     * previous cycleTx() call.
+     * previous cycleTx() calls, assuming that much audio is available.
      * 
      * @param len For sanity check, must be 160 * 2.
      */

@@ -64,7 +64,7 @@ using namespace kc1fsz;
 // CONFIGURATION PARAMETERS
 // ===========================================================================
 //
-static const char* VERSION = "V1.2 2026-01-17";
+static const char* VERSION = "V1.2 2026-01-18";
 #define LED_PIN (PICO_DEFAULT_LED_PIN)
 #define R0_COS_PIN (14)
 #define R0_CTCSS_PIN (13)
@@ -151,21 +151,24 @@ static void audio_proc(const int32_t* r0_samples, const int32_t* r1_samples,
     // There is no DAC output in this case:
     core2.cycleTx(cross_ins);
 
-    // Take the resulting audio (if any) and pass it back onto the network.
-    const unsigned networkAudioFrameLen = 160 * 2;
-    uint8_t audio8KLE[networkAudioFrameLen];
-    core2.extractNetworkAudio(audio8KLE, networkAudioFrameLen);
+    if (core2.isNetworkAudioPending()) {
 
-    // Check for silence
-    bool nonZeroFound = false;
-    for (unsigned i = 0; i < networkAudioFrameLen; i++) {
-        if (audio8KLE[i] != 0) {
-            nonZeroFound = true;
-            break;
+        // Take the resulting audio and pass it back onto the network.
+        const unsigned networkAudioFrameLen = 160 * 2;
+        uint8_t audio8KLE[networkAudioFrameLen];
+        core2.extractNetworkAudio(audio8KLE, networkAudioFrameLen);
+
+        // Check for silence
+        bool nonZeroFound = false;
+        for (unsigned i = 0; i < networkAudioFrameLen; i++) {
+            if (audio8KLE[i] != 0) {
+                nonZeroFound = true;
+                break;
+            }
         }
+        if (nonZeroFound)
+            networkAudioSend(audio8KLE, networkAudioFrameLen);
     }
-    if (nonZeroFound)
-        networkAudioSend(audio8KLE, networkAudioFrameLen);
 }
 
 static void print_bar(float vrms, float vpeak) {

@@ -235,7 +235,6 @@ void networkAudioReceiveIfAvailable(receive_processor cb) {
             cb(decodedBuf, decodedLen);
         }
     );
-
     // Check if there is anything waiting to go out
     startTxDMAIfPossible();
 }
