@@ -107,11 +107,11 @@ int16_t DigitalAudioPortRxHandler::decodeCrc(const uint8_t* crc3) {
 }
 
 void DigitalAudioPortRxHandler::encodeMsg(
-    const uint8_t* payload, unsigned playloadLen,
+    const uint8_t* payload, unsigned payloadLen,
     uint8_t* msg, unsigned msgLen) {
 
     assert(payloadLen == PAYLOAD_SIZE);
-    assert(msgLEn == NETWORK_MESSAGE_SIZE);
+    assert(msgLen == NETWORK_MESSAGE_SIZE);
 
     msg[0] = HEADER_CODE;
     // Flags
