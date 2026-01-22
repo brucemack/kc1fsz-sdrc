@@ -64,7 +64,7 @@ using namespace kc1fsz;
 // CONFIGURATION PARAMETERS
 // ===========================================================================
 //
-static const char* VERSION = "V1.2 2026-01-18";
+static const char* VERSION = "V1.2 2026-01-22";
 #define LED_PIN (PICO_DEFAULT_LED_PIN)
 #define R0_COS_PIN (14)
 #define R0_CTCSS_PIN (13)
