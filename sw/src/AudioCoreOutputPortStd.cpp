@@ -28,7 +28,9 @@ AudioCoreOutputPortStd::AudioCoreOutputPortStd(AudioCore& core,
 }
 
 bool AudioCoreOutputPortStd::isAudioActive() const {    
-    return _rx0.isActive() || _rx1.isActive() || _rx2.isActive();
+    return (_rxEligible[0] && _rx0.isActive()) || 
+        (_rxEligible[1] && _rx1.isActive()) || 
+        (_rxEligible[2] && _rx2.isActive());
 }
 
 void AudioCoreOutputPortStd::setToneEnabled(bool b) {

@@ -33,11 +33,18 @@ public:
     AudioCoreOutputPortStd(AudioCore& core, Activatable& rx0, Activatable& rx1, 
         Activatable& rx2);
 
+    /**
+     * Controls the eligibility of each of the receivers.
+     * @param r Received number
+     * @param isEligible 
+     */
+    void setEligible(unsigned r, bool isEligible) { if (r < 3) _rxEligible[r] = isEligible; }
+
     virtual bool isAudioActive() const;
     virtual void setToneEnabled(bool b);
     virtual void setToneFreq(float hz);
     virtual void setToneLevel(float dbv);
-    virtual void resetDelay();
+    virtual void resetDelay();    
 
 private:
 
@@ -45,6 +52,8 @@ private:
     Activatable& _rx0;
     Activatable& _rx1;
     Activatable& _rx2;
+
+    bool _rxEligible[3] = { false, false, false };
 };
 
 }

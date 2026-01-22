@@ -54,8 +54,9 @@ void TxControl::run() {
         // Check all of the receivers for activity. If anything happens then enter
         // the active mode.
         else if (_audioCore.isAudioActive()) {
-            //_log.info("RX activity seen");
-            _enterActive();
+            // Hold off a bit to prevent a relay chatter loop
+            if (_clock.isPast(_lastIdleStartTime + _chatterDelayMs)) 
+                _enterActive();
         }
     }
     // In this state we are pausing before sending the CW ID.  Nothing
@@ -155,7 +156,7 @@ void TxControl::run() {
             // extend again.
             if (_audioCore.isAudioActive()) {
                 _log.info("Lockout extended");
-                // Should be needed, but just in case
+                // Shouldn't be needed, but just in case
                 _tx.setPtt(false);
                 // Doing this just to extend the timeout
                 _setState(State::LOCKOUT, _lockoutWindowMs);

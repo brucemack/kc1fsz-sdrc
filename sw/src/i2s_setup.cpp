@@ -319,7 +319,7 @@ void audio_setup(audio_block_processor cb) {
     uint din_program_offset = pio_add_program(pio0, &i2s_din_master_program);
   
     // Setup the function select for a GPIO to use from the given PIO 
-    // instance.
+    // instance. NOTICE: These three pins need to be adjacent!
     // DIN
     pio_gpio_init(pio0, adc_din_pin);
     gpio_set_pulls(adc_din_pin, false, false);
@@ -470,7 +470,8 @@ void audio_setup(audio_block_processor cb) {
     uint dout_program_offset = pio_add_program(pio0, &i2s_dout_master_program);
   
     // Setup the function select for a GPIO to use from the given PIO 
-    // instance: DOUT
+    // instance. NOTICE: These pins need to be adjacent!
+    // DOUT
     pio_gpio_init(pio0, dac_dout_pin);
     gpio_set_dir(dac_dout_pin, GPIO_OUT);
     // BCK

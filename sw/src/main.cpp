@@ -350,16 +350,16 @@ static void transferConfigTx(const Config::TransmitConfig& config, Tx& tx) {
     tx.setCtMode((CourtesyToneGenerator::Type)config.ctMode);
 }
 
-static void transferControlConfig(const Config::ControlConfig& config, TxControl& txc) {
+static void transferControlConfig(const Config::ControlConfig& config, TxControl& txc,
+    AudioCoreOutputPortStd& acop) {
     txc.setTimeoutTime(config.timeoutTime);
     txc.setLockoutTime(config.lockoutTime);
     txc.setHangTime(config.hangTime);
     txc.setCtLevel(config.ctLevel);
     txc.setIdMode(config.idMode);
     txc.setIdLevel(config.idLevel);
-    // At the moment, all receivers are eligible
-    //for (unsigned i = 0; i < Config::maxReceivers; i++)
-    //    txc.setRxEligible(i, config.rxEligible[i]);
+    for (unsigned i = 0; i < Config::maxReceivers; i++)
+        acop.setEligible(i, config.rxEligible[i]);
 }
 
 /**
@@ -372,7 +372,8 @@ static void transferConfig(const Config& config,
     Rx& rx0, Rx& rx1,
     Tx& tx0, Tx& tx1,
     TxControl& txc0, TxControl& txc1,
-    AudioCore& core0, AudioCore& core1) 
+    AudioCore& core0, AudioCore& core1,
+    AudioCoreOutputPortStd& acop0, AudioCoreOutputPortStd& acop1) 
 {
     // General configuration
     txc0.setCall(config.general.callSign);
@@ -396,8 +397,8 @@ static void transferConfig(const Config& config,
     transferConfigTx(config.tx1, tx1);
 
     // Controller configuration
-    transferControlConfig(config.txc0, txc0);
-    transferControlConfig(config.txc1, txc1);
+    transferControlConfig(config.txc0, txc0, acop0);
+    transferControlConfig(config.txc1, txc1, acop1);
 }
 
 int main(int argc, const char** argv) {
@@ -523,13 +524,13 @@ int main(int argc, const char** argv) {
             log.setEnabled(false);
         },
         // Config change trigger
-        [&rx0, &rx1, &tx0, &tx1, &txCtl0, &txCtl1, &log]() {
+        [&rx0, &rx1, &tx0, &tx1, &txCtl0, &txCtl1, &acop0, &acop1, &log]() {
             // If anything in the configuration structure is 
             // changed then we force a transfer of all config
             // parameters from the config structure and into 
             // the controller objects.
             log.info("Transferring configuration");
-            transferConfig(config, rx0, rx1, tx0, tx1, txCtl0, txCtl1, core0, core1);
+            transferConfig(config, rx0, rx1, tx0, tx1, txCtl0, txCtl1, core0, core1, acop0, acop1);
         },
         // ID trigger
         [&txCtl0, &txCtl1, &log]() {
@@ -585,7 +586,7 @@ int main(int argc, const char** argv) {
     });
 
     // Force initial config transfer
-    transferConfig(config, rx0, rx1, tx0, tx1, txCtl0, txCtl1, core0, core1);
+    transferConfig(config, rx0, rx1, tx0, tx1, txCtl0, txCtl1, core0, core1, acop0, acop1);
 
     // ===== Main Event Loop =================================================
 
