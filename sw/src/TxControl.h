@@ -140,8 +140,8 @@ private:
     // Controls the rest period after a transmission to avoid "relay chatter."
     // This is most relevant on systems that are using soft COS and need to ensure
     // a quiet receiver during non-TX times.
-    //uint32_t _chatterDelayMs = 100;
-    uint32_t _chatterDelayMs = 0;
+    uint32_t _chatterDelayMs = 100;
+    //uint32_t _chatterDelayMs = 0;
 };
 
 }

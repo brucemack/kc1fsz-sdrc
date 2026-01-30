@@ -64,7 +64,11 @@ using namespace kc1fsz;
 // CONFIGURATION PARAMETERS
 // ===========================================================================
 //
-static const char* VERSION = "V1.2 2026-01-22";
+static const char* VERSION = "V1.2 2026-01-30";
+
+/*
+// THIS IS THE SETUP FOR DIGITAL-2 (2025-05 B) 
+// -------------------------------------------
 #define LED_PIN (PICO_DEFAULT_LED_PIN)
 #define R0_COS_PIN (14)
 #define R0_CTCSS_PIN (13)
@@ -73,6 +77,23 @@ static const char* VERSION = "V1.2 2026-01-22";
 #define R1_CTCSS_PIN (16)
 #define R1_PTT_PIN (15)
 #define LED2_PIN (18)
+#define CONSOLE_TX_PIN (0)
+#define CONSOLE_RX_PIN (1)
+*/
+
+// THIS IS THE SETUP FOR DIGITAL-3 (2026-01) 
+// -------------------------------------------
+#define LED_PIN (PICO_DEFAULT_LED_PIN)
+#define R0_COS_PIN (14)
+#define R0_CTCSS_PIN (13)
+#define R0_PTT_PIN (12)
+#define R1_COS_PIN (0)
+#define R1_CTCSS_PIN (1)
+#define R1_PTT_PIN (15)
+#define LED2_PIN (19)
+#define LED3_PIN (18)
+#define CONSOLE_TX_PIN (16)
+#define CONSOLE_RX_PIN (17)
 
 // System clock rate
 #define SYS_KHZ (153600)
@@ -408,7 +429,8 @@ int main(int argc, const char** argv) {
     set_sys_clock_khz(SYS_KHZ, true);
 
     // Very high speed
-    stdio_uart_init_full(uart0, UART0_BAUD, 0, 1);
+    stdio_uart_init_full(uart0, UART0_BAUD, CONSOLE_TX_PIN, CONSOLE_RX_PIN);
+    streaming_uart_setup();
 
     gpio_init(LED_PIN);
     gpio_set_dir(LED_PIN, GPIO_OUT);
@@ -616,10 +638,6 @@ int main(int argc, const char** argv) {
             } else if (c == 'i') {
                 txCtl0.forceId();
                 txCtl1.forceId();
-            } else if (c == 4) {
-                // Control-D to enter streaming mode
-                stdio_uart_deinit();
-                streaming_uart_setup();
             }
             //if (flash)
             //    printf("DTMF diag %f\n", core1.getDtmfDetectDiagValue());

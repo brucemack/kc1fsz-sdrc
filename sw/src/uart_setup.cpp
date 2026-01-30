@@ -80,11 +80,18 @@ static unsigned TxDmaLength = 0;
 static unsigned TxBufOverflow = 0;
 static unsigned OverlapSendDiscardedCount = 0;
 
+// #### TODO: MAKE THESE PARAMETERS
+#define STREAMING_UART (uart1)
+#define STREAMING_PIN_TX (4)
+#define STREAMING_PIN_RX (5)
+#define STREAMING_DREQ_TX (DREQ_UART1_TX)
+#define STREAMING_DREQ_RX (DREQ_UART1_RX)
+
 void streaming_uart_setup() {
 
-    uart_init(uart0, NETWORK_BAUD);
-    gpio_set_function(0, GPIO_FUNC_UART);
-    gpio_set_function(1, GPIO_FUNC_UART);
+    uart_init(STREAMING_UART, NETWORK_BAUD);
+    gpio_set_function(STREAMING_PIN_TX, GPIO_FUNC_UART);
+    gpio_set_function(STREAMING_PIN_RX, GPIO_FUNC_UART);
 
     dma_ch_rx = dma_claim_unused_channel(true);
     dma_channel_config c_rx = dma_channel_get_default_config(dma_ch_rx);
@@ -95,7 +102,7 @@ void streaming_uart_setup() {
     // Writing to increasing memory address    
     channel_config_set_write_increment(&c_rx, true); 
     // Tell the DMA what to be triggered by 
-    channel_config_set_dreq(&c_rx, DREQ_UART0_RX);
+    channel_config_set_dreq(&c_rx, STREAMING_DREQ_RX);
     // 512 byte circular buffer. The "true" means that this applies
     // to the write address, which is what is relevant for receiving
     // data from the UART.
@@ -108,7 +115,7 @@ void streaming_uart_setup() {
         // Destination address        
         rx_buf,
         // Source address (UART Data Register)
-        &uart_get_hw(uart0)->dr, 
+        &uart_get_hw(STREAMING_UART)->dr, 
         // Full size of receive buffer. Using RP2350 self-trigger to keep 
         // the transfer running continuously.
         dma_encode_transfer_count_with_self_trigger(UART_RX_BUF_SIZE),
@@ -123,7 +130,7 @@ void streaming_uart_setup() {
     // Reading from increasing memory address    
     channel_config_set_read_increment(&c_tx, true); 
     // Tell the DMA what to be triggered by 
-    channel_config_set_dreq(&c_tx, DREQ_UART0_TX);
+    channel_config_set_dreq(&c_tx, STREAMING_DREQ_TX);
     // Circular ring buffer. The "false" means that this applies
     // to the read address, which is what is relevant for sending
     // data to the UART.
@@ -133,7 +140,7 @@ void streaming_uart_setup() {
     dma_channel_configure(
         dma_ch_tx,
         &c_tx,
-        &uart_get_hw(uart0)->dr,
+        &uart_get_hw(STREAMING_UART)->dr,
         TxBuf,
         UART_TX_BUF_SIZE,
         // Not started yet
