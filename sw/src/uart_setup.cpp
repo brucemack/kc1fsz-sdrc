@@ -80,7 +80,18 @@ static unsigned TxDmaLength = 0;
 static unsigned TxBufOverflow = 0;
 static unsigned OverlapSendDiscardedCount = 0;
 
-// #### TODO: MAKE THESE PARAMETERS
+/*
+// THIS IS THE SETUP FOR DIGITAL-2 (2025-05 B) 
+// -------------------------------------------
+#define STREAMING_UART (uart0)
+#define STREAMING_PIN_TX (0)
+#define STREAMING_PIN_RX (1)
+#define STREAMING_DREQ_TX (DREQ_UART0_TX)
+#define STREAMING_DREQ_RX (DREQ_UART10_RX)
+*/
+
+// THIS IS THE SETUP FOR DIGITAL-3 (2026-01) 
+// -------------------------------------------
 #define STREAMING_UART (uart1)
 #define STREAMING_PIN_TX (4)
 #define STREAMING_PIN_RX (5)

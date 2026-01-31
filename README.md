@@ -7,7 +7,16 @@ Releases
     would extend the lockout period. Now the lockout starts after timeout and
     will not be extended.
     - Raised the CW ID frequency to 600 Hz.
-    
+
+New Digital Board 2026-01
+=========================
+
+This board is plug-compatible, be has re-arranged some of the Pico GPIOs.
+When switching between boards please review the relevant pin assignments
+in these files:
+* main.cpp
+* uart_setup.cpp
+* i2s_setup.cpp
 
 Dev Environment Setup Notes
 ===========================
@@ -50,18 +59,14 @@ Serial Console
 
 Connect serial-USB module to GPIO0/GPIO1 pins and use this command:
 
-<<<<<<< HEAD
     minicom -b 115200 -c on -o -D /dev/ttyUSB0
 
 On the Mac laptop, something like this:
 
     minicom -b 115200 -c on -o -D /dev/tty.usbserial-AL02A1A1
-=======
-        minicom -b 1152000 -c on -o -D /dev/ttyUSB0
 
 Notice the higher baud rate!
 
->>>>>>> e8753102a015bece89d759d86688f3cf88540aad
 
 
 

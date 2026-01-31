@@ -64,7 +64,7 @@ using namespace kc1fsz;
 // CONFIGURATION PARAMETERS
 // ===========================================================================
 //
-static const char* VERSION = "V1.2 2026-01-30";
+static const char* VERSION = "V1.2 2026-01-31";
 
 /*
 // THIS IS THE SETUP FOR DIGITAL-2 (2025-05 B) 

@@ -37,13 +37,40 @@
 // CONFIGURATION PARAMETERS
 // ===========================================================================
 //
+/*
+// THIS IS THE SETUP FOR DIGITAL-2 (2025-05 B) 
+// -------------------------------------------
 // GPIO pin to be allocated to I2S SCK (output to CODEC)
 #define sck_pin (4)
 // Pin to be allocated to ADC ~RST
 #define adc_rst_pin (5)
 // Pin to be allocated to ADC I2S DIN (input from)
+// IMPORTANT NOTICE: This pin is just the start of a few pins that 
+// must be kept in sequence for the PIO program to work. Pay very
+// close attention if moving things around.
 #define adc_din_pin (6)
 // Pin to be allocated to DAC I2S DOUT 
+// IMPORTANT NOTICE: This pin is just the start of a few pins that 
+// must be kept in sequence for the PIO program to work. Pay very
+// close attention if moving things around.
+#define dac_dout_pin (9)
+*/
+
+// THIS IS THE SETUP FOR DIGITAL-3 (2026-01) 
+// -------------------------------------------
+// GPIO pin to be allocated to I2S SCK (output to CODEC)
+#define sck_pin (20)
+// Pin to be allocated to ADC ~RST
+#define adc_rst_pin (21)
+// Pin to be allocated to ADC I2S DIN (input from).
+// IMPORTANT NOTICE: This pin is just the start of a few pins that 
+// must be kept in sequence for the PIO program to work. Pay very
+// close attention if moving things around.
+#define adc_din_pin (6)
+// Pin to be allocated to DAC I2S DOUT 
+// IMPORTANT NOTICE: This pin is just the start of a few pins that 
+// must be kept in sequence for the PIO program to work. Pay very
+// close attention if moving things around.
 #define dac_dout_pin (9)
 
 // Number of ADC samples in a block
